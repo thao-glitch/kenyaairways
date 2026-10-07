@@ -97,3 +97,41 @@ export function toDarajaTimestamp(input: DateInput, timeZone = 'Africa/Nairobi')
   const hour = get('hour') === '24' ? '00' : get('hour');
   return `${get('year')}${get('month')}${get('day')}${hour}${get('minute')}${get('second')}`;
 }
+
+/**
+ * Local ISO-8601 with offset: "2026-10-08T07:30:00+03:00".
+ * Used whenever the API returns times to display (storage stays UTC).
+ */
+export function toLocalIso(input: DateInput, timeZone: string): string {
+  const date = toDate(input);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '00';
+  const hour = get('hour') === '24' ? '00' : get('hour');
+  const offset = offsetLabel(date, timeZone);
+  return `${get('year')}-${get('month')}-${get('day')}T${hour}:${get('minute')}:${get('second')}${offset}`;
+}
+
+/** "+03:00" / "-05:30" / "Z" for an instant in a timezone. */
+export function offsetLabel(input: DateInput, timeZone: string): string {
+  const date = toDate(input);
+  const label = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    timeZoneName: 'longOffset',
+  })
+    .formatToParts(date)
+    .find((p) => p.type === 'timeZoneName')?.value;
+  if (!label || label === 'GMT') return 'Z';
+  const match = /^GMT([+-])(\d{2}):(\d{2})$/.exec(label);
+  if (!match) return 'Z';
+  return `${match[1]}${match[2]}:${match[3]}`;
+}

@@ -9,6 +9,7 @@ import { MetaModule } from './modules/meta/meta.module';
 import { AirportsModule } from './modules/flights/airports.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { FlightsModule } from './modules/flights/flights.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { AppExceptionFilter } from './common/filters/app-exception.filter';
@@ -34,6 +35,7 @@ function validationExceptionFactory(errors: ValidationError[]): AppError {
     AirportsModule,
     AuthModule,
     UsersModule,
+    FlightsModule,
   ],
   providers: [
     // Order matters: authentication first, then role checks against req.user.
