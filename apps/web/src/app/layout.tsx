@@ -1,0 +1,45 @@
+import type { Metadata, Viewport } from 'next';
+import './globals.css';
+import { SiteFooter } from '@/components/site-footer';
+import { SiteHeader } from '@/components/site-header';
+import { getTranslator } from '@/lib/i18n';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return {
+    title: {
+      default: `${t('app.name')} — ${t('app.tagline')}`,
+      template: `%s · ${t('app.name')}`,
+    },
+    description: t('home.hero.subtitle'),
+    applicationName: t('app.name'),
+    robots: { index: true, follow: true },
+  };
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0b1220' },
+  ],
+};
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const { t, locale } = await getTranslator();
+  return (
+    <html lang={locale}>
+      <body className="flex min-h-dvh flex-col">
+        <a href="#main" className="skip-link">
+          {t('a11y.skipToContent')}
+        </a>
+        <SiteHeader />
+        <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+          {children}
+        </main>
+        <SiteFooter />
+      </body>
+    </html>
+  );
+}

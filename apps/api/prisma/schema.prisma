@@ -1,0 +1,998 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── enums ─────────────────────────
+enum Role {
+  PASSENGER
+  AGENT
+  OPS
+  FINANCE
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  LOCKED
+  DISABLED
+}
+
+enum BookingStatus {
+  HELD
+  PENDING_PAYMENT
+  CONFIRMED
+  CHECKED_IN
+  FLOWN
+  CANCELLED
+  REFUNDED
+  EXPIRED
+}
+
+enum TripType {
+  ONE_WAY
+  ROUND_TRIP
+  MULTI_CITY
+}
+
+enum CabinClass {
+  ECONOMY
+  PREMIUM_ECONOMY
+  BUSINESS
+  FIRST
+}
+
+enum BookingSource {
+  WEB
+  AGENT
+  ADMIN
+  API
+}
+
+enum PassengerType {
+  ADULT
+  CHILD
+  INFANT
+}
+
+enum DocType {
+  ID
+  PASSPORT
+  BIRTH_CERTIFICATE
+  REFUGEE_TRAVEL_DOC
+}
+
+enum FlightStatus {
+  SCHEDULED
+  DELAYED
+  BOARDING
+  DEPARTED
+  IN_AIR
+  LANDED
+  CANCELLED
+}
+
+enum FareSaleStatus {
+  OPEN
+  CLOSED
+  SUSPENDED
+}
+
+enum RouteType {
+  DOMESTIC
+  INTERNATIONAL
+  REGIONAL
+}
+
+enum CalcType {
+  PERCENT
+  FLAT
+}
+
+enum SeatZone {
+  STANDARD
+  EXIT_ROW
+  BULKHEAD
+  FRONT
+  REAR
+}
+
+enum HoldStatus {
+  ACTIVE
+  RELEASED
+  CONVERTED
+  EXPIRED
+}
+
+enum PaymentProviderType {
+  MPESA_STK
+  MPESA_C2B
+  STRIPE
+  MOCK
+  AIRTEL_MONEY
+}
+
+enum PaymentStatus {
+  REQUIRES_ACTION
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum MpesaTxStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+  TIMEOUT
+}
+
+enum C2BStatus {
+  RECEIVED
+  MATCHED
+  OVERPAID
+  UNDERPAID
+  UNKNOWN_ACCOUNT
+  LATE_PAYMENT
+  SUSPENSE
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum RefundRoute {
+  MPESA_REVERSAL
+  MPESA_B2C
+  STRIPE
+  MANUAL
+}
+
+enum TicketStatus {
+  ISSUED
+  VOID
+  REFUNDED
+}
+
+enum CheckInStatus {
+  NOT_ELIGIBLE
+  ELIGIBLE
+  CHECKED_IN
+  CHANGED
+  CANCELLED
+}
+
+enum BaggageStatus {
+  SCHEDULED
+  CHECKED_IN
+  LOADED
+  DELIVERED
+}
+
+enum AncillaryType {
+  MEAL
+  EXTRA_BAGGAGE
+  SEAT_SELECTION
+  PRIORITY_BOARDING
+  SPORTS_EQUIPMENT
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  INAPP
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+  READ
+}
+
+enum ConsentPurpose {
+  TERMS
+  PRIVACY
+  MARKETING
+  COOKIES
+  DATA_PROCESSING
+}
+
+enum SubjectRequestType {
+  EXPORT
+  DELETE
+}
+
+enum SubjectRequestStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+enum OtpPurpose {
+  LOGIN
+  VERIFY_PHONE
+  RESET_PASSWORD
+  CHANGE_PHONE
+}
+
+enum OtpChannel {
+  SMS
+  EMAIL
+}
+
+enum StatusSource {
+  MANUAL
+  SYSTEM
+  SIMULATOR
+}
+
+// ───────────────────────── identity ─────────────────────────
+model User {
+  id               String     @id @default(cuid())
+  email            String?    @unique
+  emailVerifiedAt  DateTime?
+  phone            String?    @unique // E.164 (+2547…)
+  phoneVerifiedAt  DateTime?
+  passwordHash     String?
+  firstName        String
+  lastName         String
+  role             Role       @default(PASSENGER)
+  status           UserStatus @default(ACTIVE)
+  locale           String     @default("en-KE")
+  timezone         String     @default("Africa/Nairobi")
+  failedLoginCount Int        @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  profile          PassengerProfile?
+  bookings         Booking[]
+  refreshTokens    RefreshToken[]
+  consents         ConsentRecord[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]           @relation("AuditActor")
+  seatHolds        SeatHold[]
+  dataRequests     DataSubjectRequest[]
+  refundsRequested Refund[]             @relation("RefundRequester")
+  refundsApproved  Refund[]             @relation("RefundApprover")
+
+  @@index([role, status])
+}
+
+model PassengerProfile {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  dateOfBirth         DateTime? @db.Date
+  sex                 String?
+  nationality         String? // ISO-3166 alpha-2
+  countryOfResidence  String?
+  docType             DocType?
+  docNumberEncrypted  String? // AES-256-GCM app-level (ENCRYPTION_KEY)
+  docNumberHash       String? // blind index for lookup
+  docExpiryDate       DateTime? @db.Date
+  redressNumber       String?
+  knownTravelerNumber String?
+  emergencyName       String?
+  emergencyPhone      String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([docNumberHash])
+}
+
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  familyId   String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  replacedBy String?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, familyId])
+}
+
+model OtpCode {
+  id          String     @id @default(cuid())
+  channel     OtpChannel
+  destination String // E.164 phone or email
+  purpose     OtpPurpose
+  codeHash    String
+  attempts    Int        @default(0)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@index([destination, purpose, consumedAt])
+}
+
+model ConsentRecord {
+  id            String         @id @default(cuid())
+  userId        String?
+  subjectKey    String? // phone/email hash when pre-auth
+  purpose       ConsentPurpose
+  policyVersion String
+  granted       Boolean
+  grantedAt     DateTime       @default(now())
+  revokedAt     DateTime?
+  source        String? // web|agent|kiosk
+  metadata      Json?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([subjectKey, purpose])
+}
+
+model DataSubjectRequest {
+  id          String               @id @default(cuid())
+  userId      String
+  type        SubjectRequestType
+  status      SubjectRequestStatus @default(PENDING)
+  requestedAt DateTime             @default(now())
+  processedAt DateTime?
+  resultKey   String? // object key of export bundle
+  notes       String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, status])
+}
+
+// ───────────────────────── network & fleet ─────────────────────────
+model Airport {
+  code        String    @id // IATA: NBO, WIL, …
+  icao        String?
+  name        String
+  city        String
+  country     String
+  countryCode String
+  timezone    String // Africa/Nairobi
+  latitude    Float
+  longitude   Float
+  region      RouteType @default(DOMESTIC)
+  domestic    Boolean   @default(true)
+
+  origins       FlightSchedule[] @relation("ScheduleOrigin")
+  dests         FlightSchedule[] @relation("ScheduleDest")
+  flightOrigins Flight[]         @relation("FlightOrigin")
+  flightDests   Flight[]         @relation("FlightDest")
+}
+
+model AircraftType {
+  id           String   @id @default(cuid())
+  code         String   @unique // E190, B738
+  name         String
+  manufacturer String
+  rangeKm      Int?
+  cruiseKts    Int?
+  createdAt    DateTime @default(now())
+
+  seatMap   SeatMap?
+  aircraft  Aircraft[]
+  schedules FlightSchedule[]
+}
+
+model Aircraft {
+  id             String    @id @default(cuid())
+  registration   String    @unique // 5Y-KAA
+  aircraftTypeId String
+  status         String    @default("ACTIVE") // ACTIVE|MAINTENANCE|RETIRED
+  deliveredAt    DateTime? @db.Date
+  createdAt      DateTime  @default(now())
+
+  aircraftType AircraftType @relation(fields: [aircraftTypeId], references: [id])
+  flights      Flight[]
+}
+
+model SeatMap {
+  id             String   @id @default(cuid())
+  aircraftTypeId String   @unique
+  name           String
+  layout         Json // { rows, letters, cabinZones: [{cabin, fromRow, toRow}] }
+  updatedAt      DateTime @updatedAt
+
+  aircraftType AircraftType @relation(fields: [aircraftTypeId], references: [id], onDelete: Cascade)
+  seats        Seat[]
+}
+
+model Seat {
+  id            String     @id @default(cuid())
+  seatMapId     String
+  label         String // 12A
+  row           Int
+  letter        String
+  cabin         CabinClass @default(ECONOMY)
+  zone          SeatZone   @default(STANDARD)
+  extraFeeMinor Int        @default(0)
+  currency      String     @default("KES")
+  blocked       Boolean    @default(false)
+  active        Boolean    @default(true)
+
+  seatMap  SeatMap    @relation(fields: [seatMapId], references: [id], onDelete: Cascade)
+  holds    SeatHold[]
+  tickets  Ticket[]
+  checkIns CheckIn[]
+
+  @@unique([seatMapId, label])
+  @@index([seatMapId, cabin, row])
+}
+
+// ───────────────────────── schedules & flights ─────────────────────────
+model FlightSchedule {
+  id                 String         @id @default(cuid())
+  flightNumber       String // F13101
+  originCode         String
+  destinationCode    String
+  aircraftTypeId     String
+  departLocalMinutes Int // minutes from local midnight (07:30 → 450)
+  durationMinutes    Int
+  daysOfWeek         Int[] // 0=Sun … 6=Sat
+  routeType          RouteType      @default(DOMESTIC)
+  effectiveFrom      DateTime       @db.Date
+  effectiveTo        DateTime?      @db.Date
+  baseFareMinor      Int
+  currency           String         @default("KES")
+  saleStatus         FareSaleStatus @default(OPEN)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  origin       Airport      @relation("ScheduleOrigin", fields: [originCode], references: [code])
+  destination  Airport      @relation("ScheduleDest", fields: [destinationCode], references: [code])
+  aircraftType AircraftType @relation(fields: [aircraftTypeId], references: [id])
+  flights      Flight[]
+
+  @@index([originCode, destinationCode, effectiveFrom])
+}
+
+model Flight {
+  id              String       @id @default(cuid())
+  scheduleId      String
+  flightDate      DateTime     @db.Date
+  flightNumber    String // denormalised for fast search
+  originCode      String
+  destinationCode String
+  routeType       RouteType    @default(DOMESTIC)
+  aircraftId      String?
+  scheduledDepUtc DateTime
+  scheduledArrUtc DateTime
+  actualDepUtc    DateTime?
+  actualArrUtc    DateTime?
+  boardingUtc     DateTime?
+  gate            String?
+  status          FlightStatus @default(SCHEDULED)
+  delayMinutes    Int          @default(0)
+  currency        String       @default("KES")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  schedule     FlightSchedule      @relation(fields: [scheduleId], references: [id])
+  origin       Airport             @relation("FlightOrigin", fields: [originCode], references: [code])
+  destination  Airport             @relation("FlightDest", fields: [destinationCode], references: [code])
+  aircraft     Aircraft?           @relation(fields: [aircraftId], references: [id])
+  statusEvents FlightStatusEvent[]
+  fares        Fare[]
+  inventory    Inventory[]
+  segments     BookingSegment[]
+  tickets      Ticket[]
+  seatHolds    SeatHold[]
+  checkIns     CheckIn[]
+
+  @@unique([scheduleId, flightDate])
+  @@index([flightDate, originCode, destinationCode])
+  @@index([status, scheduledDepUtc])
+}
+
+model FlightStatusEvent {
+  id           String       @id @default(cuid())
+  flightId     String
+  status       FlightStatus
+  gate         String?
+  delayMinutes Int?
+  message      String?
+  source       StatusSource @default(MANUAL)
+  payload      Json?
+  createdAt    DateTime     @default(now())
+
+  flight Flight @relation(fields: [flightId], references: [id], onDelete: Cascade)
+
+  @@index([flightId, createdAt])
+}
+
+// ───────────────────────── pricing & inventory ─────────────────────────
+model FareClass {
+  id             String     @id @default(cuid())
+  code           String     @unique // SAVER, CLASSIC, FLEX
+  name           String
+  cabin          CabinClass @default(ECONOMY)
+  baggageKg      Int        @default(20)
+  carryOnKg      Int        @default(7)
+  changesAllowed Boolean    @default(false)
+  refundable     Boolean    @default(false)
+  sortOrder      Int        @default(100)
+  active         Boolean    @default(true)
+
+  fares       Fare[]
+  rules       FareRule[]
+  tickets     Ticket[]
+  inventories Inventory[]
+}
+
+model Fare {
+  id            String         @id @default(cuid())
+  flightId      String
+  fareClassId   String
+  baseFareMinor Int
+  currency      String         @default("KES")
+  saleStatus    FareSaleStatus @default(OPEN)
+  fareRules     Json? // copy of applicable rules at publication time
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  flight    Flight    @relation(fields: [flightId], references: [id], onDelete: Cascade)
+  fareClass FareClass @relation(fields: [fareClassId], references: [id])
+
+  @@unique([flightId, fareClassId])
+}
+
+model FareRule {
+  id                  String    @id @default(cuid())
+  fareClassId         String
+  routeType           RouteType @default(DOMESTIC)
+  changeAllowed       Boolean   @default(false)
+  changeFeeMinor      Int       @default(0)
+  cancelAllowed       Boolean   @default(true)
+  cancelFeePercentBps Int       @default(0) // 2500 = 25%
+  noShowFeeMinor      Int       @default(0)
+  textEn              String
+  textSw              String?
+  currency            String    @default("KES")
+  createdAt           DateTime  @default(now())
+
+  fareClass FareClass @relation(fields: [fareClassId], references: [id], onDelete: Cascade)
+
+  @@unique([fareClassId, routeType])
+}
+
+/// TAX/FEE RATES ARE PLACEHOLDERS — finance must confirm before go-live.
+model TaxFeeRule {
+  id            String    @id @default(cuid())
+  code          String // VAT, ASC, PSC, FUEL
+  name          String
+  description   String?
+  routeType     RouteType
+  calcType      CalcType
+  percentBps    Int? // 1600 = 16.00%
+  flatMinor     Int?
+  currency      String    @default("KES")
+  appliesTo     String    @default("BASE_FARE") // BASE_FARE|TOTAL
+  sortOrder     Int       @default(100)
+  active        Boolean   @default(true)
+  effectiveFrom DateTime  @default(now()) @db.Date
+  effectiveTo   DateTime? @db.Date
+  reference     String? // provenance note — CONFIRM WITH FINANCE
+  createdAt     DateTime  @default(now())
+
+  @@index([routeType, active, effectiveFrom])
+}
+
+model Inventory {
+  id           String   @id @default(cuid())
+  flightId     String
+  fareClassId  String
+  seatsTotal   Int
+  seatsHeld    Int      @default(0)
+  seatsSold    Int      @default(0)
+  seatsBlocked Int      @default(0)
+  version      Int      @default(0) // optimistic concurrency
+  updatedAt    DateTime @updatedAt
+
+  flight    Flight    @relation(fields: [flightId], references: [id], onDelete: Cascade)
+  fareClass FareClass @relation(fields: [fareClassId], references: [id])
+
+  @@unique([flightId, fareClassId])
+}
+
+// ───────────────────────── bookings ─────────────────────────
+model Booking {
+  id            String        @id @default(cuid())
+  pnr           String        @unique // 6 chars, collision-safe
+  userId        String?
+  status        BookingStatus @default(HELD)
+  tripType      TripType      @default(ONE_WAY)
+  source        BookingSource @default(WEB)
+  currency      String        @default("KES")
+  totalMinor    Int
+  breakdown     Json // [{code,label,amountMinor}]
+  contactEmail  String?
+  contactPhone  String? // E.164
+  adultCount    Int           @default(1)
+  childCount    Int           @default(0)
+  infantCount   Int           @default(0)
+  locale        String        @default("en-KE")
+  holdExpiresAt DateTime?
+  confirmedAt   DateTime?
+  checkedInAt   DateTime?
+  cancelledAt   DateTime?
+  expiresAt     DateTime? // hard TTL for unpaid bookings
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user          User?              @relation(fields: [userId], references: [id])
+  segments      BookingSegment[]
+  passengers    BookingPassenger[]
+  payments      Payment[]
+  refunds       Refund[]
+  seatHolds     SeatHold[]
+  ancillaries   BookingAncillary[]
+  bags          Baggage[]
+  notifications Notification[]
+  tickets       Ticket[]
+  checkIns      CheckIn[]
+  c2bPayments   MpesaC2BPayment[]
+
+  @@index([userId, status, createdAt])
+  @@index([status, holdExpiresAt])
+}
+
+model BookingSegment {
+  id              String   @id @default(cuid())
+  bookingId       String
+  seq             Int
+  flightId        String
+  fareClassId     String
+  originCode      String
+  destinationCode String
+  depUtc          DateTime
+  arrUtc          DateTime
+  fareMinor       Int
+  currency        String   @default("KES")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  flight  Flight  @relation(fields: [flightId], references: [id])
+
+  @@unique([bookingId, seq])
+}
+
+model BookingPassenger {
+  id                 String        @id @default(cuid())
+  bookingId          String
+  seq                Int
+  type               PassengerType @default(ADULT)
+  firstName          String
+  lastName           String
+  middleName         String?
+  dateOfBirth        DateTime?     @db.Date
+  sex                String?
+  nationality        String?
+  countryOfResidence String?
+  docType            DocType?
+  docNumberEncrypted String? // AES-256-GCM
+  docNumberHash      String?
+  docExpiry          DateTime?     @db.Date
+  email              String?
+  phone              String?
+  apisRedress        String?
+  apisKnownTraveler  String?
+  mealPreference     String?
+  specialAssistance  String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  booking     Booking            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  ticket      Ticket?
+  checkIn     CheckIn?
+  bags        Baggage[]
+  ancillaries BookingAncillary[]
+
+  @@unique([bookingId, seq])
+  @@index([docNumberHash])
+}
+
+model Ticket {
+  id                 String       @id @default(cuid())
+  bookingPassengerId String       @unique
+  bookingId          String
+  flightId           String
+  fareClassId        String
+  seatId             String?
+  seatLabel          String?
+  ticketNumber       String       @unique // 13 chars, airline-issued
+  status             TicketStatus @default(ISSUED)
+  issuedAt           DateTime?
+  voidedAt           DateTime?
+  refundedAt         DateTime?
+  baggageKg          Int          @default(20)
+  fareMinor          Int
+  taxesMinor         Int
+  currency           String       @default("KES")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  bookingPassenger BookingPassenger @relation(fields: [bookingPassengerId], references: [id], onDelete: Cascade)
+  booking          Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  flight           Flight           @relation(fields: [flightId], references: [id])
+  fareClass        FareClass        @relation(fields: [fareClassId], references: [id])
+  seat             Seat?            @relation(fields: [seatId], references: [id])
+
+  @@index([bookingId])
+  @@index([flightId])
+}
+
+model BookingAncillary {
+  id                 String        @id @default(cuid())
+  bookingId          String
+  bookingPassengerId String?
+  type               AncillaryType
+  code               String // MEAL: VGML, BBML; PRIORITY
+  name               String
+  quantity           Int           @default(1)
+  priceMinor         Int
+  currency           String        @default("KES")
+  status             String        @default("CONFIRMED")
+  createdAt          DateTime      @default(now())
+
+  booking          Booking           @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingPassenger BookingPassenger? @relation(fields: [bookingPassengerId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId, type])
+}
+
+model Baggage {
+  id                 String        @id @default(cuid())
+  bookingId          String
+  bookingPassengerId String
+  pieces             Int           @default(1)
+  weightKg           Int
+  extra              Boolean       @default(false)
+  status             BaggageStatus @default(SCHEDULED)
+  tagNumber          String?       @unique
+  priceMinor         Int           @default(0)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  booking          Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingPassenger BookingPassenger @relation(fields: [bookingPassengerId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+}
+
+model SeatHold {
+  id          String     @id @default(cuid())
+  flightId    String
+  seatId      String
+  bookingId   String?
+  userId      String?
+  token       String     @unique
+  activeKey   String?    @unique // "<flightId>:<seatId>" while ACTIVE — DB-level no-double-hold
+  status      HoldStatus @default(ACTIVE)
+  expiresAt   DateTime
+  releasedAt  DateTime?
+  convertedAt DateTime?
+  createdAt   DateTime   @default(now())
+
+  flight  Flight   @relation(fields: [flightId], references: [id], onDelete: Cascade)
+  seat    Seat     @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([flightId, status, expiresAt])
+  @@index([bookingId])
+}
+
+// ───────────────────────── payments ─────────────────────────
+model Payment {
+  id             String              @id @default(cuid())
+  bookingId      String
+  provider       PaymentProviderType
+  status         PaymentStatus       @default(REQUIRES_ACTION)
+  amountMinor    Int
+  currency       String              @default("KES")
+  idempotencyKey String              @unique
+  providerRef    String? // Stripe PaymentIntent id / M-Pesa CheckoutRequestID
+  clientSecret   String?
+  failureCode    String?
+  failureMessage String?
+  paidAt         DateTime?
+  expiresAt      DateTime?
+  metadata       Json?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  booking  Booking            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  mpesaTxs MpesaTransaction[]
+  c2b      MpesaC2BPayment[]
+  refunds  Refund[]
+
+  @@index([bookingId, status])
+  @@index([providerRef])
+}
+
+model MpesaTransaction {
+  id                  String        @id @default(cuid())
+  paymentId           String
+  merchantRequestId   String?
+  checkoutRequestId   String        @unique
+  accountReference    String // PNR (≤12 chars)
+  phone               String // 2547… MSISDN
+  amountMinor         Int // Daraja sends whole KES; stored in minor units
+  amountExpectedMinor Int
+  currency            String        @default("KES")
+  status              MpesaTxStatus @default(PENDING)
+  resultCode          Int?
+  resultDesc          String?
+  mpesaReceiptNumber  String?       @unique
+  transactionDate     DateTime?
+  rawPayload          Json?
+  queryAttempts       Int           @default(0)
+  lastPolledAt        DateTime?
+  reconciledAt        DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([accountReference])
+}
+
+model MpesaC2BPayment {
+  id              String    @id @default(cuid())
+  transId         String    @unique // Safaricom TransID
+  billRefNumber   String // PNR or free text
+  msisdn          String
+  amountMinor     Int
+  currency        String    @default("KES")
+  transactionDate DateTime?
+  status          C2BStatus @default(RECEIVED)
+  paymentId       String?
+  bookingId       String?
+  rawPayload      Json?
+  resolvedById    String?
+  resolvedAt      DateTime?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([billRefNumber])
+  @@index([status, createdAt])
+}
+
+model Refund {
+  id             String       @id @default(cuid())
+  bookingId      String
+  paymentId      String
+  amountMinor    Int
+  currency       String       @default("KES")
+  status         RefundStatus @default(REQUESTED)
+  route          RefundRoute  @default(MANUAL)
+  reason         String?
+  policyNote     String? // fare-rule basis of the refund
+  requestedById  String
+  approvedById   String?
+  approvedAt     DateTime?
+  providerRef    String?
+  providerResult Json?
+  failureReason  String?
+  completedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  booking     Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  payment     Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  requestedBy User    @relation("RefundRequester", fields: [requestedById], references: [id])
+  approvedBy  User?   @relation("RefundApprover", fields: [approvedById], references: [id])
+
+  @@index([status, createdAt])
+  @@index([bookingId])
+}
+
+// ───────────────────────── check-in ─────────────────────────
+model CheckIn {
+  id                 String        @id @default(cuid())
+  bookingPassengerId String        @unique
+  bookingId          String
+  flightId           String
+  seatId             String?
+  seatLabel          String?
+  status             CheckInStatus @default(ELIGIBLE)
+  boardingSequence   Int?
+  gate               String?
+  checkedInAt        DateTime?
+  source             String        @default("WEB")
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  bookingPassenger BookingPassenger @relation(fields: [bookingPassengerId], references: [id], onDelete: Cascade)
+  booking          Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  flight           Flight           @relation(fields: [flightId], references: [id], onDelete: Cascade)
+  seat             Seat?            @relation(fields: [seatId], references: [id])
+  boardingPass     BoardingPass?
+
+  @@index([flightId, status])
+}
+
+model BoardingPass {
+  id         String   @id @default(cuid())
+  checkInId  String   @unique
+  bcbp       String // IATA BCBP payload
+  format     String   @default("PDF")
+  storageKey String? // generated PDF
+  issuedAt   DateTime @default(now())
+  walletMeta Json?
+
+  checkIn CheckIn @relation(fields: [checkInId], references: [id], onDelete: Cascade)
+}
+
+// ───────────────────────── comms, audit ─────────────────────────
+model Notification {
+  id           String              @id @default(cuid())
+  userId       String?
+  bookingId    String?
+  channel      NotificationChannel
+  templateCode String // booking.confirmed, flight.delayed, …
+  recipient    String // masked in logs
+  subject      String?
+  body         String?
+  payload      Json?
+  status       NotificationStatus  @default(QUEUED)
+  providerRef  String?
+  error        String?
+  sentAt       DateTime?
+  readAt       DateTime?
+  createdAt    DateTime            @default(now())
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status, createdAt])
+  @@index([channel, status])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actorRole  Role?
+  action     String // auth.login.success, payment.stk.callback, refund.approve, …
+  entityType String?
+  entityId   String?
+  outcome    String   @default("SUCCESS") // SUCCESS|FAILURE|DENIED
+  ip         String?
+  userAgent  String?
+  requestId  String?
+  metadata   Json? // PII-masked
+  createdAt  DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+}

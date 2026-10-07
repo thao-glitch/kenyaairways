@@ -1,0 +1,1284 @@
+/**
+ * Idempotent seed: Kenyan airport network, fleet with seat maps, fare classes,
+ * configurable tax/fee rules (FINANCE MUST CONFIRM RATES), 30 days of flights
+ * with fares + inventory, and one user per RBAC role.
+ *
+ * Run: pnpm db:seed   (safe to re-run; everything upserts)
+ */
+import {
+  PrismaClient,
+  type Prisma,
+  type RouteType,
+  type Role,
+  type CabinClass,
+  type DocType,
+} from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import { getEnv } from '../src/config/env';
+import { blindIndex, encryptField } from '../src/common/crypto';
+
+const prisma = new PrismaClient();
+const env = getEnv();
+
+// ───────────────────────────── time helpers ─────────────────────────────
+function tzOffsetMs(ts: number, timeZone: string): number {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+  const map: Record<string, string> = {};
+  for (const part of dtf.formatToParts(new Date(ts))) {
+    if (part.type !== 'literal') map[part.type] = part.value;
+  }
+  const asUtc = Date.UTC(
+    Number(map.year),
+    Number(map.month) - 1,
+    Number(map.day),
+    Number(map.hour) % 24,
+    Number(map.minute),
+    Number(map.second),
+  );
+  return asUtc - ts;
+}
+
+/** Wall-clock time in an IANA zone → absolute UTC instant. */
+function zonedToUtc(
+  year: number,
+  month: number,
+  day: number,
+  minutesFromMidnight: number,
+  timeZone: string,
+): Date {
+  const guess = Date.UTC(year, month - 1, day, 0, 0, 0) + minutesFromMidnight * 60_000;
+  const firstPass = guess - tzOffsetMs(guess, timeZone);
+  return new Date(guess - tzOffsetMs(firstPass, timeZone));
+}
+
+/** Today's date in Nairobi as {y,m,d} shifted by dayOffset. */
+function nairobiDate(dayOffset: number): { y: number; m: number; d: number } {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Nairobi' }).format(new Date());
+  const [y, m, d] = today.split('-').map(Number);
+  const shifted = new Date(Date.UTC(y, m - 1, d + dayOffset));
+  return {
+    y: shifted.getUTCFullYear(),
+    m: shifted.getUTCMonth() + 1,
+    d: shifted.getUTCDate(),
+  };
+}
+
+function utcDate(y: number, m: number, d: number): Date {
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
+function weekdayOf(y: number, m: number, d: number): number {
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
+const clock = (min: number) => min;
+
+// ───────────────────────────── airports ─────────────────────────────
+interface SeedAirport {
+  code: string;
+  icao: string;
+  name: string;
+  city: string;
+  country: string;
+  countryCode: string;
+  timezone: string;
+  latitude: number;
+  longitude: number;
+  region: RouteType;
+  domestic: boolean;
+}
+
+const AIRPORTS: SeedAirport[] = [
+  {
+    code: 'NBO',
+    icao: 'HKJK',
+    name: 'Jomo Kenyatta International Airport',
+    city: 'Nairobi',
+    country: 'Kenya',
+    countryCode: 'KE',
+    timezone: 'Africa/Nairobi',
+    latitude: -1.3192,
+    longitude: 36.9278,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'WIL',
+    icao: 'HKWS',
+    name: 'Wilson Airport',
+    city: 'Nairobi',
+    country: 'Kenya',
+    countryCode: 'KE',
+    timezone: 'Africa/Nairobi',
+    latitude: -1.3217,
+    longitude: 36.8148,
+    region: 'DOMESTIC',
+    domestic: true,
+  },
+  {
+    code: 'MBA',
+    icao: 'HKMB',
+    name: 'Mara Serena Airstrip',
+    city: 'Maasai Mara',
+    country: 'Kenya',
+    countryCode: 'KE',
+    timezone: 'Africa/Nairobi',
+    latitude: -1.4061,
+    longitude: 35.0168,
+    region: 'DOMESTIC',
+    domestic: true,
+  },
+  {
+    code: 'KIS',
+    icao: 'HKKI',
+    name: 'Kisumu International Airport',
+    city: 'Kisumu',
+    country: 'Kenya',
+    countryCode: 'KE',
+    timezone: 'Africa/Nairobi',
+    latitude: -0.0861,
+    longitude: 34.7289,
+    region: 'DOMESTIC',
+    domestic: true,
+  },
+  {
+    code: 'EDL',
+    icao: 'HKEL',
+    name: 'Eldoret International Airport',
+    city: 'Eldoret',
+    country: 'Kenya',
+    countryCode: 'KE',
+    timezone: 'Africa/Nairobi',
+    latitude: 0.4045,
+    longitude: 35.2389,
+    region: 'DOMESTIC',
+    domestic: true,
+  },
+  {
+    code: 'MYD',
+    icao: 'HKMY',
+    name: 'Manda Airport',
+    city: 'Malindi',
+    country: 'Kenya',
+    countryCode: 'KE',
+    timezone: 'Africa/Nairobi',
+    latitude: -3.2175,
+    longitude: 40.1014,
+    region: 'DOMESTIC',
+    domestic: true,
+  },
+  {
+    code: 'LAU',
+    icao: 'HKLU',
+    name: 'Manda Airport',
+    city: 'Lamu',
+    country: 'Kenya',
+    countryCode: 'KE',
+    timezone: 'Africa/Nairobi',
+    latitude: -2.2524,
+    longitude: 40.9129,
+    region: 'DOMESTIC',
+    domestic: true,
+  },
+  {
+    code: 'EBB',
+    icao: 'HKKA',
+    name: 'Entebbe International Airport',
+    city: 'Entebbe',
+    country: 'Uganda',
+    countryCode: 'UG',
+    timezone: 'Africa/Kampala',
+    latitude: 0.0424,
+    longitude: 32.4467,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'DAR',
+    icao: 'HTDA',
+    name: 'Julius Nyerere International Airport',
+    city: 'Dar es Salaam',
+    country: 'Tanzania',
+    countryCode: 'TZ',
+    timezone: 'Africa/Dar_es_Salaam',
+    latitude: -6.8781,
+    longitude: 39.2026,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'JNB',
+    icao: 'FAOR',
+    name: 'O.R. Tambo International Airport',
+    city: 'Johannesburg',
+    country: 'South Africa',
+    countryCode: 'ZA',
+    timezone: 'Africa/Johannesburg',
+    latitude: -26.1367,
+    longitude: 28.2411,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'DXB',
+    icao: 'OMDB',
+    name: 'Dubai International Airport',
+    city: 'Dubai',
+    country: 'United Arab Emirates',
+    countryCode: 'AE',
+    timezone: 'Asia/Dubai',
+    latitude: 25.2532,
+    longitude: 55.3657,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'LHR',
+    icao: 'EGLL',
+    name: 'Heathrow Airport',
+    city: 'London',
+    country: 'United Kingdom',
+    countryCode: 'GB',
+    timezone: 'Europe/London',
+    latitude: 51.47,
+    longitude: -0.4543,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+];
+
+// ───────────────────────────── fleet & seat maps ─────────────────────────────
+interface SeatSpec {
+  label: string;
+  row: number;
+  letter: string;
+  cabin: CabinClass;
+  zone: 'STANDARD' | 'EXIT_ROW' | 'BULKHEAD' | 'FRONT' | 'REAR';
+  extraFeeMinor: number;
+}
+
+function buildE190Seats(): SeatSpec[] {
+  const seats: SeatSpec[] = [];
+  const letters = ['A', 'B', 'C', 'D'];
+  for (let row = 1; row <= 24; row += 1) {
+    for (const letter of letters) {
+      const zone =
+        row <= 2
+          ? 'FRONT'
+          : row >= 23
+            ? 'REAR'
+            : row === 12 || row === 13
+              ? 'EXIT_ROW'
+              : 'STANDARD';
+      const fee = zone === 'FRONT' ? 150_000 : zone === 'EXIT_ROW' ? 250_000 : 0; // KES 1,500 / 2,500
+      seats.push({
+        label: `${row}${letter}`,
+        row,
+        letter,
+        cabin: 'ECONOMY',
+        zone,
+        extraFeeMinor: fee,
+      });
+    }
+  }
+  return seats;
+}
+
+function buildB738Seats(): SeatSpec[] {
+  const seats: SeatSpec[] = [];
+  for (let row = 1; row <= 4; row += 1) {
+    for (const letter of ['A', 'B', 'D', 'E']) {
+      seats.push({
+        label: `${row}${letter}`,
+        row,
+        letter,
+        cabin: 'BUSINESS',
+        zone: 'FRONT',
+        extraFeeMinor: 0,
+      });
+    }
+  }
+  for (let row = 5; row <= 30; row += 1) {
+    for (const letter of ['A', 'B', 'C', 'D', 'E', 'F']) {
+      const zone =
+        row <= 6
+          ? 'FRONT'
+          : row === 12 || row === 13
+            ? 'EXIT_ROW'
+            : row >= 29
+              ? 'REAR'
+              : 'STANDARD';
+      const fee = zone === 'FRONT' ? 200_000 : zone === 'EXIT_ROW' ? 300_000 : 0; // KES 2,000 / 3,000
+      seats.push({
+        label: `${row}${letter}`,
+        row,
+        letter,
+        cabin: 'ECONOMY',
+        zone,
+        extraFeeMinor: fee,
+      });
+    }
+  }
+  return seats;
+}
+
+const AIRCRAFT_TYPES = [
+  {
+    code: 'E190',
+    name: 'Embraer E190',
+    manufacturer: 'Embraer',
+    rangeKm: 4500,
+    cruiseKts: 470,
+    buildSeats: buildE190Seats,
+  },
+  {
+    code: 'B738',
+    name: 'Boeing 737-800',
+    manufacturer: 'Boeing',
+    rangeKm: 5700,
+    cruiseKts: 460,
+    buildSeats: buildB738Seats,
+  },
+] as const;
+
+const AIRCRAFT = [
+  { registration: '5Y-KAA', type: 'E190' },
+  { registration: '5Y-KAB', type: 'E190' },
+  { registration: '5Y-KAC', type: 'E190' },
+  { registration: '5Y-KBB', type: 'B738' },
+  { registration: '5Y-KBC', type: 'B738' },
+];
+
+// ───────────────────────────── fares ─────────────────────────────
+const FARE_CLASSES = [
+  {
+    code: 'SAVER',
+    name: 'Saver',
+    cabin: 'ECONOMY' as CabinClass,
+    baggageKg: 20,
+    carryOnKg: 7,
+    changesAllowed: false,
+    refundable: false,
+    sortOrder: 10,
+    multiplier: 1.0,
+  },
+  {
+    code: 'CLASSIC',
+    name: 'Classic',
+    cabin: 'ECONOMY' as CabinClass,
+    baggageKg: 23,
+    carryOnKg: 10,
+    changesAllowed: true,
+    refundable: false,
+    sortOrder: 20,
+    multiplier: 1.25,
+  },
+  {
+    code: 'FLEX',
+    name: 'Flex',
+    cabin: 'ECONOMY' as CabinClass,
+    baggageKg: 30,
+    carryOnKg: 10,
+    changesAllowed: true,
+    refundable: true,
+    sortOrder: 30,
+    multiplier: 1.6,
+  },
+  {
+    code: 'BUSINESS',
+    name: 'Business',
+    cabin: 'BUSINESS' as CabinClass,
+    baggageKg: 40,
+    carryOnKg: 15,
+    changesAllowed: true,
+    refundable: true,
+    sortOrder: 40,
+    multiplier: 2.4,
+  },
+];
+
+interface FareRuleSpec {
+  fareClass: string;
+  routeType: RouteType;
+  changeAllowed: boolean;
+  changeFeeMinor: number;
+  cancelAllowed: boolean;
+  cancelFeePercentBps: number;
+  noShowFeeMinor: number;
+  textEn: string;
+  textSw: string;
+}
+
+const FARE_RULES: FareRuleSpec[] = [
+  // ── domestic ──
+  {
+    fareClass: 'SAVER',
+    routeType: 'DOMESTIC',
+    changeAllowed: false,
+    changeFeeMinor: 0,
+    cancelAllowed: true,
+    cancelFeePercentBps: 2500,
+    noShowFeeMinor: 100_000,
+    textEn:
+      'Changes not permitted. Cancellation 7+ days before departure: 25% fee. Within 7 days or no-show: non-refundable.',
+    textSw:
+      'Mabadiliko hayaruhusiwi. Kufuta siku 7+ kabla ya safari: ada ya 25%. Siku chini ya 7 au usioweza kuhudhuria: hazirudishwi.',
+  },
+  {
+    fareClass: 'CLASSIC',
+    routeType: 'DOMESTIC',
+    changeAllowed: true,
+    changeFeeMinor: 500_000,
+    cancelAllowed: true,
+    cancelFeePercentBps: 1000,
+    noShowFeeMinor: 100_000,
+    textEn:
+      'One free change. Further changes KES 5,000. Cancellation 7+ days before departure: 10% fee; within 7 days: 25% fee.',
+    textSw:
+      'Mabadiliko moja bila malipo. Zaidi ya moja KES 5,000. Kufuta siku 7+ kabla: ada ya 10%; ndani ya siku 7: ada ya 25%.',
+  },
+  {
+    fareClass: 'FLEX',
+    routeType: 'DOMESTIC',
+    changeAllowed: true,
+    changeFeeMinor: 0,
+    cancelAllowed: true,
+    cancelFeePercentBps: 0,
+    noShowFeeMinor: 0,
+    textEn:
+      'Free changes any time up to 2 hours before departure. Fully refundable to original payment method.',
+    textSw:
+      'Mabadiliko bila malipo hadi saa 2 kabla ya safari. Inarudishwa kikamilifu kwenye njia ya malipo ya awali.',
+  },
+  {
+    fareClass: 'BUSINESS',
+    routeType: 'DOMESTIC',
+    changeAllowed: true,
+    changeFeeMinor: 0,
+    cancelAllowed: true,
+    cancelFeePercentBps: 0,
+    noShowFeeMinor: 0,
+    textEn: 'Fully flexible and refundable.',
+    textSw: 'Rafiki kabisa na inarudishwa.',
+  },
+  // ── international ──
+  {
+    fareClass: 'SAVER',
+    routeType: 'INTERNATIONAL',
+    changeAllowed: false,
+    changeFeeMinor: 0,
+    cancelAllowed: true,
+    cancelFeePercentBps: 4000,
+    noShowFeeMinor: 200_000,
+    textEn:
+      'Changes not permitted. Cancellation 14+ days before departure: 40% fee. Within 14 days or no-show: non-refundable. Name changes not permitted.',
+    textSw:
+      'Mabadiliko hayaruhusiwi. Kufuta siku 14+ kabla: ada ya 40%. Ndani ya siku 14 au usioweza kuhudhuria: hazirudishwi.',
+  },
+  {
+    fareClass: 'CLASSIC',
+    routeType: 'INTERNATIONAL',
+    changeAllowed: true,
+    changeFeeMinor: 1000_000,
+    cancelAllowed: true,
+    cancelFeePercentBps: 2000,
+    noShowFeeMinor: 200_000,
+    textEn:
+      'Changes permitted with KES 10,000 fee. Cancellation 14+ days before departure: 20% fee; within 14 days: 40% fee.',
+    textSw:
+      'Mabadiliko yanaruhusiwa kwa ada ya KES 10,000. Kufuta siku 14+ kabla: ada ya 20%; ndani ya siku 14: 40%.',
+  },
+  {
+    fareClass: 'FLEX',
+    routeType: 'INTERNATIONAL',
+    changeAllowed: true,
+    changeFeeMinor: 0,
+    cancelAllowed: true,
+    cancelFeePercentBps: 500,
+    noShowFeeMinor: 200_000,
+    textEn:
+      'Free changes subject to fare difference. Cancellation 14+ days before departure: 5% fee; within 14 days: 20% fee.',
+    textSw:
+      'Mabadiliko bila ada kulingana na tofauti ya nauli. Kufuta siku 14+ kabla: ada ya 5%; ndani ya siku 14: 20%.',
+  },
+  {
+    fareClass: 'BUSINESS',
+    routeType: 'INTERNATIONAL',
+    changeAllowed: true,
+    changeFeeMinor: 0,
+    cancelAllowed: true,
+    cancelFeePercentBps: 0,
+    noShowFeeMinor: 0,
+    textEn: 'Fully flexible and refundable, including no-shows.',
+    textSw: 'Rafiki kabisa na inarudishwa, hata usioweza kuhudhuria.',
+  },
+];
+
+/**
+ * TAX/FEE PLACEHOLDERS — Finance must confirm every rate, code and reference
+ * against the current KAA/KCAA schedule before go-live (see INTEGRATION_CHECKLIST).
+ */
+const TAX_RULES: Array<Omit<Prisma.TaxFeeRuleUncheckedCreateInput, 'id' | 'createdAt'>> = [
+  {
+    code: 'VAT',
+    name: 'Value Added Tax (domestic)',
+    routeType: 'DOMESTIC',
+    calcType: 'PERCENT',
+    percentBps: 1600,
+    appliesTo: 'BASE_FARE',
+    sortOrder: 10,
+    reference: 'PLACEHOLDER — Kenya VAT Act rate 16% — FINANCE TO CONFIRM',
+  },
+  {
+    code: 'VAT',
+    name: 'Value Added Tax (international)',
+    routeType: 'INTERNATIONAL',
+    calcType: 'PERCENT',
+    percentBps: 0,
+    appliesTo: 'BASE_FARE',
+    sortOrder: 10,
+    reference: 'PLACEHOLDER — international carriage typically zero-rated — FINANCE TO CONFIRM',
+  },
+  {
+    code: 'PSC',
+    name: 'Passenger Service Charge (domestic)',
+    routeType: 'DOMESTIC',
+    calcType: 'FLAT',
+    flatMinor: 50_000,
+    appliesTo: 'TOTAL',
+    sortOrder: 20,
+    reference: 'PLACEHOLDER — KES 500 per passenger — FINANCE TO CONFIRM',
+  },
+  {
+    code: 'PSC',
+    name: 'Passenger Service Charge (international)',
+    routeType: 'INTERNATIONAL',
+    calcType: 'FLAT',
+    flatMinor: 200_000,
+    appliesTo: 'TOTAL',
+    sortOrder: 20,
+    reference: 'PLACEHOLDER — KES 2,000 per passenger — FINANCE TO CONFIRM',
+  },
+  {
+    code: 'ASC',
+    name: 'Airport Service Charge (domestic)',
+    routeType: 'DOMESTIC',
+    calcType: 'FLAT',
+    flatMinor: 10_000,
+    appliesTo: 'TOTAL',
+    sortOrder: 30,
+    reference: 'PLACEHOLDER — KES 100 per passenger — FINANCE TO CONFIRM',
+  },
+  {
+    code: 'ASC',
+    name: 'Airport Service Charge (international)',
+    routeType: 'INTERNATIONAL',
+    calcType: 'FLAT',
+    flatMinor: 50_000,
+    appliesTo: 'TOTAL',
+    sortOrder: 30,
+    reference: 'PLACEHOLDER — KES 500 per passenger — FINANCE TO CONFIRM',
+  },
+  {
+    code: 'FUEL',
+    name: 'Fuel Surcharge (domestic)',
+    routeType: 'DOMESTIC',
+    calcType: 'PERCENT',
+    percentBps: 500,
+    appliesTo: 'BASE_FARE',
+    sortOrder: 40,
+    reference: 'PLACEHOLDER — 5% of base fare — FINANCE TO CONFIRM',
+  },
+  {
+    code: 'FUEL',
+    name: 'Fuel Surcharge (international)',
+    routeType: 'INTERNATIONAL',
+    calcType: 'PERCENT',
+    percentBps: 800,
+    appliesTo: 'BASE_FARE',
+    sortOrder: 40,
+    reference: 'PLACEHOLDER — 8% of base fare — FINANCE TO CONFIRM',
+  },
+];
+
+// ───────────────────────────── schedules ─────────────────────────────
+interface ScheduleSpec {
+  flightNumber: string;
+  origin: string;
+  destination: string;
+  departMin: number;
+  durationMin: number;
+  days: number[]; // 0=Sun…6=Sat
+  aircraft: string;
+  baseFareMinor: number; // SAVER base, whole shillings
+  routeType: RouteType;
+}
+
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
+
+const SCHEDULES: ScheduleSpec[] = [
+  // domestic E190
+  {
+    flightNumber: 'F13101',
+    origin: 'NBO',
+    destination: 'MBA',
+    departMin: clock(7 * 60),
+    durationMin: 60,
+    days: ALL_DAYS,
+    aircraft: 'E190',
+    baseFareMinor: 850_000,
+    routeType: 'DOMESTIC',
+  },
+  {
+    flightNumber: 'F13102',
+    origin: 'MBA',
+    destination: 'NBO',
+    departMin: clock(17 * 60),
+    durationMin: 60,
+    days: ALL_DAYS,
+    aircraft: 'E190',
+    baseFareMinor: 850_000,
+    routeType: 'DOMESTIC',
+  },
+  {
+    flightNumber: 'F13103',
+    origin: 'NBO',
+    destination: 'KIS',
+    departMin: clock(9 * 60),
+    durationMin: 55,
+    days: ALL_DAYS,
+    aircraft: 'E190',
+    baseFareMinor: 750_000,
+    routeType: 'DOMESTIC',
+  },
+  {
+    flightNumber: 'F13104',
+    origin: 'KIS',
+    destination: 'NBO',
+    departMin: clock(18 * 60),
+    durationMin: 55,
+    days: ALL_DAYS,
+    aircraft: 'E190',
+    baseFareMinor: 750_000,
+    routeType: 'DOMESTIC',
+  },
+  {
+    flightNumber: 'F13105',
+    origin: 'NBO',
+    destination: 'EDL',
+    departMin: clock(7 * 60 + 30),
+    durationMin: 50,
+    days: ALL_DAYS,
+    aircraft: 'E190',
+    baseFareMinor: 780_000,
+    routeType: 'DOMESTIC',
+  },
+  {
+    flightNumber: 'F13106',
+    origin: 'EDL',
+    destination: 'NBO',
+    departMin: clock(17 * 60 + 30),
+    durationMin: 50,
+    days: ALL_DAYS,
+    aircraft: 'E190',
+    baseFareMinor: 780_000,
+    routeType: 'DOMESTIC',
+  },
+  {
+    flightNumber: 'F13107',
+    origin: 'NBO',
+    destination: 'MYD',
+    departMin: clock(10 * 60),
+    durationMin: 70,
+    days: ALL_DAYS,
+    aircraft: 'E190',
+    baseFareMinor: 950_000,
+    routeType: 'DOMESTIC',
+  },
+  {
+    flightNumber: 'F13108',
+    origin: 'MYD',
+    destination: 'NBO',
+    departMin: clock(19 * 60),
+    durationMin: 70,
+    days: ALL_DAYS,
+    aircraft: 'E190',
+    baseFareMinor: 950_000,
+    routeType: 'DOMESTIC',
+  },
+  {
+    flightNumber: 'F13109',
+    origin: 'NBO',
+    destination: 'LAU',
+    departMin: clock(8 * 60),
+    durationMin: 80,
+    days: ALL_DAYS,
+    aircraft: 'E190',
+    baseFareMinor: 950_000,
+    routeType: 'DOMESTIC',
+  },
+  {
+    flightNumber: 'F13110',
+    origin: 'LAU',
+    destination: 'NBO',
+    departMin: clock(17 * 60),
+    durationMin: 80,
+    days: ALL_DAYS,
+    aircraft: 'E190',
+    baseFareMinor: 950_000,
+    routeType: 'DOMESTIC',
+  },
+  {
+    flightNumber: 'F13111',
+    origin: 'WIL',
+    destination: 'MBA',
+    departMin: clock(8 * 60),
+    durationMin: 60,
+    days: [1, 3, 5],
+    aircraft: 'E190',
+    baseFareMinor: 900_000,
+    routeType: 'DOMESTIC',
+  },
+  {
+    flightNumber: 'F13112',
+    origin: 'MBA',
+    destination: 'WIL',
+    departMin: clock(16 * 60),
+    durationMin: 60,
+    days: [1, 3, 5],
+    aircraft: 'E190',
+    baseFareMinor: 900_000,
+    routeType: 'DOMESTIC',
+  },
+  {
+    flightNumber: 'F13113',
+    origin: 'WIL',
+    destination: 'KIS',
+    departMin: clock(7 * 60),
+    durationMin: 45,
+    days: [1, 2, 3, 4, 5],
+    aircraft: 'E190',
+    baseFareMinor: 700_000,
+    routeType: 'DOMESTIC',
+  },
+  {
+    flightNumber: 'F13114',
+    origin: 'KIS',
+    destination: 'WIL',
+    departMin: clock(19 * 60),
+    durationMin: 45,
+    days: [1, 2, 3, 4, 5],
+    aircraft: 'E190',
+    baseFareMinor: 700_000,
+    routeType: 'DOMESTIC',
+  },
+  // regional / international B738
+  {
+    flightNumber: 'F13201',
+    origin: 'NBO',
+    destination: 'EBB',
+    departMin: clock(8 * 60 + 30),
+    durationMin: 75,
+    days: ALL_DAYS,
+    aircraft: 'B738',
+    baseFareMinor: 2_800_000,
+    routeType: 'INTERNATIONAL',
+  },
+  {
+    flightNumber: 'F13202',
+    origin: 'EBB',
+    destination: 'NBO',
+    departMin: clock(12 * 60),
+    durationMin: 75,
+    days: ALL_DAYS,
+    aircraft: 'B738',
+    baseFareMinor: 2_800_000,
+    routeType: 'INTERNATIONAL',
+  },
+  {
+    flightNumber: 'F13203',
+    origin: 'NBO',
+    destination: 'DAR',
+    departMin: clock(9 * 60),
+    durationMin: 90,
+    days: ALL_DAYS,
+    aircraft: 'B738',
+    baseFareMinor: 2_600_000,
+    routeType: 'INTERNATIONAL',
+  },
+  {
+    flightNumber: 'F13204',
+    origin: 'DAR',
+    destination: 'NBO',
+    departMin: clock(13 * 60),
+    durationMin: 90,
+    days: ALL_DAYS,
+    aircraft: 'B738',
+    baseFareMinor: 2_600_000,
+    routeType: 'INTERNATIONAL',
+  },
+  {
+    flightNumber: 'F13205',
+    origin: 'NBO',
+    destination: 'JNB',
+    departMin: clock(10 * 60),
+    durationMin: 210,
+    days: [1, 2, 4, 5],
+    aircraft: 'B738',
+    baseFareMinor: 4_500_000,
+    routeType: 'INTERNATIONAL',
+  },
+  {
+    flightNumber: 'F13206',
+    origin: 'JNB',
+    destination: 'NBO',
+    departMin: clock(14 * 60),
+    durationMin: 210,
+    days: [1, 2, 4, 5],
+    aircraft: 'B738',
+    baseFareMinor: 4_500_000,
+    routeType: 'INTERNATIONAL',
+  },
+  {
+    flightNumber: 'F13207',
+    origin: 'NBO',
+    destination: 'DXB',
+    departMin: clock(14 * 60),
+    durationMin: 240,
+    days: [0, 2, 4, 6],
+    aircraft: 'B738',
+    baseFareMinor: 5_200_000,
+    routeType: 'INTERNATIONAL',
+  },
+  {
+    flightNumber: 'F13208',
+    origin: 'DXB',
+    destination: 'NBO',
+    departMin: clock(2 * 60 + 30),
+    durationMin: 270,
+    days: [1, 3, 5, 0],
+    aircraft: 'B738',
+    baseFareMinor: 5_200_000,
+    routeType: 'INTERNATIONAL',
+  },
+  {
+    flightNumber: 'F13209',
+    origin: 'NBO',
+    destination: 'LHR',
+    departMin: clock(23 * 60),
+    durationMin: 510,
+    days: [1, 3, 5],
+    aircraft: 'B738',
+    baseFareMinor: 9_500_000,
+    routeType: 'INTERNATIONAL',
+  },
+  {
+    flightNumber: 'F13210',
+    origin: 'LHR',
+    destination: 'NBO',
+    departMin: clock(21 * 60 + 30),
+    durationMin: 540,
+    days: [2, 4, 6],
+    aircraft: 'B738',
+    baseFareMinor: 9_500_000,
+    routeType: 'INTERNATIONAL',
+  },
+];
+
+// ───────────────────────────── seed steps ─────────────────────────────
+async function seedAirports(): Promise<void> {
+  for (const airport of AIRPORTS) {
+    await prisma.airport.upsert({
+      where: { code: airport.code },
+      update: airport,
+      create: airport,
+    });
+  }
+  console.log(`✓ airports (${AIRPORTS.length})`);
+}
+
+async function seedFleet(): Promise<void> {
+  for (const type of AIRCRAFT_TYPES) {
+    const { buildSeats, ...data } = type;
+    const aircraftType = await prisma.aircraftType.upsert({
+      where: { code: data.code },
+      update: data,
+      create: data,
+    });
+
+    const seats = buildSeats();
+    const seatMap = await prisma.seatMap.upsert({
+      where: { aircraftTypeId: aircraftType.id },
+      update: {
+        name: `${data.code} layout`,
+        layout: {
+          rows: Math.max(...seats.map((s) => s.row)),
+          lettersByCabin: {
+            ECONOMY: [...new Set(seats.filter((s) => s.cabin === 'ECONOMY').map((s) => s.letter))],
+            BUSINESS: [
+              ...new Set(seats.filter((s) => s.cabin === 'BUSINESS').map((s) => s.letter)),
+            ],
+          },
+          seatCount: seats.length,
+        },
+      },
+      create: {
+        aircraftTypeId: aircraftType.id,
+        name: `${data.code} layout`,
+        layout: {
+          rows: Math.max(...seats.map((s) => s.row)),
+          lettersByCabin: {
+            ECONOMY: [...new Set(seats.filter((s) => s.cabin === 'ECONOMY').map((s) => s.letter))],
+            BUSINESS: [
+              ...new Set(seats.filter((s) => s.cabin === 'BUSINESS').map((s) => s.letter)),
+            ],
+          },
+          seatCount: seats.length,
+        },
+      },
+    });
+
+    for (const seat of seats) {
+      await prisma.seat.upsert({
+        where: { seatMapId_label: { seatMapId: seatMap.id, label: seat.label } },
+        update: seat,
+        create: { ...seat, seatMapId: seatMap.id },
+      });
+    }
+  }
+
+  for (const aircraft of AIRCRAFT) {
+    const type = await prisma.aircraftType.findUniqueOrThrow({ where: { code: aircraft.type } });
+    await prisma.aircraft.upsert({
+      where: { registration: aircraft.registration },
+      update: { aircraftTypeId: type.id, status: 'ACTIVE' },
+      create: {
+        registration: aircraft.registration,
+        aircraftTypeId: type.id,
+        status: 'ACTIVE',
+        deliveredAt: new Date(Date.UTC(2018, 0, 1)),
+      },
+    });
+  }
+  console.log(`✓ fleet (${AIRCRAFT_TYPES.length} types, ${AIRCRAFT.length} aircraft, seat maps)`);
+}
+
+async function seedFareClassesAndRules(): Promise<void> {
+  for (const fc of FARE_CLASSES) {
+    const { multiplier: _multiplier, ...data } = fc;
+    await prisma.fareClass.upsert({ where: { code: data.code }, update: data, create: data });
+  }
+  for (const rule of FARE_RULES) {
+    const fareClass = await prisma.fareClass.findUniqueOrThrow({ where: { code: rule.fareClass } });
+    const { fareClass: _code, ...rest } = rule;
+    await prisma.fareRule.upsert({
+      where: { fareClassId_routeType: { fareClassId: fareClass.id, routeType: rule.routeType } },
+      update: rest,
+      create: { ...rest, fareClassId: fareClass.id },
+    });
+  }
+  console.log(`✓ fare classes (${FARE_CLASSES.length}) + rules (${FARE_RULES.length})`);
+}
+
+async function seedTaxRules(): Promise<void> {
+  const existing = await prisma.taxFeeRule.findFirst({
+    where: { code: 'VAT', routeType: 'DOMESTIC' },
+  });
+  if (existing) {
+    console.log('• tax rules already seeded (delete rows to re-create with new rates)');
+    return;
+  }
+  for (const rule of TAX_RULES) {
+    await prisma.taxFeeRule.create({ data: rule });
+  }
+  console.log(
+    `⚠ tax/fee rules created — PLACEHOLDER RATES, finance must confirm (${TAX_RULES.length})`,
+  );
+}
+
+async function seedSchedulesAndFlights(): Promise<void> {
+  const airportByCode = new Map(AIRPORTS.map((a) => [a.code, a]));
+  const effectiveFrom = utcDate(
+    ...((): [number, number, number] => {
+      const { y, m, d } = nairobiDate(-7);
+      return [y, m, d];
+    })(),
+  );
+
+  const scheduleIds = new Map<string, string>();
+
+  for (const spec of SCHEDULES) {
+    const type = await prisma.aircraftType.findUniqueOrThrow({ where: { code: spec.aircraft } });
+    const data: Prisma.FlightScheduleUncheckedCreateInput = {
+      flightNumber: spec.flightNumber,
+      originCode: spec.origin,
+      destinationCode: spec.destination,
+      aircraftTypeId: type.id,
+      departLocalMinutes: spec.departMin,
+      durationMinutes: spec.durationMin,
+      daysOfWeek: spec.days,
+      routeType: spec.routeType,
+      effectiveFrom,
+      baseFareMinor: spec.baseFareMinor,
+      saleStatus: 'OPEN',
+    };
+    const schedule = await prisma.flightSchedule.upsert({
+      where: { id: `sched_${spec.flightNumber}` },
+      update: data,
+      create: { ...data, id: `sched_${spec.flightNumber}` },
+    });
+    scheduleIds.set(spec.flightNumber, schedule.id);
+  }
+  console.log(`✓ schedules (${SCHEDULES.length})`);
+
+  const fareClassRows = await prisma.fareClass.findMany();
+  const fareClassByCode = new Map(fareClassRows.map((fc) => [fc.code, fc]));
+  const aircraftRows = await prisma.aircraft.findMany({ include: { aircraftType: true } });
+  const aircraftByType = new Map<string, (typeof aircraftRows)[number][]>();
+  for (const aircraft of aircraftRows) {
+    const list = aircraftByType.get(aircraft.aircraftTypeId) ?? [];
+    list.push(aircraft);
+    aircraftByType.set(aircraft.aircraftTypeId, list);
+  }
+  const seatCounts = new Map<string, { economy: number; business: number }>();
+  for (const type of AIRCRAFT_TYPES) {
+    const seats = type.buildSeats();
+    seatCounts.set(type.code, {
+      economy: seats.filter((s) => s.cabin === 'ECONOMY').length,
+      business: seats.filter((s) => s.cabin === 'BUSINESS').length,
+    });
+  }
+
+  let flightCount = 0;
+  for (let dayOffset = -1; dayOffset <= 29; dayOffset += 1) {
+    const { y, m, d } = nairobiDate(dayOffset);
+    const weekday = weekdayOf(y, m, d);
+    const flightDate = utcDate(y, m, d);
+
+    for (const spec of SCHEDULES) {
+      if (!spec.days.includes(weekday)) continue;
+      const scheduleId = scheduleIds.get(spec.flightNumber)!;
+      const origin = airportByCode.get(spec.origin)!;
+      const scheduledDepUtc = zonedToUtc(y, m, d, spec.departMin, origin.timezone);
+      const scheduledArrUtc = new Date(scheduledDepUtc.getTime() + spec.durationMin * 60_000);
+      const type = AIRCRAFT_TYPES.find((t) => t.code === spec.aircraft)!;
+      const fleet = aircraftByType.get(type.code) ?? [];
+      const aircraft = fleet[flightCount % fleet.length];
+
+      const flight = await prisma.flight.upsert({
+        where: { scheduleId_flightDate: { scheduleId, flightDate } },
+        update: {
+          scheduledDepUtc,
+          scheduledArrUtc,
+          boardingUtc: new Date(scheduledDepUtc.getTime() - 45 * 60_000),
+          aircraftId: aircraft?.id ?? null,
+        },
+        create: {
+          scheduleId,
+          flightDate,
+          flightNumber: spec.flightNumber,
+          originCode: spec.origin,
+          destinationCode: spec.destination,
+          routeType: spec.routeType,
+          aircraftId: aircraft?.id ?? null,
+          scheduledDepUtc,
+          scheduledArrUtc,
+          boardingUtc: new Date(scheduledDepUtc.getTime() - 45 * 60_000),
+          status: 'SCHEDULED',
+          currency: 'KES',
+        },
+      });
+
+      // fares: economy classes on every aircraft, BUSINESS only where seats exist
+      const counts = seatCounts.get(spec.aircraft)!;
+      const applicable = FARE_CLASSES.filter((fc) =>
+        fc.cabin === 'BUSINESS' ? counts.business > 0 : counts.economy > 0,
+      );
+      for (const fc of applicable) {
+        const fareClass = fareClassByCode.get(fc.code)!;
+        const baseFareMinor = Math.round((spec.baseFareMinor * fc.multiplier) / 100) * 100;
+        await prisma.fare.upsert({
+          where: { flightId_fareClassId: { flightId: flight.id, fareClassId: fareClass.id } },
+          update: { baseFareMinor, saleStatus: 'OPEN' },
+          create: {
+            flightId: flight.id,
+            fareClassId: fareClass.id,
+            baseFareMinor,
+            saleStatus: 'OPEN',
+          },
+        });
+
+        let seatsTotal: number;
+        if (fc.cabin === 'BUSINESS') {
+          seatsTotal = counts.business;
+        } else {
+          const saver = Math.floor(counts.economy * 0.45);
+          const classic = Math.floor(counts.economy * 0.35);
+          const flex = counts.economy - saver - classic;
+          seatsTotal = fc.code === 'SAVER' ? saver : fc.code === 'CLASSIC' ? classic : flex;
+        }
+
+        await prisma.inventory.upsert({
+          where: { flightId_fareClassId: { flightId: flight.id, fareClassId: fareClass.id } },
+          update: {},
+          create: { flightId: flight.id, fareClassId: fareClass.id, seatsTotal },
+        });
+      }
+      flightCount += 1;
+    }
+  }
+  console.log(`✓ flights + fares + inventory (${flightCount} instances across 30 days)`);
+}
+
+interface SeedUser {
+  email: string;
+  phone: string;
+  firstName: string;
+  lastName: string;
+  role: Role;
+  profile?: {
+    dateOfBirth: string;
+    nationality: string;
+    countryOfResidence: string;
+    docType: DocType;
+    docNumber: string;
+  };
+}
+
+const USERS: SeedUser[] = [
+  {
+    email: 'passenger@flight13.example',
+    phone: '+254712345678',
+    firstName: 'Ani',
+    lastName: 'Mwangi',
+    role: 'PASSENGER',
+    profile: {
+      dateOfBirth: '1990-04-12',
+      nationality: 'KE',
+      countryOfResidence: 'KE',
+      docType: 'ID',
+      docNumber: '29011801',
+    },
+  },
+  {
+    email: 'j.kamau@flight13.example',
+    phone: '+254733111222',
+    firstName: 'James',
+    lastName: 'Kamau',
+    role: 'PASSENGER',
+    profile: {
+      dateOfBirth: '1985-11-02',
+      nationality: 'KE',
+      countryOfResidence: 'KE',
+      docType: 'PASSPORT',
+      docNumber: 'A0034567',
+    },
+  },
+  {
+    email: 'agent@flight13.example',
+    phone: '+254720000002',
+    firstName: 'Wanjiru',
+    lastName: 'Njoroge',
+    role: 'AGENT',
+  },
+  {
+    email: 'ops@flight13.example',
+    phone: '+254720000003',
+    firstName: 'Peter',
+    lastName: 'Otieno',
+    role: 'OPS',
+  },
+  {
+    email: 'finance@flight13.example',
+    phone: '+254720000004',
+    firstName: 'Grace',
+    lastName: 'Wambui',
+    role: 'FINANCE',
+  },
+  {
+    email: 'admin@flight13.example',
+    phone: '+254720000005',
+    firstName: 'Sys',
+    lastName: 'Admin',
+    role: 'ADMIN',
+  },
+];
+
+async function seedUsers(): Promise<void> {
+  const passwordHash = await bcrypt.hash(env.SEED_USER_PASSWORD, 10);
+  const policyVersion = env.PRIVACY_POLICY_VERSION;
+
+  for (const seed of USERS) {
+    const user = await prisma.user.upsert({
+      where: { email: seed.email },
+      update: { role: seed.role, status: 'ACTIVE' },
+      create: {
+        email: seed.email,
+        phone: seed.phone,
+        firstName: seed.firstName,
+        lastName: seed.lastName,
+        role: seed.role,
+        passwordHash,
+        emailVerifiedAt: new Date(),
+        phoneVerifiedAt: new Date(),
+      },
+    });
+
+    if (seed.profile) {
+      await prisma.passengerProfile.upsert({
+        where: { userId: user.id },
+        update: {},
+        create: {
+          userId: user.id,
+          dateOfBirth: new Date(`${seed.profile.dateOfBirth}T00:00:00.000Z`),
+          nationality: seed.profile.nationality,
+          countryOfResidence: seed.profile.countryOfResidence,
+          docType: seed.profile.docType,
+          docNumberEncrypted: encryptField(seed.profile.docNumber, env.ENCRYPTION_KEY),
+          docNumberHash: blindIndex(seed.profile.docNumber, env.ENCRYPTION_KEY),
+        },
+      });
+    }
+
+    for (const purpose of ['TERMS', 'PRIVACY'] as const) {
+      const existing = await prisma.consentRecord.findFirst({
+        where: { userId: user.id, purpose, revokedAt: null },
+      });
+      if (!existing) {
+        await prisma.consentRecord.create({
+          data: { userId: user.id, purpose, policyVersion, granted: true, source: 'seed' },
+        });
+      }
+    }
+  }
+  console.log(`✓ users (${USERS.length}, one per role) — login with SEED_USER_PASSWORD from .env`);
+}
+
+async function main(): Promise<void> {
+  console.log('Seeding Flight13 …');
+  await seedAirports();
+  await seedFleet();
+  await seedFareClassesAndRules();
+  await seedTaxRules();
+  await seedSchedulesAndFlights();
+  await seedUsers();
+  console.log('Seed complete.');
+}
+
+main()
+  .catch((err) => {
+    console.error('Seed failed:', err);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

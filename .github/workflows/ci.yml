@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint · Typecheck · Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: flight13
+          POSTGRES_PASSWORD: flight13_dev
+          POSTGRES_DB: flight13
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U flight13 -d flight13"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://flight13:flight13_dev@localhost:5432/flight13
+      REDIS_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Generate local secrets
+        run: node scripts/bootstrap.mjs
+      - name: Build shared package
+        run: pnpm --filter @flight13/shared build
+      - name: Migrate
+        run: pnpm db:migrate
+      - name: Seed
+        run: pnpm db:seed
+      - name: Lint
+        run: pnpm lint
+      - name: Format check
+        run: pnpm format:check
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Test
+        run: pnpm test
+
+  docker:
+    name: Docker build (api, web)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build api image
+        run: docker build -f apps/api/Dockerfile -t flight13/api:ci .
+      - name: Build web image
+        run: docker build -f apps/web/Dockerfile -t flight13/web:ci .

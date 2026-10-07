@@ -1,0 +1,21 @@
+# Build hygiene — never bake local state or secrets into images
+**/node_modules
+**/dist
+**/.next
+**/build
+**/coverage
+.git
+.github
+.husky
+*.log
+logs/
+tmp/
+.tmp/
+# secrets: compose passes env via env_file, images carry no .env
+.env
+.env.*
+!.env.example
+test-results/
+playwright-report/
+blob-report/
+.DS_Store

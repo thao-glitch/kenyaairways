@@ -1,0 +1,60 @@
+{
+  "name": "flight13",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Flight13 — real-time airline service platform for a Kenya-based licensed airline",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "bootstrap": "node scripts/bootstrap.mjs",
+    "dev": "pnpm -r --parallel --filter @flight13/api --filter @flight13/web dev",
+    "build": "pnpm --filter @flight13/shared build && pnpm -r --filter @flight13/api --filter @flight13/web build",
+    "lint": "eslint . && pnpm -r lint",
+    "lint:fix": "eslint . --fix && pnpm -r lint:fix",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:migrate": "pnpm --filter @flight13/api db:migrate",
+    "db:deploy": "pnpm --filter @flight13/api db:deploy",
+    "db:seed": "pnpm --filter @flight13/api db:seed",
+    "db:reset": "pnpm --filter @flight13/api db:reset",
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "prepare": "husky",
+    "postinstall": "pnpm --filter @flight13/api exec prisma generate"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs,cjs}": [
+      "eslint --fix --max-warnings=0 --no-warn-ignored",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,css,prisma,graphql}": [
+      "prettier --write"
+    ]
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "prisma",
+      "@prisma/engines",
+      "@scarf/scarf"
+    ]
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.5",
+    "globals": "^17.13.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.9",
+    "prettier-plugin-prisma": "^5.0.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8.71.1"
+  }
+}
