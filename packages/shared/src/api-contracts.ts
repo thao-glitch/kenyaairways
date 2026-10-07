@@ -1,5 +1,5 @@
 import type { Currency, Locale, Role } from './constants';
-import type { RouteType } from './domain';
+import type { RouteType, UserStatus } from './domain';
 
 /** Standard list envelope for paginated endpoints. */
 export interface Paginated<T> {
@@ -67,4 +67,18 @@ export interface SessionUserDto {
   locale: Locale;
   emailVerified: boolean;
   phoneVerified: boolean;
+}
+
+/** ADMIN-only user directory row (never exposes password hashes or tokens). */
+export interface AdminUserDto {
+  id: string;
+  email: string | null;
+  phone: string | null;
+  firstName: string;
+  lastName: string;
+  role: Role;
+  status: UserStatus;
+  locale: string;
+  createdAt: string;
+  lastLoginAt: string | null;
 }

@@ -5,6 +5,7 @@ import type { Response } from 'express';
 import { PrismaService } from '../../prisma/prisma.module';
 import { RedisService } from '../../redis/redis.module';
 import { createLogger } from '../../common/logger';
+import { Public } from '../../common/decorators/public.decorator';
 
 export const APP_VERSION = '0.1.0';
 
@@ -64,6 +65,7 @@ export class HealthService {
   ) {}
 }
 
+@Public()
 @Controller()
 @ApiTags('system')
 export class HealthController {

@@ -19,6 +19,9 @@ export const SUPPORTED_LOCALES = ['en-KE', 'sw-KE'] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = 'en-KE';
 
+/** Bumped whenever terms/privacy text changes — stored on every ConsentRecord. */
+export const POLICY_VERSION = '2026-01';
+
 export const SUPPORTED_ROLES = ['PASSENGER', 'AGENT', 'OPS', 'FINANCE', 'ADMIN'] as const;
 export type Role = (typeof SUPPORTED_ROLES)[number];
 

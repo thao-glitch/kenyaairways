@@ -2,7 +2,9 @@ import { Controller, Get, Module } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { MetaDto } from '@flight13/shared';
 import { getEnv } from '../../config/env';
+import { Public } from '../../common/decorators/public.decorator';
 
+@Public()
 @Controller('meta')
 @ApiTags('meta')
 export class MetaController {

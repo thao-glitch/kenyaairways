@@ -20,7 +20,7 @@ timezone `Africa/Nairobi` (stored UTC, displayed airport-local) · phones E.164 
 | #   | Milestone                                                           | Status  |
 | --- | ------------------------------------------------------------------- | ------- |
 | M1  | Foundation: monorepo, schema, seed, health, meta, airports, swagger | ✅ done |
-| M2  | Auth & access control (JWT, roles, MFA-ready OTP)                   | ⬜      |
+| M2  | Auth & access control (JWT, roles, MFA-ready OTP)                   | ✅ done |
 | M3  | Flight inventory, search, fare rules                                | ⬜      |
 | M4  | Booking lifecycle + seat holds                                      | ⬜      |
 | M5  | Payments: M-Pesa STK/C2B, Stripe, refunds, reconciliation           | ⬜      |
@@ -71,16 +71,30 @@ One user per role — `PASSENGER`, `AGENT`, `OPS`, `FINANCE`, `ADMIN` — at
 
 ---
 
-## API (M1 surface)
+## API (M1–M2 surface)
 
 Base URL: `http://localhost:4000` · global prefix `/api/v1` · OpenAPI at `/api/docs`.
 
-| Method | Path               | Purpose                                           |
-| ------ | ------------------ | ------------------------------------------------- |
-| GET    | `/healthz`         | Liveness (no dependencies)                        |
-| GET    | `/readyz`          | Readiness: Postgres + Redis (503 degraded)        |
-| GET    | `/api/v1/meta`     | Airline, IATA code, currencies, locales, timezone |
-| GET    | `/api/v1/airports` | Seeded airport directory (NBO/WIL/…/DXB)          |
+| Method | Path                       | Purpose                                           | Auth           |
+| ------ | -------------------------- | ------------------------------------------------- | -------------- |
+| GET    | `/healthz`                 | Liveness (no dependencies)                        | public         |
+| GET    | `/readyz`                  | Readiness: Postgres + Redis (503 degraded)        | public         |
+| GET    | `/api/v1/meta`             | Airline, IATA code, currencies, locales, timezone | public         |
+| GET    | `/api/v1/airports`         | Seeded airport directory (NBO/WIL/…/DXB)          | public         |
+| POST   | `/api/v1/auth/register`    | Create account + start session (terms consent)    | public         |
+| POST   | `/api/v1/auth/login`       | Credentials → httpOnly session cookies            | public         |
+| POST   | `/api/v1/auth/refresh`     | Rotate refresh token, mint access token           | refresh cookie |
+| POST   | `/api/v1/auth/logout`      | Revoke token family, clear cookies                | refresh cookie |
+| GET    | `/api/v1/auth/me`          | Current session user                              | access token   |
+| POST   | `/api/v1/auth/otp/request` | Send 6-digit OTP (SMS/email, rate-limited)        | public         |
+| POST   | `/api/v1/auth/otp/verify`  | Consume OTP                                       | public         |
+| GET    | `/api/v1/admin/users`      | Paginated user directory                          | `ADMIN`        |
+
+**Session model:** access JWT (`f13_at`, 15 min) + rotating refresh JWT (`f13_rt`, 7 days),
+both httpOnly/SameSite=Lax cookies (Bearer access token also accepted). Refresh reuse
+revokes the whole token family; logout denies the family immediately via Redis, so access
+tokens die before their TTL. Login is throttled per IP and locks the account after
+`LOGIN_MAX_ATTEMPTS` failures for `LOGIN_LOCK_MINUTES`.
 
 ---
 

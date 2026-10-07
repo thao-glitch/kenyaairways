@@ -133,20 +133,32 @@ erDiagram
 Global prefix `/api/v1` (probes `/healthz`, `/readyz` are deliberately outside it).
 OpenAPI served at `/api/docs` (disabled when `ENABLE_SWAGGER=false`).
 
-**Implemented (M1)**
+**Implemented (M1–M2)**
 
-| Method | Path               | Notes                                |
-| ------ | ------------------ | ------------------------------------ |
-| GET    | `/healthz`         | liveness, no deps                    |
-| GET    | `/readyz`          | 503 when Postgres/Redis down         |
-| GET    | `/api/v1/meta`     | airline, currency, locales, timezone |
-| GET    | `/api/v1/airports` | airport directory                    |
+| Method | Path                       | Notes                                             |
+| ------ | -------------------------- | ------------------------------------------------- |
+| GET    | `/healthz`                 | liveness, no deps                                 |
+| GET    | `/readyz`                  | 503 when Postgres/Redis down                      |
+| GET    | `/api/v1/meta`             | airline, currency, locales, timezone              |
+| GET    | `/api/v1/airports`         | airport directory                                 |
+| POST   | `/api/v1/auth/register`    | account + consent records, starts session         |
+| POST   | `/api/v1/auth/login`       | per-IP throttle, lockout, audited outcomes        |
+| POST   | `/api/v1/auth/refresh`     | rotation; replay revokes the token family         |
+| POST   | `/api/v1/auth/logout`      | family revoke + Redis denylist (kills access JWT) |
+| GET    | `/api/v1/auth/me`          | session probe → `SessionUserDto`                  |
+| POST   | `/api/v1/auth/otp/request` | MFA-ready OTP dispatch (mock SMS provider)        |
+| POST   | `/api/v1/auth/otp/verify`  | OTP consume (hashed, attempt-limited)             |
+| GET    | `/api/v1/admin/users`      | `ADMIN`-only directory                            |
+
+Sessions are httpOnly cookies: `f13_at` (access, 15 min) and `f13_rt` (refresh, 7 d,
+rotating); `Authorization: Bearer` also works for the access token. Global guard order is
+`JwtAuthGuard` → `RolesGuard`; public routes carry `@Public()`.
 
 **Planned (by milestone)**
 
 | Milestone | Endpoints                                                                                                                                                                                                                                    |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M2        | `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `POST /auth/otp/verify`, `GET /me`, `POST /admin/users`, role guards                                                                                   |
+| M2        | ~~auth, roles, guards, OTP~~ ✅ done                                                                                                                                                                                                         |
 | M3        | `GET /flights/search`, `GET /flights/:id`, `GET /flights/:id/fares`, `GET /fare-classes`                                                                                                                                                     |
 | M4        | `POST /bookings`, `GET /bookings/:id`, `POST /bookings/:id/hold-seat`, `DELETE /bookings/:id/seats/:seatId`, `POST /bookings/:id/expire`                                                                                                     |
 | M5        | `POST /payments` (provider select), `POST /payments/:id/stk`, `POST /payments/cb/:secret/stk`, `POST /payments/cb/:secret/c2b/validate`, `POST /payments/cb/:secret/c2b/confirm`, `GET /payments/:id`, `POST /payments/:id/refund` (FINANCE) |
@@ -241,17 +253,17 @@ logged with PII masked.
 
 ## 8. Milestone plan
 
-| #   | Scope                                                        | Exit criteria                                    |
-| --- | ------------------------------------------------------------ | ------------------------------------------------ |
-| M1  | Monorepo, schema + seed, health/meta/airports, swagger, docs | `pnpm verify` green; API boots; seed re-runnable |
-| M2  | Auth, roles, guards, OTP, refresh rotation                   | login → refresh → logout e2e; RBAC tests         |
-| M3  | Search, fares, tax application                               | search returns priced options incl. taxes        |
-| M4  | Booking + seat holds                                         | concurrency test proves no double-booking        |
-| M5  | Payments (STK, C2B, Stripe, refunds, recon)                  | duplicate/lost callbacks never double-confirm    |
-| M6  | PNR, ticketing, Socket.IO status                             | real-time propagation test                       |
-| M7  | Seats, check-in, boarding pass                               | full search→book→pay→check-in flow green         |
-| M8  | Ops workspace, KCAA hooks, reporting                         | manifest hook unit-tested with fake endpoint     |
-| M9  | DPA flows, i18n, hardening                                   | export/delete tests; SW translations complete    |
-| M10 | Load, CI/CD polish, Playwright, observability                | CI runs verify + docker build; soak test         |
+| #   | Scope                                                        | Exit criteria                                                |
+| --- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| M1  | Monorepo, schema + seed, health/meta/airports, swagger, docs | `pnpm verify` green; API boots; seed re-runnable             |
+| M2  | ✅ Auth, roles, guards, OTP, refresh rotation                | register/login/refresh-replay/logout e2e, lockout, RBAC, OTP |
+| M3  | Search, fares, tax application                               | search returns priced options incl. taxes                    |
+| M4  | Booking + seat holds                                         | concurrency test proves no double-booking                    |
+| M5  | Payments (STK, C2B, Stripe, refunds, recon)                  | duplicate/lost callbacks never double-confirm                |
+| M6  | PNR, ticketing, Socket.IO status                             | real-time propagation test                                   |
+| M7  | Seats, check-in, boarding pass                               | full search→book→pay→check-in flow green                     |
+| M8  | Ops workspace, KCAA hooks, reporting                         | manifest hook unit-tested with fake endpoint                 |
+| M9  | DPA flows, i18n, hardening                                   | export/delete tests; SW translations complete                |
+| M10 | Load, CI/CD polish, Playwright, observability                | CI runs verify + docker build; soak test                     |
 
 Each milestone ends with lint + typecheck + tests green and a conventional commit.

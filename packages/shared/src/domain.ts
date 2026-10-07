@@ -35,6 +35,9 @@ export type FlightStatus = (typeof FLIGHT_STATUSES)[number];
 export const ROUTE_TYPES = ['DOMESTIC', 'INTERNATIONAL', 'REGIONAL'] as const;
 export type RouteType = (typeof ROUTE_TYPES)[number];
 
+export const USER_STATUSES = ['ACTIVE', 'LOCKED', 'DISABLED'] as const;
+export type UserStatus = (typeof USER_STATUSES)[number];
+
 export const PAYMENT_PROVIDER_TYPES = [
   'MPESA_STK',
   'MPESA_C2B',

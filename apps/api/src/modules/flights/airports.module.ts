@@ -2,7 +2,9 @@ import { Controller, Get, Module } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { AirportDto } from '@flight13/shared';
 import { PrismaService } from '../../prisma/prisma.module';
+import { Public } from '../../common/decorators/public.decorator';
 
+@Public()
 @Controller('airports')
 @ApiTags('flights')
 export class AirportsController {
