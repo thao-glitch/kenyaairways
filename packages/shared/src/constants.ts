@@ -40,5 +40,16 @@ export const INFANT_MAX_YEARS = 1;
 export const CHILD_MAX_YEARS = 11;
 export const ADULT_MIN_YEARS = 12;
 
+/**
+ * Passenger pricing factors (basis points of the base fare).
+ * PLACEHOLDER pending commercial confirmation: children pay the adult fare,
+ * infants on laps pay 10% of the base fare with taxes/fees waived.
+ */
+export const PASSENGER_FARE_BPS: Record<'ADULT' | 'CHILD' | 'INFANT', number> = {
+  ADULT: 10_000,
+  CHILD: 10_000,
+  INFANT: 1_000,
+};
+
 /** Kenyan VAT headline rate (bps) — a default; TaxFeeRule rows in the DB win. */
 export const KENYA_VAT_BPS = 1600;

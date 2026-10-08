@@ -1045,9 +1045,10 @@ async function seedSchedulesAndFlights(): Promise<void> {
   const aircraftRows = await prisma.aircraft.findMany({ include: { aircraftType: true } });
   const aircraftByType = new Map<string, (typeof aircraftRows)[number][]>();
   for (const aircraft of aircraftRows) {
-    const list = aircraftByType.get(aircraft.aircraftTypeId) ?? [];
+    // Keyed by the *type code* (E190/B738) — schedules reference codes, not ids.
+    const list = aircraftByType.get(aircraft.aircraftType.code) ?? [];
     list.push(aircraft);
-    aircraftByType.set(aircraft.aircraftTypeId, list);
+    aircraftByType.set(aircraft.aircraftType.code, list);
   }
   const seatCounts = new Map<string, { economy: number; business: number }>();
   for (const type of AIRCRAFT_TYPES) {

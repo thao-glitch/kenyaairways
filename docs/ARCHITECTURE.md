@@ -135,20 +135,30 @@ OpenAPI served at `/api/docs` (disabled when `ENABLE_SWAGGER=false`).
 
 **Implemented (M1–M2)**
 
-| Method | Path                       | Notes                                             |
-| ------ | -------------------------- | ------------------------------------------------- |
-| GET    | `/healthz`                 | liveness, no deps                                 |
-| GET    | `/readyz`                  | 503 when Postgres/Redis down                      |
-| GET    | `/api/v1/meta`             | airline, currency, locales, timezone              |
-| GET    | `/api/v1/airports`         | airport directory                                 |
-| POST   | `/api/v1/auth/register`    | account + consent records, starts session         |
-| POST   | `/api/v1/auth/login`       | per-IP throttle, lockout, audited outcomes        |
-| POST   | `/api/v1/auth/refresh`     | rotation; replay revokes the token family         |
-| POST   | `/api/v1/auth/logout`      | family revoke + Redis denylist (kills access JWT) |
-| GET    | `/api/v1/auth/me`          | session probe → `SessionUserDto`                  |
-| POST   | `/api/v1/auth/otp/request` | MFA-ready OTP dispatch (mock SMS provider)        |
-| POST   | `/api/v1/auth/otp/verify`  | OTP consume (hashed, attempt-limited)             |
-| GET    | `/api/v1/admin/users`      | `ADMIN`-only directory                            |
+| Method | Path                                    | Notes                                                  |
+| ------ | --------------------------------------- | ------------------------------------------------------ |
+| GET    | `/healthz`                              | liveness, no deps                                      |
+| GET    | `/readyz`                               | 503 when Postgres/Redis down                           |
+| GET    | `/api/v1/meta`                          | airline, currency, locales, timezone                   |
+| GET    | `/api/v1/airports`                      | airport directory                                      |
+| POST   | `/api/v1/auth/register`                 | account + consent records, starts session              |
+| POST   | `/api/v1/auth/login`                    | per-IP throttle, lockout, audited outcomes             |
+| POST   | `/api/v1/auth/refresh`                  | rotation; replay revokes the token family              |
+| POST   | `/api/v1/auth/logout`                   | family revoke + Redis denylist (kills access JWT)      |
+| GET    | `/api/v1/auth/me`                       | session probe → `SessionUserDto`                       |
+| POST   | `/api/v1/auth/otp/request`              | MFA-ready OTP dispatch (mock SMS provider)             |
+| POST   | `/api/v1/auth/otp/verify`               | OTP consume (hashed, attempt-limited)                  |
+| GET    | `/api/v1/admin/users`                   | `ADMIN`-only directory                                 |
+| GET    | `/api/v1/flights/search`                | priced, availability-checked flight options (M3)       |
+| GET    | `/api/v1/flights/:id`                   | flight detail with local times and fares (M3)          |
+| GET    | `/api/v1/flights/:id/fares`             | priced fare options for one flight (M3)                |
+| GET    | `/api/v1/fare-classes`                  | active fare classes + EN/SW rules (M3)                 |
+| POST   | `/api/v1/bookings`                      | create HELD booking, atomic inventory reservation (M4) |
+| GET    | `/api/v1/bookings`                      | my bookings, paginated (M4)                            |
+| GET    | `/api/v1/bookings/:id`                  | booking detail — owner or staff (M4)                   |
+| POST   | `/api/v1/bookings/:id/cancel`           | cancel + inventory release (M4)                        |
+| POST   | `/api/v1/bookings/:id/seats`            | hold a seat (DB-unique activeKey) (M4)                 |
+| DELETE | `/api/v1/bookings/:id/seats/:seatLabel` | release a seat (M4)                                    |
 
 Sessions are httpOnly cookies: `f13_at` (access, 15 min) and `f13_rt` (refresh, 7 d,
 rotating); `Authorization: Bearer` also works for the access token. Global guard order is
@@ -159,8 +169,8 @@ rotating); `Authorization: Bearer` also works for the access token. Global guard
 | Milestone | Endpoints                                                                                                                                                                                                                                    |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | M2        | ~~auth, roles, guards, OTP~~ ✅ done                                                                                                                                                                                                         |
-| M3        | `GET /flights/search`, `GET /flights/:id`, `GET /flights/:id/fares`, `GET /fare-classes`                                                                                                                                                     |
-| M4        | `POST /bookings`, `GET /bookings/:id`, `POST /bookings/:id/hold-seat`, `DELETE /bookings/:id/seats/:seatId`, `POST /bookings/:id/expire`                                                                                                     |
+| M3        | ~~`GET /flights/search`, `GET /flights/:id`, `GET /flights/:id/fares`, `GET /fare-classes`~~ ✅ done                                                                                                                                         |
+| M4        | ~~`POST /bookings`, `GET /bookings`, `GET /bookings/:id`, `POST /bookings/:id/cancel`, `POST /bookings/:id/seats`, `DELETE /bookings/:id/seats/:seatLabel`~~ ✅ done (expiry via BullMQ sweep)                                               |
 | M5        | `POST /payments` (provider select), `POST /payments/:id/stk`, `POST /payments/cb/:secret/stk`, `POST /payments/cb/:secret/c2b/validate`, `POST /payments/cb/:secret/c2b/confirm`, `GET /payments/:id`, `POST /payments/:id/refund` (FINANCE) |
 | M6        | `GET /pnr/:code`, `POST /ticketing/issue`, `GET /flights/:id/status`, ops status endpoints                                                                                                                                                   |
 | M7        | `GET /flights/:id/seats`, `POST /check-in`, `GET /boarding-passes/:id`                                                                                                                                                                       |
@@ -257,8 +267,8 @@ logged with PII masked.
 | --- | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | M1  | Monorepo, schema + seed, health/meta/airports, swagger, docs | `pnpm verify` green; API boots; seed re-runnable             |
 | M2  | ✅ Auth, roles, guards, OTP, refresh rotation                | register/login/refresh-replay/logout e2e, lockout, RBAC, OTP |
-| M3  | Search, fares, tax application                               | search returns priced options incl. taxes                    |
-| M4  | Booking + seat holds                                         | concurrency test proves no double-booking                    |
+| M3  | ✅ Search, fares, tax application                            | search returns priced options incl. taxes                    |
+| M4  | ✅ Booking + seat holds                                      | concurrency test proves no double-booking                    |
 | M5  | Payments (STK, C2B, Stripe, refunds, recon)                  | duplicate/lost callbacks never double-confirm                |
 | M6  | PNR, ticketing, Socket.IO status                             | real-time propagation test                                   |
 | M7  | Seats, check-in, boarding pass                               | full search→book→pay→check-in flow green                     |

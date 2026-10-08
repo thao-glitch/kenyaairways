@@ -15,6 +15,9 @@ export const BOOKING_STATUSES = [
 ] as const;
 export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 
+export const BOOKING_SOURCES = ['WEB', 'AGENT', 'ADMIN', 'API'] as const;
+export type BookingSource = (typeof BOOKING_SOURCES)[number];
+
 export const TRIP_TYPES = ['ONE_WAY', 'ROUND_TRIP', 'MULTI_CITY'] as const;
 export type TripType = (typeof TRIP_TYPES)[number];
 

@@ -1,5 +1,15 @@
 import type { Currency, Locale, Role } from './constants';
-import type { CabinClass, FlightStatus, RouteType, UserStatus } from './domain';
+import type {
+  BookingSource,
+  BookingStatus,
+  CabinClass,
+  DocType,
+  FlightStatus,
+  PassengerType,
+  RouteType,
+  TripType,
+  UserStatus,
+} from './domain';
 
 /** Standard list envelope for paginated endpoints. */
 export interface Paginated<T> {
@@ -175,4 +185,67 @@ export interface FareRuleDto {
 export interface FareClassDetailDto extends FareClassDto {
   sortOrder: number;
   rules: FareRuleDto[];
+}
+
+// ── bookings (M4) ──────────────────────────────────────────────────────────
+
+export interface BookingBreakdownLineDto {
+  code: string;
+  label: string;
+  amountMinor: number;
+}
+
+export interface BookingSegmentDto {
+  seq: number;
+  flightId: string;
+  flightNumber: string;
+  originCode: string;
+  destinationCode: string;
+  departUtc: string;
+  arriveUtc: string;
+  departLocal: string;
+  arriveLocal: string;
+  fareClassCode: string;
+  fareMinor: number;
+  currency: Currency;
+}
+
+export interface BookingPassengerDto {
+  seq: number;
+  type: PassengerType;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  docType: DocType | null;
+}
+
+export interface SeatHoldDto {
+  flightId: string;
+  seatLabel: string;
+  status: 'ACTIVE' | 'RELEASED' | 'CONVERTED' | 'EXPIRED';
+  expiresAt: string;
+}
+
+export interface BookingDto {
+  id: string;
+  pnr: string;
+  status: BookingStatus;
+  tripType: TripType;
+  source: BookingSource;
+  currency: Currency;
+  totalMinor: number;
+  breakdown: BookingBreakdownLineDto[];
+  contactEmail: string | null;
+  contactPhone: string | null;
+  adultCount: number;
+  childCount: number;
+  infantCount: number;
+  locale: string;
+  holdExpiresAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+  segments: BookingSegmentDto[];
+  passengers: BookingPassengerDto[];
+  seatHolds: SeatHoldDto[];
 }

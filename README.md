@@ -21,8 +21,8 @@ timezone `Africa/Nairobi` (stored UTC, displayed airport-local) · phones E.164 
 | --- | ------------------------------------------------------------------- | ------- |
 | M1  | Foundation: monorepo, schema, seed, health, meta, airports, swagger | ✅ done |
 | M2  | Auth & access control (JWT, roles, MFA-ready OTP)                   | ✅ done |
-| M3  | Flight inventory, search, fare rules                                | ⬜      |
-| M4  | Booking lifecycle + seat holds                                      | ⬜      |
+| M3  | Flight inventory, search, fare rules                                | ✅ done |
+| M4  | Booking lifecycle + seat holds                                      | ✅ done |
 | M5  | Payments: M-Pesa STK/C2B, Stripe, refunds, reconciliation           | ⬜      |
 | M6  | PNR, ticketing, real-time status (Socket.IO)                        | ⬜      |
 | M7  | Seat map + assignment, check-in, boarding pass                      | ⬜      |

@@ -539,6 +539,7 @@ model FareClass {
   rules       FareRule[]
   tickets     Ticket[]
   inventories Inventory[]
+  segments    BookingSegment[]
 }
 
 model Fare {
@@ -672,8 +673,9 @@ model BookingSegment {
   fareMinor       Int
   currency        String   @default("KES")
 
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  flight  Flight  @relation(fields: [flightId], references: [id])
+  booking   Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  flight    Flight    @relation(fields: [flightId], references: [id])
+  fareClass FareClass @relation(fields: [fareClassId], references: [id])
 
   @@unique([bookingId, seq])
 }
