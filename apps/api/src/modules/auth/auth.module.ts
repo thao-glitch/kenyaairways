@@ -17,6 +17,6 @@ import { createSmsSender, SmsSender } from '../notifications/sms.sender';
     TokenService,
     { provide: SmsSender, useFactory: createSmsSender },
   ],
-  exports: [TokenService],
+  exports: [TokenService, OtpService],
 })
 export class AuthModule {}

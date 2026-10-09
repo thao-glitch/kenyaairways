@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import express from 'express';
 import helmet from 'helmet';
 import { getEnv, type Env } from './config/env';
 
@@ -23,6 +24,11 @@ export function configureApp(app: INestApplication, env: Env = getEnv()): INestA
     }),
   );
   app.use(cookieParser());
+
+  // Provider callbacks (Daraja STK/C2B, Stripe webhooks) must verify raw
+  // bytes; this path-scoped parser runs before Nest's global JSON parser
+  // (body-parser skips once a body is parsed) and hands handlers a Buffer.
+  app.use(`${GLOBAL_PREFIX}/payments/cb/`, express.raw({ type: 'application/json', limit: '1mb' }));
 
   const origins = env.CORS_ORIGINS.split(',')
     .map((origin) => origin.trim())

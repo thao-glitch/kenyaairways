@@ -228,6 +228,7 @@ enum OtpPurpose {
   VERIFY_PHONE
   RESET_PASSWORD
   CHANGE_PHONE
+  REFUND
 }
 
 enum OtpChannel {

@@ -35,15 +35,24 @@ export interface BookingActor {
   userId: string | null;
   role: Role;
   locale: string;
+  /** Account phone (E.164) — OTP step-ups and payment msisdn fallback. */
+  phone?: string | null;
   ip?: string;
   requestId?: string;
 }
 
 export function actorFromUser(user: AuthUser, ip?: string, requestId?: string): BookingActor {
-  return { userId: user.id, role: user.role, locale: user.locale, ip, requestId };
+  return {
+    userId: user.id,
+    role: user.role,
+    locale: user.locale,
+    phone: user.phone,
+    ip,
+    requestId,
+  };
 }
 
-const STAFF_ROLES: Role[] = ['AGENT', 'OPS', 'FINANCE', 'ADMIN'];
+export const STAFF_ROLES: Role[] = ['AGENT', 'OPS', 'FINANCE', 'ADMIN'];
 const SYSTEM_ACTOR: BookingActor = { userId: null, role: 'OPS', locale: 'en-KE' };
 
 export interface ResolvedSegment {
@@ -261,15 +270,19 @@ export class BookingsService {
 
     const changed = await this.transition(booking.id, 'CANCELLED', async (tx, current) => {
       const seats = current.adultCount + current.childCount;
-      for (const seg of current.segments) {
-        if (current.status === 'CONFIRMED') {
+      if (current.status === 'CONFIRMED' || current.status === 'CHECKED_IN') {
+        for (const seg of current.segments) {
           await this.inventory.releaseSold(tx, seg.flightId, seg.fareClassId, seats);
-        } else {
+        }
+      } else {
+        for (const seg of current.segments) {
           await this.inventory.releaseHold(tx, seg.flightId, seg.fareClassId, seats);
         }
       }
+      // ACTIVE holds block a seat via activeKey; CONVERTED holds were sold —
+      // both must be released when the booking dies.
       await tx.seatHold.updateMany({
-        where: { bookingId: current.id, status: 'ACTIVE' },
+        where: { bookingId: current.id, status: { in: ['ACTIVE', 'CONVERTED'] } },
         data: { status: 'RELEASED', releasedAt: new Date(), activeKey: null },
       });
     });
@@ -280,6 +293,54 @@ export class BookingsService {
     await this.audit('booking.cancel', actor, id, 'SUCCESS', { pnr: booking.pnr, reason });
     const fresh = await this.prisma.booking.findUnique({ where: { id }, include: this.include() });
     return toBookingDto(fresh!);
+  }
+
+  /**
+   * Payment captured: the booking is confirmed and held seats become sold.
+   * Callable inside an external transaction (`db`) so the payment claim and
+   * the booking/inventory flip commit atomically — the optimistic transition
+   * guard makes concurrent confirmations no-ops.
+   */
+  async confirmPaid(id: string, db?: Db): Promise<boolean> {
+    return this.transition(
+      id,
+      'CONFIRMED',
+      async (tx, current) => {
+        const seats = current.adultCount + current.childCount;
+        for (const seg of current.segments) {
+          await this.inventory.convertHoldToSold(tx, seg.flightId, seg.fareClassId, seats);
+        }
+        await tx.seatHold.updateMany({
+          where: { bookingId: current.id, status: 'ACTIVE' },
+          data: { status: 'CONVERTED', convertedAt: new Date(), activeKey: null },
+        });
+      },
+      db,
+    );
+  }
+
+  /**
+   * Full refund completed: sold seats return to the pool (only if this
+   * booking still holds them — a prior cancellation already released them).
+   */
+  async markRefunded(id: string, db?: Db): Promise<boolean> {
+    return this.transition(
+      id,
+      'REFUNDED',
+      async (tx, current) => {
+        if (current.status === 'CONFIRMED' || current.status === 'CHECKED_IN') {
+          const seats = current.adultCount + current.childCount;
+          for (const seg of current.segments) {
+            await this.inventory.releaseSold(tx, seg.flightId, seg.fareClassId, seats);
+          }
+        }
+        await tx.seatHold.updateMany({
+          where: { bookingId: current.id, status: { in: ['ACTIVE', 'CONVERTED'] } },
+          data: { status: 'RELEASED', releasedAt: new Date(), activeKey: null },
+        });
+      },
+      db,
+    );
   }
 
   /** Holds a specific seat for this booking (seat-map selection). */
@@ -487,8 +548,9 @@ export class BookingsService {
     id: string,
     to: BookingStatus,
     release: (tx: Db, current: Booking & { segments: BookingSegment[] }) => Promise<void>,
+    external?: Db,
   ): Promise<boolean> {
-    return this.prisma.$transaction(async (tx) => {
+    const run = async (tx: Db): Promise<boolean> => {
       const current = await tx.booking.findUnique({ where: { id }, include: { segments: true } });
       if (!current || !canTransition(current.status, to)) return false;
 
@@ -504,7 +566,8 @@ export class BookingsService {
 
       await release(tx, current);
       return true;
-    });
+    };
+    return external ? run(external) : this.prisma.$transaction(run);
   }
 
   private async audit(

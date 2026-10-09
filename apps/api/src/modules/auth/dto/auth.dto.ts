@@ -79,9 +79,9 @@ export class OtpRequestDto {
   @MaxLength(254)
   destination!: string;
 
-  @ApiProperty({ enum: ['LOGIN', 'VERIFY_PHONE', 'RESET_PASSWORD', 'CHANGE_PHONE'] })
-  @IsIn(['LOGIN', 'VERIFY_PHONE', 'RESET_PASSWORD', 'CHANGE_PHONE'])
-  purpose!: 'LOGIN' | 'VERIFY_PHONE' | 'RESET_PASSWORD' | 'CHANGE_PHONE';
+  @ApiProperty({ enum: ['LOGIN', 'VERIFY_PHONE', 'RESET_PASSWORD', 'CHANGE_PHONE', 'REFUND'] })
+  @IsIn(['LOGIN', 'VERIFY_PHONE', 'RESET_PASSWORD', 'CHANGE_PHONE', 'REFUND'])
+  purpose!: 'LOGIN' | 'VERIFY_PHONE' | 'RESET_PASSWORD' | 'CHANGE_PHONE' | 'REFUND';
 }
 
 export class OtpVerifyDto {
@@ -96,7 +96,7 @@ export class OtpVerifyDto {
   @Matches(/^\d{6}$/, { message: 'code must be exactly 6 digits' })
   code!: string;
 
-  @ApiProperty({ enum: ['LOGIN', 'VERIFY_PHONE', 'RESET_PASSWORD', 'CHANGE_PHONE'] })
-  @IsIn(['LOGIN', 'VERIFY_PHONE', 'RESET_PASSWORD', 'CHANGE_PHONE'])
-  purpose!: 'LOGIN' | 'VERIFY_PHONE' | 'RESET_PASSWORD' | 'CHANGE_PHONE';
+  @ApiProperty({ enum: ['LOGIN', 'VERIFY_PHONE', 'RESET_PASSWORD', 'CHANGE_PHONE', 'REFUND'] })
+  @IsIn(['LOGIN', 'VERIFY_PHONE', 'RESET_PASSWORD', 'CHANGE_PHONE', 'REFUND'])
+  purpose!: 'LOGIN' | 'VERIFY_PHONE' | 'RESET_PASSWORD' | 'CHANGE_PHONE' | 'REFUND';
 }

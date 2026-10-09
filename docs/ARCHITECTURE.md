@@ -166,16 +166,16 @@ rotating); `Authorization: Bearer` also works for the access token. Global guard
 
 **Planned (by milestone)**
 
-| Milestone | Endpoints                                                                                                                                                                                                                                    |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M2        | ~~auth, roles, guards, OTP~~ ✅ done                                                                                                                                                                                                         |
-| M3        | ~~`GET /flights/search`, `GET /flights/:id`, `GET /flights/:id/fares`, `GET /fare-classes`~~ ✅ done                                                                                                                                         |
-| M4        | ~~`POST /bookings`, `GET /bookings`, `GET /bookings/:id`, `POST /bookings/:id/cancel`, `POST /bookings/:id/seats`, `DELETE /bookings/:id/seats/:seatLabel`~~ ✅ done (expiry via BullMQ sweep)                                               |
-| M5        | `POST /payments` (provider select), `POST /payments/:id/stk`, `POST /payments/cb/:secret/stk`, `POST /payments/cb/:secret/c2b/validate`, `POST /payments/cb/:secret/c2b/confirm`, `GET /payments/:id`, `POST /payments/:id/refund` (FINANCE) |
-| M6        | `GET /pnr/:code`, `POST /ticketing/issue`, `GET /flights/:id/status`, ops status endpoints                                                                                                                                                   |
-| M7        | `GET /flights/:id/seats`, `POST /check-in`, `GET /boarding-passes/:id`                                                                                                                                                                       |
-| M8        | `GET /ops/manifests`, `POST /ops/manifests/:id/dispatch` (KCAA hook), `GET /reports/*`                                                                                                                                                       |
-| M9        | `GET/POST /me/consents`, `POST /me/dsar` (access/export/delete), retention jobs                                                                                                                                                              |
+| Milestone | Endpoints                                                                                                                                                                                                                                                                                                                                                                                       |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M2        | ~~auth, roles, guards, OTP~~ ✅ done                                                                                                                                                                                                                                                                                                                                                            |
+| M3        | ~~`GET /flights/search`, `GET /flights/:id`, `GET /flights/:id/fares`, `GET /fare-classes`~~ ✅ done                                                                                                                                                                                                                                                                                            |
+| M4        | ~~`POST /bookings`, `GET /bookings`, `GET /bookings/:id`, `POST /bookings/:id/cancel`, `POST /bookings/:id/seats`, `DELETE /bookings/:id/seats/:seatLabel`~~ ✅ done (expiry via BullMQ sweep)                                                                                                                                                                                                  |
+| M5        | ~~`POST /payments`, `GET /payments?bookingId=`, `GET /payments/:id`, `POST /payments/:id/stk`, `POST /payments/:id/simulate` (mock), `POST /payments/:id/refund` (FINANCE + OTP), `POST /payments/cb/:secret/stk`, `POST /payments/cb/:secret/c2b/validate`, `POST /payments/cb/:secret/c2b/confirm`, `POST /payments/cb/:secret/stripe`~~ ✅ done (BullMQ workers + `payment-reconcile` sweep) |
+| M6        | `GET /pnr/:code`, `POST /ticketing/issue`, `GET /flights/:id/status`, ops status endpoints                                                                                                                                                                                                                                                                                                      |
+| M7        | `GET /flights/:id/seats`, `POST /check-in`, `GET /boarding-passes/:id`                                                                                                                                                                                                                                                                                                                          |
+| M8        | `GET /ops/manifests`, `POST /ops/manifests/:id/dispatch` (KCAA hook), `GET /reports/*`                                                                                                                                                                                                                                                                                                          |
+| M9        | `GET/POST /me/consents`, `POST /me/dsar` (access/export/delete), retention jobs                                                                                                                                                                                                                                                                                                                 |
 
 ## 5. Real-time catalog (Socket.IO, namespace `/rt`)
 
@@ -196,8 +196,15 @@ Auth: JWT from the same access token as REST, validated on the handshake.
 ## 6. Payments
 
 Provider selection is a typed interface (`PaymentProvider`) with implementations
-`DarajaStkProvider`, `DarajaC2BProvider`, `StripeProvider`, `MockProvider` — chosen by
-`MPESA_MODE` / `STRIPE_MODE` env (mock by default, no network calls in dev/CI).
+`MpesaProvider` (STK + C2B), `StripeProvider`, `MockProvider` — chosen at boot by
+`PAYMENT_PROVIDER_DEFAULT` plus `MPESA_MODE` / `STRIPE_MODE` (mock by default, no network
+calls in dev/CI). One **active** provider per environment; the others never load.
+
+All provider callbacks funnel through one Prisma transaction with conditional claims
+(`MpesaTransaction` → `Payment` → `bookings.confirmPaid`), so duplicate or lost-then-replayed
+deliveries can never double-confirm. HTTP handlers only validate, persist and enqueue
+(`payment-cb` queue, jobId dedupe); a repeat worker (`payment-reconcile`, every
+`RECONCILE_STK_AFTER_SECONDS`) polls stale `PENDING` attempts and applies terminal results.
 
 **Callback path (authoritative):** `POST /api/v1/payments/cb/:secret/…` — neutral path,
 no `mpesa`/`safaricom` strings in the registered URL. `:secret` is `MPESA_CALLBACK_SECRET`
@@ -213,18 +220,18 @@ sequenceDiagram
     participant A as API
     participant Q as BullMQ
     participant D as Daraja
-    C->>A: POST /payments {provider: MPESA_STK, bookingId}
-    A->>A: create Payment intent (PENDING), audit log
+    C->>A: POST /payments {bookingId}
+    A->>A: create Payment intent (REQUIRES_ACTION), audit log
     A->>D: OAuth token (cached in Redis until expiry)
     A->>D: STK Push<br/>Password=base64(Shortcode+Passkey+Timestamp)<br/>AccountReference=PNR(≤12), Desc="Flight13"
     D-->>A: CheckoutRequestID
     A->>A: persist MpesaTransaction (PENDING)
-    A-->>C: 202 {checkoutRequestId} (fast)
+    A-->>C: 201 Payment DTO (fast; providerRef = CheckoutRequestID)
     D-->>A: POST /api/v1/payments/cb/:secret/stk (async)
     A-->>D: 200 {"ResultCode":0,...}  (ack immediately)
-    A->>Q: enqueue handle-stk-callback (idempotent on CheckoutRequestID)
+    A->>Q: enqueue payment-cb job (jobId dedupe — DB claim is authoritative)
     Q->>A: map ResultCode 0/1/1032/1037/2001 → typed message
-    A->>A: single transactional confirm (guard: already CONFIRMED?) → Payment CONFIRMED, Booking → PAID
+    A->>A: one transaction, conditional claims → Payment PAID, Booking CONFIRMED
     A-->>C: WS payment.status + booking.status
 ```
 
@@ -241,13 +248,13 @@ sequenceDiagram
     A-->>D: 200 {"ResultCode":0} accepted (or rejection code)
     D->>A: POST .../c2b/confirm
     A-->>D: 200 fast ack
-    A->>Q: enqueue reconciliation job (~60–90s)
+    A->>Q: enqueue payment-cb job (unique TransID dedupes re-deliveries)
     Q->>A: match by account code (PNR) → over/under/late/unknown-account paths
-    A->>A: Payment CONFIRMED | HOLD for FINANCE | unmatched → audit + alert
+    A->>A: exact match → Payment PAID, Booking CONFIRMED | over/under → FINANCE review | unmatched → audit + alert
 ```
 
-Refunds require a `FINANCE` role approval before dispatch; every transition is audited and
-logged with PII masked.
+Refunds require the `FINANCE` role **and** an OTP step-up before dispatch; every transition
+is audited and logged with PII masked.
 
 ## 7. Security & compliance
 
@@ -269,7 +276,7 @@ logged with PII masked.
 | M2  | ✅ Auth, roles, guards, OTP, refresh rotation                | register/login/refresh-replay/logout e2e, lockout, RBAC, OTP |
 | M3  | ✅ Search, fares, tax application                            | search returns priced options incl. taxes                    |
 | M4  | ✅ Booking + seat holds                                      | concurrency test proves no double-booking                    |
-| M5  | Payments (STK, C2B, Stripe, refunds, recon)                  | duplicate/lost callbacks never double-confirm                |
+| M5  | ✅ Payments (STK, C2B, Stripe, refunds, recon)               | duplicate/lost callbacks never double-confirm                |
 | M6  | PNR, ticketing, Socket.IO status                             | real-time propagation test                                   |
 | M7  | Seats, check-in, boarding pass                               | full search→book→pay→check-in flow green                     |
 | M8  | Ops workspace, KCAA hooks, reporting                         | manifest hook unit-tested with fake endpoint                 |

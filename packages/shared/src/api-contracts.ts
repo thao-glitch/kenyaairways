@@ -3,9 +3,15 @@ import type {
   BookingSource,
   BookingStatus,
   CabinClass,
+  C2BStatus,
   DocType,
   FlightStatus,
+  MpesaTxStatus,
   PassengerType,
+  PaymentProviderType,
+  PaymentStatus,
+  RefundStatus,
+  RefundRoute,
   RouteType,
   TripType,
   UserStatus,
@@ -248,4 +254,73 @@ export interface BookingDto {
   segments: BookingSegmentDto[];
   passengers: BookingPassengerDto[];
   seatHolds: SeatHoldDto[];
+}
+
+/**
+ * A payment attempt against a booking. `status` follows the Prisma
+ * PaymentStatus enum; `providerRef` is the CheckoutRequestID (M-Pesa STK) or
+ * PaymentIntent id (Stripe) — it is what reconciliation and refunds key on.
+ */
+export interface PaymentDto {
+  id: string;
+  bookingId: string;
+  provider: PaymentProviderType;
+  status: PaymentStatus;
+  amountMinor: number;
+  currency: Currency;
+  idempotencyKey: string;
+  providerRef: string | null;
+  clientSecret: string | null;
+  failureCode: string | null;
+  failureMessage: string | null;
+  paidAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
+/** Money returned to the passenger. FINANCE-gated; OTP step-up to create. */
+export interface RefundDto {
+  id: string;
+  bookingId: string;
+  paymentId: string;
+  amountMinor: number;
+  currency: Currency;
+  status: RefundStatus;
+  route: RefundRoute;
+  reason: string | null;
+  requestedById: string;
+  approvedById: string | null;
+  providerRef: string | null;
+  failureReason: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+/** An incoming paybill (C2B) transaction — matched to a PNR or suspense. */
+export interface C2BPaymentDto {
+  id: string;
+  transId: string;
+  billRefNumber: string;
+  msisdn: string; // masked (…149) outside ops roles
+  amountMinor: number;
+  currency: Currency;
+  status: C2BStatus;
+  bookingId: string | null;
+  paymentId: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+/** One M-Pesa STK attempt (an MpesaTransaction row) — ops/reconciliation view. */
+export interface MpesaTxDto {
+  id: string;
+  paymentId: string;
+  checkoutRequestId: string;
+  accountReference: string;
+  status: MpesaTxStatus;
+  resultCode: number | null;
+  resultDesc: string | null;
+  mpesaReceiptNumber: string | null;
+  queryAttempts: number;
+  createdAt: string;
 }

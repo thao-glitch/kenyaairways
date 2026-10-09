@@ -85,6 +85,9 @@ export const REFUND_STATUSES = [
 ] as const;
 export type RefundStatus = (typeof REFUND_STATUSES)[number];
 
+export const REFUND_ROUTES = ['MPESA_REVERSAL', 'MPESA_B2C', 'STRIPE', 'MANUAL'] as const;
+export type RefundRoute = (typeof REFUND_ROUTES)[number];
+
 export const PASSENGER_TYPES = ['ADULT', 'CHILD', 'INFANT'] as const;
 export type PassengerType = (typeof PASSENGER_TYPES)[number];
 
