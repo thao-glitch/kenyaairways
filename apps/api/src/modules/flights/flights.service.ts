@@ -8,6 +8,9 @@ import {
   type FlightSearchQueryDto,
   type FlightSearchResultDto,
   type FlightStatusDto,
+  type SeatMapDto,
+  type SeatMapSeatDto,
+  type SeatMapStatus,
 } from '@flight13/shared';
 import type { Flight, Fare } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.module';
@@ -56,6 +59,64 @@ export class FlightsService {
         source: ev.source,
         at: ev.createdAt.toISOString(),
       })),
+    };
+  }
+
+  /**
+   * `GET /flights/:id/seats` — live seat availability for one flight (M7).
+   * A seat's state is derived: blocked on the map, sold (converted hold or
+   * issued ticket or check-in assignment), held (active hold), else free.
+   */
+  async seatMap(flightId: string): Promise<SeatMapDto> {
+    const flight = await this.prisma.flight.findUnique({
+      where: { id: flightId },
+      include: {
+        aircraft: {
+          include: { aircraftType: { include: { seatMap: { include: { seats: true } } } } },
+        },
+        seatHolds: { where: { status: { in: ['ACTIVE', 'CONVERTED'] } } },
+        tickets: { where: { status: 'ISSUED' }, select: { seatId: true } },
+        checkIns: { where: { seatId: { not: null } }, select: { seatId: true } },
+      },
+    });
+    if (!flight) throw new AppError('NOT_FOUND', 'Flight not found');
+    const map = flight.aircraft?.aircraftType.seatMap;
+    if (!map) throw new AppError('NOT_FOUND', 'This flight has no seat map');
+
+    const held = new Set(
+      flight.seatHolds.filter((h) => h.status === 'ACTIVE').map((h) => h.seatId),
+    );
+    const sold = new Set<string>();
+    for (const h of flight.seatHolds) if (h.status === 'CONVERTED') sold.add(h.seatId);
+    for (const t of flight.tickets) if (t.seatId) sold.add(t.seatId);
+    for (const c of flight.checkIns) if (c.seatId) sold.add(c.seatId);
+
+    const seats: SeatMapSeatDto[] = map.seats
+      .filter((s) => s.active)
+      .map((s) => {
+        let status: SeatMapStatus = 'AVAILABLE';
+        if (s.blocked) status = 'BLOCKED';
+        else if (sold.has(s.id)) status = 'OCCUPIED';
+        else if (held.has(s.id)) status = 'HELD';
+        return {
+          id: s.id,
+          label: s.label,
+          row: s.row,
+          letter: s.letter,
+          cabin: s.cabin,
+          zone: s.zone,
+          status,
+          extraFeeMinor: s.extraFeeMinor,
+          currency: s.currency,
+        };
+      })
+      .sort((a, b) => a.row - b.row || a.letter.localeCompare(b.letter));
+
+    return {
+      flightId: flight.id,
+      seatMapId: map.id,
+      aircraftName: flight.aircraft?.aircraftType.name ?? null,
+      seats,
     };
   }
 

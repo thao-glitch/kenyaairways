@@ -4,6 +4,7 @@ import type {
   BookingStatus,
   CabinClass,
   C2BStatus,
+  CheckInStatus,
   DocType,
   FlightStatus,
   MpesaTxStatus,
@@ -13,6 +14,8 @@ import type {
   RefundStatus,
   RefundRoute,
   RouteType,
+  SeatMapStatus,
+  SeatZone,
   StatusSource,
   TicketStatus,
   TripType,
@@ -387,4 +390,66 @@ export interface FlightStatusDto {
   actualDepUtc: string | null;
   boardingUtc: string | null;
   events: FlightStatusEventDto[];
+}
+
+// ─────────────────────── seat map, check-in, boarding pass (M7) ───────────────────────
+
+/** One seat on one flight with its live availability state. */
+export interface SeatMapSeatDto {
+  id: string;
+  label: string;
+  row: number;
+  letter: string;
+  cabin: CabinClass;
+  zone: SeatZone;
+  status: SeatMapStatus;
+  extraFeeMinor: number;
+  currency: string;
+}
+
+/** `GET /flights/:id/seats` — seat map with hold/booking status (public). */
+export interface SeatMapDto {
+  flightId: string;
+  seatMapId: string;
+  aircraftName: string | null;
+  seats: SeatMapSeatDto[];
+}
+
+export interface CheckInDto {
+  id: string;
+  bookingId: string;
+  bookingPassengerId: string;
+  passengerName: string;
+  flightId: string;
+  seatLabel: string | null;
+  status: CheckInStatus;
+  boardingSequence: number | null;
+  gate: string | null;
+  checkedInAt: string | null;
+  boardingPassId: string | null;
+}
+
+/** `POST /check-in` — check-ins created/known for this request. */
+export interface CheckInResultDto {
+  checkIns: CheckInDto[];
+  bookingStatus: BookingStatus;
+}
+
+export interface BoardingPassDto {
+  id: string;
+  checkInId: string;
+  /** IATA BCBP `M1` payload (what the barcode encodes). */
+  bcbp: string;
+  format: string;
+  issuedAt: string;
+  passengerName: string;
+  ticketNumber: string | null;
+  flightNumber: string;
+  originCode: string;
+  destinationCode: string;
+  departureUtc: string;
+  boardingUtc: string | null;
+  gate: string | null;
+  seatLabel: string | null;
+  boardingSequence: number | null;
 }

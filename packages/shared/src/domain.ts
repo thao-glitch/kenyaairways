@@ -105,3 +105,19 @@ export type TicketStatus = (typeof TICKET_STATUSES)[number];
 
 export const STATUS_SOURCES = ['MANUAL', 'SYSTEM', 'SIMULATOR'] as const;
 export type StatusSource = (typeof STATUS_SOURCES)[number];
+
+export const CHECK_IN_STATUSES = [
+  'NOT_ELIGIBLE',
+  'ELIGIBLE',
+  'CHECKED_IN',
+  'CHANGED',
+  'CANCELLED',
+] as const;
+export type CheckInStatus = (typeof CHECK_IN_STATUSES)[number];
+
+export const SEAT_ZONES = ['STANDARD', 'EXIT_ROW', 'BULKHEAD', 'FRONT', 'REAR'] as const;
+export type SeatZone = (typeof SEAT_ZONES)[number];
+
+/** Derived seat-map state for one seat on one flight (not a table enum). */
+export const SEAT_MAP_STATUSES = ['AVAILABLE', 'HELD', 'OCCUPIED', 'BLOCKED'] as const;
+export type SeatMapStatus = (typeof SEAT_MAP_STATUSES)[number];

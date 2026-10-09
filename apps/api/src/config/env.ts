@@ -95,6 +95,10 @@ export const envSchema = z
     // ── booking ────────────────────────────────────────────────────────
     SEAT_HOLD_TTL_SECONDS: zSeconds.default(600),
     BOOKING_EXPIRE_TTL_SECONDS: zSeconds.default(1800),
+    // Check-in window relative to scheduled departure (UTC instants — see
+    // shared checkInWindow). Finance/ops may tune per SOP.
+    CHECK_IN_OPEN_HOURS: z.coerce.number().int().positive().default(24),
+    CHECK_IN_CLOSE_MINUTES: z.coerce.number().int().positive().default(60),
     CHECKIN_WINDOW_OPEN_HOURS: z.coerce.number().int().positive().default(24),
     CHECKIN_WINDOW_CLOSE_HOURS: z.coerce.number().int().positive().default(1),
     MAX_PAX_PER_BOOKING: z.coerce.number().int().min(1).max(9).default(9),

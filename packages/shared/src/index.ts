@@ -3,6 +3,8 @@ export * from './booking-state';
 export * from './constants';
 export * from './domain';
 export * from './errors';
+export * from './bcbp';
+export * from './check-in';
 export * from './i18n';
 export * from './mpesa-codes';
 export * from './money';

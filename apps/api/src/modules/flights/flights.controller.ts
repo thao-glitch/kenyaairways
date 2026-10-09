@@ -5,6 +5,7 @@ import type {
   FareOptionDto,
   FlightOptionDto,
   FlightStatusDto,
+  SeatMapDto,
 } from '@flight13/shared';
 import { Public } from '../../common/decorators/public.decorator';
 import { FlightsService } from './flights.service';
@@ -45,6 +46,14 @@ export class FlightsController {
   @ApiParam({ name: 'id' })
   status(@Param('id') id: string): Promise<FlightStatusDto> {
     return this.flights.flightStatus(id);
+  }
+
+  @Get(':id/seats')
+  @ApiOperation({ summary: 'Seat map with live hold/sold state (M7)' })
+  @ApiParam({ name: 'id' })
+  @ApiOkResponse({ type: Object })
+  seats(@Param('id') id: string): Promise<SeatMapDto> {
+    return this.flights.seatMap(id);
   }
 }
 

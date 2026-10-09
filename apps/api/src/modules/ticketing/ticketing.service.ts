@@ -54,18 +54,23 @@ export class TicketingService {
 
     const baseMinor = booking.segments.reduce((sum, seg) => sum + seg.fareMinor, 0);
     const taxesMinor = Math.max(0, booking.totalMinor - baseMinor); // taxes + fees
-    // Prefer the converted hold (paid → seat assigned), fall back to an
-    // still-active one; never pick a RELEASED/EXPIRED row that happens to
-    // sort first for this flight.
-    const holds = booking.seatHolds.filter((h) => h.flightId === primary.flightId);
-    const hold =
-      holds.find((h) => h.status === 'CONVERTED') ??
-      holds.find((h) => h.status === 'ACTIVE') ??
-      null;
+    // One seat per passenger: converted holds first (sold at payment), then
+    // still-active ones. RELEASED/EXPIRED rows never carry a seat, and a
+    // booking with fewer holds than passengers leaves the rest seatless —
+    // check-in allocates those (or an agent assigns them earlier).
+    const orderedSeats = [
+      ...booking.seatHolds.filter(
+        (h) => h.flightId === primary.flightId && h.status === 'CONVERTED',
+      ),
+      ...booking.seatHolds.filter((h) => h.flightId === primary.flightId && h.status === 'ACTIVE'),
+    ];
 
     const tickets = await this.prisma.$transaction(async (tx) => {
       const created: Array<Awaited<ReturnType<typeof tx.ticket.create>>> = [];
+      let paxSeq = 0;
       for (const pax of booking.passengers) {
+        const hold = orderedSeats[paxSeq] ?? null;
+        paxSeq += 1;
         let ticket: (typeof created)[number] | undefined;
         for (let attempt = 0; !ticket && attempt < 5; attempt += 1) {
           try {
