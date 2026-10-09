@@ -1,34 +1,40 @@
-# Flight13 API — production image
-# Build context is the repo root:  docker build -f apps/api/Dockerfile .
-# NOTE: verified by CI (`docker` job); no local Docker daemon in this dev env.
+# syntax=docker/dockerfile:1
+# Flight13 API image: pnpm workspace build → runtime that can migrate, seed
+# and serve (see CMD). Single base so the Prisma engines generated in the
+# build stage match the musl runtime exactly.
+FROM node:24-alpine AS build
+RUN corepack enable && corepack prepare pnpm@10.34.6 --activate
+WORKDIR /app
 
-FROM node:24-bookworm-slim AS base
-ENV PNPM_HOME=/pnpm
-ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable
-WORKDIR /repo
+# Manifests first for layer caching. The Prisma schema must exist at install
+# time: the workspace postinstall runs `prisma generate`. `.npmrc`,
+# `tsconfig.base.json` and `eslint.base.config.mjs` are workspace-level files
+# the build extends (tsconfig) or reads (pnpm).
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY .npmrc tsconfig.base.json eslint.base.config.mjs ./
+COPY packages/shared/package.json packages/shared/
+COPY apps/web/package.json apps/web/
+COPY apps/api/package.json apps/api/
+COPY apps/api/prisma/schema.prisma apps/api/prisma/schema.prisma
+RUN pnpm install --frozen-lockfile
 
-FROM base AS build
-# Workspace manifests first so dependency layers cache independently of source
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* .npmrc ./
-COPY packages/shared/package.json packages/shared/package.json
-COPY apps/api/package.json apps/api/package.json
-RUN --mount=type=cache,id=pnpm-api,target=/pnpm/store pnpm install --frozen-lockfile || pnpm install
-COPY tsconfig.base.json ./
-COPY eslint.base.config.mjs ./
 COPY packages/shared packages/shared
 COPY apps/api apps/api
-RUN pnpm --filter @flight13/shared build \
- && pnpm --filter @flight13/api exec prisma generate \
- && pnpm --filter @flight13/api build
+RUN pnpm --filter @flight13/shared build && pnpm --filter @flight13/api build
 
-FROM base AS runner
+FROM node:24-alpine AS runtime
 ENV NODE_ENV=production
-WORKDIR /repo
-COPY --from=build /repo /repo
-# Prune build-only tooling from the runtime layer (keeps prisma CLI for migrate deploy)
-RUN pnpm --filter @flight13/api prune --prod || true
+WORKDIR /app
+# The runtime keeps the full workspace node_modules instead of a --prod
+# prune: `prisma migrate deploy` (CLI is a devDependency) and `prisma db
+# seed` (tsx) run at boot, and `@flight13/shared` resolves through the
+# workspace link. Nothing is downloaded at runtime — no .env in the image,
+# secrets arrive via compose/env from `pnpm bootstrap`.
+COPY --from=build /app /app
+WORKDIR /app/apps/api
 EXPOSE 4000
-HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
-  CMD node -e "fetch('http://localhost:4000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-CMD ["sh", "-c", "cd apps/api && npx prisma migrate deploy && node dist/main.js"]
+HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=6 \
+  CMD wget -q -O /dev/null "http://127.0.0.1:${PORT:-4000}/healthz" || exit 1
+# migrate → seed (idempotent) → serve: one `docker compose up` yields a
+# fully seeded mock stack.
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && node dist/main.js"]

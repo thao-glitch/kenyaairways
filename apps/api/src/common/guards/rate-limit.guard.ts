@@ -8,13 +8,14 @@ import { hitRateLimit } from '../rate-limit';
  *
  * - `healthz`/`readyz` — orchestrator probes would otherwise burn the window
  *   from the same address as real traffic;
+ * - `metrics` — scrapes are frequent and internal;
  * - `payments/cb` — payment provider callbacks are validated by secret + IP
  *   allowlist at the handler and may arrive in bursts.
  *
  * Swagger sits behind middleware, not a route handler, so guards never see it;
  * Socket.IO is dispatched by engine.io before express, same story.
  */
-const SKIP_PREFIXES = ['/healthz', '/readyz', '/api/v1/payments/cb'];
+const SKIP_PREFIXES = ['/healthz', '/readyz', '/metrics', '/api/v1/payments/cb'];
 
 /**
  * Per-IP fixed window (`RATE_LIMIT_MAX` / `RATE_LIMIT_WINDOW_MS`). Runs before

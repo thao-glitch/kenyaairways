@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
   // Mobile-first, low-bandwidth: keep payloads small
   compress: true,
   poweredByHeader: false,
+  // Self-contained server bundle for the Docker runtime image
+  output: 'standalone',
 };
 
 export default nextConfig;

@@ -18,6 +18,7 @@ import { CheckInModule } from './modules/checkin/checkin.module';
 import { OpsModule } from './modules/ops/ops.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { PrivacyModule } from './modules/privacy/privacy.module';
+import { ObservabilityModule } from './observability/observability.module';
 import { JobsModule } from './jobs/jobs.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -54,6 +55,7 @@ function validationExceptionFactory(errors: ValidationError[]): AppError {
     OpsModule,
     ReportsModule,
     PrivacyModule,
+    ObservabilityModule,
     JobsModule,
   ],
   providers: [

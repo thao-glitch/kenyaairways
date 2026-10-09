@@ -1,29 +1,36 @@
+# Flight13 — local/dev stack: Postgres + Redis + API (migrate → seed →
+# serve, mock payments/SMS) + web. One `docker compose up` after
+# `pnpm bootstrap` gives the full demo environment.
+#
+# Secrets never live here: `env_file: .env` carries the generated JWT /
+# encryption / callback secrets from `pnpm bootstrap`. The DB password below
+# is a well-known dev credential for a container-internal database that is
+# not published to the host.
 name: flight13
 
 services:
   postgres:
     image: postgres:16-alpine
-    restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-flight13}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-flight13_dev}
-      POSTGRES_DB: ${POSTGRES_DB:-flight13}
+      POSTGRES_USER: flight13
+      POSTGRES_PASSWORD: flight13_dev
+      POSTGRES_DB: flight13
     ports:
+      # Optional host access for debugging (the API reaches it in-network).
       - '${POSTGRES_PORT:-5432}:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      test: ['CMD-SHELL', 'pg_isready -U flight13 -d flight13']
       interval: 5s
       timeout: 5s
       retries: 12
 
   redis:
     image: redis:7-alpine
-    restart: unless-stopped
+    # Not published to the host: the dev Redis already owns 6379 on some
+    # machines and nothing outside the compose network talks to it.
     command: ['redis-server', '--appendonly', 'yes']
-    ports:
-      - '6379:6379'
     volumes:
       - redis_data:/data
     healthcheck:
@@ -36,12 +43,23 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    restart: unless-stopped
-    env_file: .env
+    # NODE_ENV stays whatever `.env` says (development): over plain
+    # http://localhost the session cookies must not carry `Secure`.
+    # Production deployments terminate TLS and flip NODE_ENV themselves.
+    env_file: [.env]
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-flight13}:${POSTGRES_PASSWORD:-flight13_dev}@postgres:5432/${POSTGRES_DB:-flight13}
+      PORT: 4000
+      # In-network endpoints — override the localhost URLs from .env.
+      DATABASE_URL: postgresql://flight13:flight13_dev@postgres:5432/flight13
       REDIS_URL: redis://redis:6379
-      NODE_ENV: production
+      API_PUBLIC_URL: http://localhost:4000
+      WEB_PUBLIC_URL: http://localhost:3000
+      CORS_ORIGINS: http://localhost:3000
+      # Load-test headroom: the soak run drives everything from one IP, so
+      # the production defaults (RATE_LIMIT_MAX=300/min in .env.example)
+      # would throttle it. Keep the defaults outside this stack.
+      RATE_LIMIT_MAX: 10000
+      RATE_LIMIT_AUTH_MAX: 200
     ports:
       - '4000:4000'
     depends_on:
@@ -49,38 +67,26 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    # migrate + idempotent seed, then start the API
-    command: ['sh', '-c', 'npx prisma migrate deploy && npx prisma db seed && node dist/main.js']
-    healthcheck:
-      test:
-        [
-          'CMD',
-          'node',
-          '-e',
-          "fetch('http://localhost:4000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 18
-      start_period: 20s
+    restart: unless-stopped
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
+        # What the browser runs against (host-mapped port).
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
-    restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
-      API_PUBLIC_URL: http://localhost:4000
-      NODE_ENV: production
+      # Server-side (SSR) fetches inside the compose network; the browser
+      # bundle already inlined NEXT_PUBLIC_API_URL at build time.
+      API_PUBLIC_URL: http://api:4000
     ports:
       - '3000:3000'
     depends_on:
       api:
         condition: service_healthy
+    restart: unless-stopped
 
 volumes:
-  postgres_data:
+  pgdata:
   redis_data:

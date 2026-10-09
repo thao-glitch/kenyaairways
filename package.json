@@ -23,6 +23,7 @@
     "db:seed": "pnpm --filter @flight13/api db:seed",
     "db:reset": "pnpm --filter @flight13/api db:reset",
     "verify": "pnpm format:check && pnpm lint && pnpm --filter @flight13/shared build && pnpm typecheck && pnpm test",
+    "soak": "node scripts/soak.mjs",
     "prepare": "husky",
     "postinstall": "pnpm --filter @flight13/api exec prisma generate"
   },

@@ -180,6 +180,7 @@ rotating); `Authorization: Bearer` also works for the access token. Global guard
 | M7        | ~~`GET /flights/:id/seats`, `POST /check-in`, `GET /check-in?bookingId=`, `GET /boarding-passes/:id`~~ ✅ done (check-in window + 54-char BCBP)                                                                                                                                                                                                                                                 |
 | M8        | ~~`PATCH /ops/flights/:id/status`, `GET /ops/manifests`, `POST /ops/manifests/:id/dispatch` (KCAA hook), `GET /ops/dispatches`, `GET /reports/revenue`, `GET /reports/load`~~ ✅ done (dispatcher unit-tested against a fake endpoint)                                                                                                                                                          |
 | M9        | ~~`GET/POST /me/consents`, `GET/POST /me/dsar` (access/export/delete), retention jobs~~ ✅ done (inline export + digest, erasure transaction, daily sweep)                                                                                                                                                                                                                                      |
+| M10       | ~~`GET /metrics`~~ ✅ done (Prometheus text, route-template labels, root-level like the probes)                                                                                                                                                                                                                                                                                                 |
 
 ## 5. Real-time catalog (Socket.IO, namespace `/rt`)
 
@@ -451,7 +452,62 @@ so replays trim nothing:
   fails open if Redis is down — availability over throttling, with `readyz` reporting the
   outage.
 
-## 12. Milestone plan
+## 12. Delivery: images, soak & observability (M10)
+
+### Container images & compose
+
+- **`apps/api/Dockerfile`** — multi-stage pnpm workspace build; the runtime keeps the
+  full workspace `node_modules` (not a `--prod` prune) because boot runs
+  `prisma migrate deploy` + `prisma db seed` (the Prisma CLI is a devDependency and
+  seeding executes `prisma/seed.ts` through tsx). One `docker compose up` therefore
+  yields a migrated, seeded, mock-mode stack; `HEALTHCHECK` probes `/healthz`.
+- **`apps/web/Dockerfile`** — Next.js `output: 'standalone'`; `NEXT_PUBLIC_API_URL` is a
+  build **arg** (baked into the browser bundle), while the runtime gets
+  `API_PUBLIC_URL=http://api:4000` for in-network SSR fetches.
+- **`docker-compose.yml`** — postgres (optional host port for debugging) + redis
+  (internal only, append-only persistence, healthchecked), api, web. Secrets come from
+  the generated root `.env` (`env_file`), never from the repo; the DB password is a
+  container-internal dev credential. `NODE_ENV` is left to `.env` so the
+  http://localhost stack keeps non-`Secure` cookies; production flips it behind TLS.
+  `RATE_LIMIT_MAX` is raised in this stack only (soak traffic is all one IP).
+
+### Soak (`scripts/soak.mjs`, `pnpm soak`)
+
+Dependency-free Node script: `SOAK_USERS` virtual users loop the real journey
+(search → book → STK simulate → confirm → issue) against `SOAK_API_URL` for
+`SOAK_DURATION_S`, rotating routes/dates so no single flight exhausts seats. The run
+**fails** when failed journeys exceed `SOAK_MAX_ERROR_PCT` (default 1%) or overall
+request p95 exceeds `SOAK_MAX_P95_MS` (default 2000 ms) — thresholds are part of the
+exit code, not just the report.
+
+### Observability (`/metrics`)
+
+- `MetricsService` — in-process registry (no dependency): `http_requests_total` and
+  `http_request_duration_seconds` (histogram, fixed buckets) keyed by **route template**
+  (`/api/v1/flights/:id`), so labels stay bounded under parameter-heavy traffic.
+- Fed by an express-level middleware (Nest middleware, registered from
+  `ObservabilityModule`), so guard-level responses (401/429) are counted too; the label
+  comes from `req.route.path`, never the raw URL.
+- `GET /metrics` is root-level like the probes (excluded from the global prefix),
+  `@Public`, exempt from rate limiting, and covered by an e2e that pins the format.
+- `/readyz` remains the dependency liveness signal; structured request logs carry
+  `requestId` correlation (M1).
+
+### CI (`.github/workflows/ci.yml`)
+
+1. **verify** — Postgres + Redis services: bootstrap, migrate, seed, lint, format,
+   typecheck, full test suites.
+2. **docker build · soak · playwright** — `docker compose up -d --build --wait`, asserts
+   health + seeded search results, runs `pnpm soak`, then installs Chromium and runs
+   `apps/web/e2e/passenger-flow.spec.ts` (the UI journey: register → search → fare →
+   book → mock STK → PNR lookup → seat → check-in → boarding pass). On failure the
+   stack logs and the Playwright report are captured; teardown always runs.
+
+The Playwright journey picks its flight by probing the API for a departure inside the
+check-in window (now+1.5 h … now+23 h) — the browser cannot know the timetable, and
+the window (24 h open / 60 min cutoff) is enforced by the API.
+
+## 13. Milestone plan
 
 | #   | Scope                                                        | Exit criteria                                                |
 | --- | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -464,6 +520,6 @@ so replays trim nothing:
 | M7  | ✅ Seats, check-in, boarding pass                            | full search→book→pay→check-in flow green                     |
 | M8  | ✅ Ops workspace, KCAA hooks, reporting                      | manifest hook unit-tested with fake endpoint                 |
 | M9  | ✅ DPA flows, i18n, hardening                                | export/delete tests; SW translations complete                |
-| M10 | Load, CI/CD polish, Playwright, observability                | CI runs verify + docker build; soak test                     |
+| M10 | ✅ Load/soak, CI/CD polish, Playwright, observability        | CI runs verify + docker build; soak test                     |
 
 Each milestone ends with lint + typecheck + tests green and a conventional commit.

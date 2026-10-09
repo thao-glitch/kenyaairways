@@ -13,7 +13,7 @@ export const GLOBAL_PREFIX = 'api/v1';
  * (prefix, helmet, CORS, cookies, Swagger) exactly.
  */
 export function configureApp(app: INestApplication, env: Env = getEnv()): INestApplication {
-  app.setGlobalPrefix(GLOBAL_PREFIX, { exclude: ['healthz', 'readyz'] });
+  app.setGlobalPrefix(GLOBAL_PREFIX, { exclude: ['healthz', 'readyz', 'metrics'] });
 
   // Express stamps its banner on every response — no framework fingerprinting.
   (app.getHttpAdapter().getInstance() as { disable?: (setting: string) => void }).disable?.(

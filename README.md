@@ -28,7 +28,7 @@ timezone `Africa/Nairobi` (stored UTC, displayed airport-local) · phones E.164 
 | M7  | Seat map + assignment, check-in, boarding pass                      | ✅ done |
 | M8  | Ops workspaces, KCAA manifest hooks, reporting                      | ✅ done |
 | M9  | Kenya DPA (consent/export/delete/retention), i18n, hardening        | ✅ done |
-| M10 | Load/concurrency tests, CI/CD, observability, docs                  | ⬜      |
+| M10 | Load/concurrency tests, CI/CD, observability, docs                  | ✅ done |
 
 ---
 
@@ -49,8 +49,13 @@ pnpm dev              # api on :4000, web on :3000
 ### With Docker
 
 ```bash
-docker compose up --build   # postgres, redis, api, web
+docker compose up --build   # postgres, redis, api (migrate → seed → serve), web
 ```
+
+The API container migrates, seeds (idempotent) and serves in one command; secrets come
+from the generated root `.env`, and mock payment/SMS providers are selected there. The
+compose file raises `RATE_LIMIT_MAX` for load tests — keep the `.env.example` defaults
+outside this stack.
 
 ### Without Docker (local services)
 
@@ -93,6 +98,7 @@ Base URL: `http://localhost:4000` · global prefix `/api/v1` · OpenAPI at `/api
 | ------ | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
 | GET    | `/healthz`                                    | Liveness (no dependencies)                                                                                                                                                                                                         | public                    |
 | GET    | `/readyz`                                     | Readiness: Postgres + Redis (503 degraded)                                                                                                                                                                                         | public                    |
+| GET    | `/metrics`                                    | Prometheus text metrics: request counts + latency histograms per route template                                                                                                                                                    | public (scrapers)         |
 | GET    | `/api/v1/meta`                                | Airline, IATA code, currencies, locales, timezone                                                                                                                                                                                  | public                    |
 | GET    | `/api/v1/airports`                            | Seeded airport directory (NBO/WIL/…/DXB)                                                                                                                                                                                           | public                    |
 | POST   | `/api/v1/auth/register`                       | Create account + start session (terms consent)                                                                                                                                                                                     | public                    |
@@ -206,4 +212,18 @@ missing/invalid value. `.env.example` documents every key; secrets are generated
 - `apps/api` — Vitest (SWC for Nest decorator metadata), Supertest e2e against a real app
   instance; requires Postgres + Redis reachable per `.env`
 - `apps/web` — Vitest for formatting/timezone helpers, i18n/message parity; Playwright
-  planned for M10
+  for the full passenger journey (`e2e/passenger-flow.spec.ts`: search → book → pay →
+  PNR → seat → check-in → boarding pass against a running stack)
+
+### Soak / load
+
+```bash
+pnpm soak                                  # against http://localhost:4000
+SOAK_USERS=10 SOAK_DURATION_S=60 pnpm soak # more heat
+```
+
+`scripts/soak.mjs` is dependency-free: N virtual users loop the real journey
+(search → book → mock STK → confirm → issue) for the duration, then the run **fails**
+unless the error rate stays ≤ `SOAK_MAX_ERROR_PCT` (1%) and overall p95 ≤
+`SOAK_MAX_P95_MS` (2000ms). CI runs it against the freshly composed stack after the
+build, before Playwright.

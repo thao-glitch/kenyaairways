@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { SessionUserDto } from '@flight13/shared';
 import { useT } from '@/components/i18n-provider';
@@ -10,22 +10,26 @@ import { getSession, logout } from '@/lib/auth';
 /**
  * Live account state in the header: skeleton while probing `/auth/me`, then
  * either sign-in links or the account menu (client island — the session
- * cookies are httpOnly, so only fetch can see them).
+ * cookies are httpOnly, so only fetch can see them). Re-probes on every
+ * navigation: register/login sign in via `router.push`, which never remounts
+ * the header, so a mount-only probe would leave it stale.
  */
 export function SessionNav() {
   const { t } = useT();
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<SessionUserDto | null | undefined>(undefined);
 
   useEffect(() => {
     let alive = true;
     void getSession().then((session) => {
+      // Keep the previous value while revalidating — no skeleton flash on nav.
       if (alive) setUser(session);
     });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [pathname]);
 
   async function onLogout(): Promise<void> {
     await logout();

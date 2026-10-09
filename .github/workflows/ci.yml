@@ -64,11 +64,45 @@ jobs:
         run: pnpm test
 
   docker:
-    name: Docker build (api, web)
+    name: Docker build · Soak · Playwright
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build api image
-        run: docker build -f apps/api/Dockerfile -t flight13/api:ci .
-      - name: Build web image
-        run: docker build -f apps/web/Dockerfile -t flight13/web:ci .
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      # Only playwright + the workspace config are needed; soak.mjs is
+      # dependency-free but lives in the workspace scripts.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Generate local secrets
+        run: node scripts/bootstrap.mjs
+      - name: Build images and start the stack (migrate → seed → serve)
+        run: docker compose up -d --build --wait --wait-timeout 180
+      - name: Stack is ready
+        run: |
+          curl -fsS http://localhost:4000/healthz
+          curl -fsS http://localhost:4000/readyz
+          curl -fsS http://localhost:3000 >/dev/null
+          curl -fsS "http://localhost:4000/api/v1/flights/search?origin=NBO&destination=MBA&date=$(date -d '+14 days' +%F)" | grep -q '"results":\[{' || { echo 'seed missing'; exit 1; }
+      - name: Soak (30s, full book→pay→issue journey)
+        run: pnpm soak
+      - name: Playwright — search → book → pay → seat → check-in → pass
+        run: |
+          pnpm --filter @flight13/web exec playwright install --with-deps chromium
+          WEB_URL=http://localhost:3000 API_URL=http://localhost:4000 pnpm --filter @flight13/web test:e2e
+      - name: Stack logs on failure
+        if: failure()
+        run: docker compose logs --no-color | tail -n 500
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
