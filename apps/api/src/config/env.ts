@@ -158,6 +158,9 @@ export const envSchema = z
     DATA_RETENTION_BOOKING_DAYS: z.coerce.number().int().positive().default(2555),
     DATA_RETENTION_LOG_DAYS: z.coerce.number().int().positive().default(365),
     REPORTING_MANIFEST_OPERATOR: zStr(),
+    // KCAA manifest dispatch: empty URL → no-op dispatcher (default in dev/CI)
+    KCAA_MANIFEST_URL: z.url().or(z.literal('')).default(''),
+    KCAA_MANIFEST_TOKEN: zStr(''),
 
     // ── seed (dev only) ────────────────────────────────────────────────
     SEED_USER_PASSWORD: z.string().min(8, 'dev seed login password (set in .env)'),

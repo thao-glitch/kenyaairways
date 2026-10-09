@@ -121,3 +121,7 @@ export type SeatZone = (typeof SEAT_ZONES)[number];
 /** Derived seat-map state for one seat on one flight (not a table enum). */
 export const SEAT_MAP_STATUSES = ['AVAILABLE', 'HELD', 'OCCUPIED', 'BLOCKED'] as const;
 export type SeatMapStatus = (typeof SEAT_MAP_STATUSES)[number];
+
+/** KCAA manifest dispatch attempt lifecycle (M8). */
+export const DISPATCH_STATUSES = ['PENDING', 'DISPATCHED', 'SKIPPED', 'FAILED'] as const;
+export type DispatchStatus = (typeof DISPATCH_STATUSES)[number];

@@ -22,7 +22,7 @@
     "db:deploy": "pnpm --filter @flight13/api db:deploy",
     "db:seed": "pnpm --filter @flight13/api db:seed",
     "db:reset": "pnpm --filter @flight13/api db:reset",
-    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "verify": "pnpm format:check && pnpm lint && pnpm --filter @flight13/shared build && pnpm typecheck && pnpm test",
     "prepare": "husky",
     "postinstall": "pnpm --filter @flight13/api exec prisma generate"
   },

@@ -4,6 +4,7 @@ import {
   CabinClass,
   C2BStatus,
   CheckInStatus,
+  DispatchStatus,
   DocType,
   FlightStatus,
   HoldStatus,
@@ -27,6 +28,7 @@ import {
   CABIN_CLASSES,
   C2B_STATUSES,
   CHECK_IN_STATUSES,
+  DISPATCH_STATUSES,
   DOC_TYPES,
   FLIGHT_STATUSES,
   HOLD_STATUSES,
@@ -73,6 +75,7 @@ const pairs: Array<[string, readonly string[], object]> = [
   ['StatusSource', STATUS_SOURCES, StatusSource],
   ['CheckInStatus', CHECK_IN_STATUSES, CheckInStatus],
   ['SeatZone', SEAT_ZONES, SeatZone],
+  ['DispatchStatus', DISPATCH_STATUSES, DispatchStatus],
 ];
 
 describe('shared ↔ prisma enum parity', () => {

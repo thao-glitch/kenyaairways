@@ -490,17 +490,18 @@ model Flight {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  schedule     FlightSchedule      @relation(fields: [scheduleId], references: [id])
-  origin       Airport             @relation("FlightOrigin", fields: [originCode], references: [code])
-  destination  Airport             @relation("FlightDest", fields: [destinationCode], references: [code])
-  aircraft     Aircraft?           @relation(fields: [aircraftId], references: [id])
-  statusEvents FlightStatusEvent[]
-  fares        Fare[]
-  inventory    Inventory[]
-  segments     BookingSegment[]
-  tickets      Ticket[]
-  seatHolds    SeatHold[]
-  checkIns     CheckIn[]
+  schedule           FlightSchedule      @relation(fields: [scheduleId], references: [id])
+  origin             Airport             @relation("FlightOrigin", fields: [originCode], references: [code])
+  destination        Airport             @relation("FlightDest", fields: [destinationCode], references: [code])
+  aircraft           Aircraft?           @relation(fields: [aircraftId], references: [id])
+  statusEvents       FlightStatusEvent[]
+  fares              Fare[]
+  inventory          Inventory[]
+  segments           BookingSegment[]
+  tickets            Ticket[]
+  seatHolds          SeatHold[]
+  checkIns           CheckIn[]
+  manifestDispatches ManifestDispatch[]
 
   @@unique([scheduleId, flightDate])
   @@index([flightDate, originCode, destinationCode])
@@ -952,6 +953,37 @@ model BoardingPass {
   walletMeta Json?
 
   checkIn CheckIn @relation(fields: [checkInId], references: [id], onDelete: Cascade)
+}
+
+// ───────────────────── ops, KCAA manifest (M8) ─────────────────────
+enum DispatchStatus {
+  PENDING
+  DISPATCHED
+  SKIPPED
+  FAILED
+}
+
+/// One row per KCAA manifest dispatch attempt — the audit trail for the
+/// `ManifestDispatcher` hook (endpoint can be swapped without touching this).
+model ManifestDispatch {
+  id            String         @id @default(cuid())
+  flightId      String
+  status        DispatchStatus @default(PENDING)
+  endpoint      String? // target URL (null = no endpoint configured → noop)
+  operator      String? // REPORTING_MANIFEST_OPERATOR
+  attempts      Int            @default(0)
+  responseCode  Int?
+  error         String?
+  payloadDigest String? // sha256 of the sent manifest — no PII in this row
+  requestedById String?
+  dispatchedAt  DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  flight Flight @relation(fields: [flightId], references: [id], onDelete: Cascade)
+
+  @@index([flightId, createdAt])
+  @@index([status, createdAt])
 }
 
 // ───────────────────────── comms, audit ─────────────────────────

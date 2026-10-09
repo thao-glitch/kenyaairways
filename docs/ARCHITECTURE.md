@@ -51,7 +51,7 @@ apps/api
 │       ├── health/              /healthz /readyz
 │       ├── meta/                /api/v1/meta
 │       └── flights/             /api/v1/airports, search, fares, seat map, status
-├── prisma/schema.prisma         34 models, 29 enums
+├── prisma/schema.prisma         35 models, 33 enums
 ├── prisma/migrations/
 ├── prisma/seed.ts               idempotent, re-runnable
 └── test/                        Vitest + Supertest e2e
@@ -93,6 +93,7 @@ erDiagram
     Flight ||--o{ Inventory : sells
     Flight ||--o{ BookingSegment : carries
     Flight ||--o{ Fare : prices
+    Flight ||--o{ ManifestDispatch : dispatches
 
     FareClass ||--o{ Fare : prices
     FareClass ||--o{ FareRule : restricts
@@ -175,9 +176,9 @@ rotating); `Authorization: Bearer` also works for the access token. Global guard
 | M3        | ~~`GET /flights/search`, `GET /flights/:id`, `GET /flights/:id/fares`, `GET /fare-classes`~~ ✅ done                                                                                                                                                                                                                                                                                            |
 | M4        | ~~`POST /bookings`, `GET /bookings`, `GET /bookings/:id`, `POST /bookings/:id/cancel`, `POST /bookings/:id/seats`, `DELETE /bookings/:id/seats/:seatLabel`~~ ✅ done (expiry via BullMQ sweep)                                                                                                                                                                                                  |
 | M5        | ~~`POST /payments`, `GET /payments?bookingId=`, `GET /payments/:id`, `POST /payments/:id/stk`, `POST /payments/:id/simulate` (mock), `POST /payments/:id/refund` (FINANCE + OTP), `POST /payments/cb/:secret/stk`, `POST /payments/cb/:secret/c2b/validate`, `POST /payments/cb/:secret/c2b/confirm`, `POST /payments/cb/:secret/stripe`~~ ✅ done (BullMQ workers + `payment-reconcile` sweep) |
-| M6        | ~~`GET /pnr/:code`, `POST /ticketing/issue`, `GET /flights/:id/status`~~ ✅ done (Socket.IO `/rt` gateway; ops status endpoints deferred to M8)                                                                                                                                                                                                                                                 |
+| M6        | ~~`GET /pnr/:code`, `POST /ticketing/issue`, `GET /flights/:id/status`~~ ✅ done (Socket.IO `/rt` gateway; ops status endpoints delivered in M8)                                                                                                                                                                                                                                                |
 | M7        | ~~`GET /flights/:id/seats`, `POST /check-in`, `GET /check-in?bookingId=`, `GET /boarding-passes/:id`~~ ✅ done (check-in window + 54-char BCBP)                                                                                                                                                                                                                                                 |
-| M8        | `GET /ops/manifests`, `POST /ops/manifests/:id/dispatch` (KCAA hook), `GET /reports/*`                                                                                                                                                                                                                                                                                                          |
+| M8        | ~~`PATCH /ops/flights/:id/status`, `GET /ops/manifests`, `POST /ops/manifests/:id/dispatch` (KCAA hook), `GET /ops/dispatches`, `GET /reports/revenue`, `GET /reports/load`~~ ✅ done (dispatcher unit-tested against a fake endpoint)                                                                                                                                                          |
 | M9        | `GET/POST /me/consents`, `POST /me/dsar` (access/export/delete), retention jobs                                                                                                                                                                                                                                                                                                                 |
 
 ## 5. Real-time catalog (Socket.IO, namespace `/rt`)
@@ -346,7 +347,46 @@ live.
   skeleton stays until the tab is visible (observed during browser verification — not
   an application bug).
 
-## 9. Security & compliance
+## 9. Ops workspace, KCAA manifest & reporting (M8)
+
+**Flight status control.** `PATCH /ops/flights/:id/status` (`OPS`/`ADMIN`) validates the
+transition against an allow-list (`LANDED` and `CANCELLED` are terminal; same-status
+edits are always allowed for gate/delay-only changes), then writes `Flight` +
+`FlightStatusEvent` in **one transaction** — every event carries a `StatusSource`
+(`MANUAL` by default) so the KCAA trail never records an unattributed change — and
+audits `flight.status.update`. Real-time fan-out follows the change facets actually
+touched: status → `flight.status.changed`, gate → `gate.changed`, delay →
+`delay.updated`, cancellation → `ops.alert` (`critical`) to the `ops` room. `DEPARTED`
+and `LANDED` auto-stamp `actualDepUtc`/`actualArrUtc` once.
+
+**Manifest.** `GET /ops/manifests?flightId=` lists **issued tickets** (bookings that are
+not `CANCELLED`/`EXPIRED`) with PNR, ticket number, seat, check-in status + sequence,
+fare class, nationality and document _type_. Document **numbers are deliberately not
+included** (Kenya DPA data-minimisation — APIS submission is a separate extension
+point).
+
+**Dispatch hook (KCAA).** The transport behind `POST /ops/manifests/:flightId/dispatch`
+is the `ManifestDispatcher` interface (`modules/ops/manifest-dispatcher.ts`):
+
+- `NoopManifestDispatcher` (default when `KCAA_MANIFEST_URL` is empty) — nothing leaves
+  the process; the row settles as `SKIPPED`.
+- `HttpManifestDispatcher` — JSON `POST` with `Authorization: Bearer
+KCAA_MANIFEST_TOKEN`, 10 s cap; non-2xx settles as a retryable failure.
+
+The controller only records a `ManifestDispatch` audit row (`PENDING`, endpoint +
+operator + requester) and enqueues `manifest-dispatch`; the BullMQ worker (3 attempts,
+exponential backoff) builds the payload, stores a **sha256 digest** (the row never
+contains passenger PII) and settles `DISPATCHED`/`SKIPPED`/`FAILED`. Replays of a
+settled row no-op, and a permanent failure raises `ops.alert` (`manifest.dispatch.failed`).
+
+**Reporting.** `GET /reports/revenue` (`FINANCE`/`ADMIN`) buckets payments and refunds
+by **Nairobi calendar day** — computed in SQL with `AT TIME ZONE 'Africa/Nairobi'`, not
+in JS, so day boundaries cannot drift — and returns daily gross/refund/net plus totals.
+`GET /reports/load` (`FINANCE`/`ADMIN`/`OPS`) returns seats sold vs capacity per flight
+(load factor = `sold / (capacity − blocked)`; blocked seats never count). Ranges default
+to 30 days (revenue) / 7 days (load) and are capped at 366 days.
+
+## 10. Security & compliance
 
 - **Auth**: JWT access (15 min) + rotating refresh in httpOnly cookies; roles
   `PASSENGER · AGENT · OPS · FINANCE · ADMIN`; login throttling + OTP (SMS) hooks.
@@ -358,7 +398,7 @@ live.
 - **KCAA manifest** dispatch is an interface (`ManifestDispatcher`) with a no-op default —
   a government endpoint can be plugged in without touching booking code.
 
-## 10. Milestone plan
+## 11. Milestone plan
 
 | #   | Scope                                                        | Exit criteria                                                |
 | --- | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -369,7 +409,7 @@ live.
 | M5  | ✅ Payments (STK, C2B, Stripe, refunds, recon)               | duplicate/lost callbacks never double-confirm                |
 | M6  | ✅ PNR, ticketing, Socket.IO status                          | realtime e2e: stream, room auth, replay, idempotent issue    |
 | M7  | ✅ Seats, check-in, boarding pass                            | full search→book→pay→check-in flow green                     |
-| M8  | Ops workspace, KCAA hooks, reporting                         | manifest hook unit-tested with fake endpoint                 |
+| M8  | ✅ Ops workspace, KCAA hooks, reporting                      | manifest hook unit-tested with fake endpoint                 |
 | M9  | DPA flows, i18n, hardening                                   | export/delete tests; SW translations complete                |
 | M10 | Load, CI/CD polish, Playwright, observability                | CI runs verify + docker build; soak test                     |
 

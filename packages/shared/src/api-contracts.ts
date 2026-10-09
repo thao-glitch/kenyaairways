@@ -5,6 +5,7 @@ import type {
   CabinClass,
   C2BStatus,
   CheckInStatus,
+  DispatchStatus,
   DocType,
   FlightStatus,
   MpesaTxStatus,
@@ -452,4 +453,103 @@ export interface BoardingPassDto {
   gate: string | null;
   seatLabel: string | null;
   boardingSequence: number | null;
+}
+
+// ─────────────────────── ops, manifest, reports (M8) ───────────────────────
+
+/** One ticketed passenger row of a flight manifest (KCAA dispatch payload). */
+export interface ManifestPassengerDto {
+  seq: number;
+  pnr: string;
+  ticketNumber: string;
+  firstName: string;
+  lastName: string;
+  seatLabel: string | null;
+  boardingSequence: number | null;
+  checkInStatus: CheckInStatus;
+  checkedInAt: string | null;
+  fareClass: string;
+  nationality: string | null;
+  docType: DocType | null;
+  baggageKg: number;
+}
+
+/** `GET /ops/manifests?flightId=` — ticketed passengers for one flight. */
+export interface ManifestDto {
+  flightId: string;
+  flightNumber: string;
+  originCode: string;
+  destinationCode: string;
+  departureUtc: string;
+  gate: string | null;
+  status: FlightStatus;
+  generatedAt: string;
+  totals: {
+    ticketed: number;
+    checkedIn: number;
+    seatsAssigned: number;
+  };
+  passengers: ManifestPassengerDto[];
+}
+
+/** `POST /ops/manifests/:flightId/dispatch` — one dispatch attempt (audit row). */
+export interface ManifestDispatchDto {
+  id: string;
+  flightId: string;
+  status: DispatchStatus;
+  endpoint: string | null;
+  operator: string | null;
+  attempts: number;
+  responseCode: number | null;
+  error: string | null;
+  payloadDigest: string | null;
+  dispatchedAt: string | null;
+  createdAt: string;
+}
+
+/** One day of `GET /reports/revenue` (Nairobi calendar day, minor units). */
+export interface RevenueDayDto {
+  day: string; // YYYY-MM-DD (Africa/Nairobi)
+  payments: number;
+  grossMinor: number;
+  refunds: number;
+  refundMinor: number;
+  netMinor: number;
+}
+
+/** `GET /reports/revenue?from=&to=&currency=` — daily gross/refund/net. */
+export interface RevenueReportDto {
+  from: string;
+  to: string;
+  currency: string;
+  days: RevenueDayDto[];
+  totals: Omit<RevenueDayDto, 'day'>;
+}
+
+/** One flight row of `GET /reports/load` (sell-through per departure). */
+export interface LoadFactorRowDto {
+  flightId: string;
+  flightNumber: string;
+  originCode: string;
+  destinationCode: string;
+  flightDate: string; // YYYY-MM-DD
+  status: FlightStatus;
+  capacity: number;
+  seatsSold: number;
+  seatsHeld: number;
+  seatsBlocked: number;
+  loadFactorPct: number | null;
+}
+
+/** `GET /reports/load?from=&to=` — capacity vs sold per flight. */
+export interface LoadReportDto {
+  from: string;
+  to: string;
+  rows: LoadFactorRowDto[];
+  totals: {
+    flights: number;
+    capacity: number;
+    seatsSold: number;
+    loadFactorPct: number | null;
+  };
 }

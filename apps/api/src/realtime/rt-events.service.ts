@@ -272,6 +272,86 @@ export class RtEventsService {
     }
   }
 
+  async gateChanged(
+    flightId: string,
+    gate: string | null,
+    previousGate: string | null,
+  ): Promise<void> {
+    try {
+      const f = await this.prisma.flight.findUnique({
+        where: { id: flightId },
+        select: { id: true, flightNumber: true },
+      });
+      if (!f) return;
+      const at = new Date().toISOString();
+      await this.publish('gate.changed', [roomForFlight(f.id)], (eventId) => ({
+        eventId,
+        flightId: f.id,
+        flightNumber: f.flightNumber,
+        gate,
+        previousGate,
+        at,
+      }));
+    } catch (err) {
+      this.log.warn('gate.changed emit failed', {
+        flightId,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  async delayUpdated(flightId: string): Promise<void> {
+    try {
+      const f = await this.prisma.flight.findUnique({
+        where: { id: flightId },
+        select: { id: true, flightNumber: true, scheduledDepUtc: true, delayMinutes: true },
+      });
+      if (!f) return;
+      const at = new Date().toISOString();
+      const estimated = new Date(
+        f.scheduledDepUtc.getTime() + f.delayMinutes * 60_000,
+      ).toISOString();
+      await this.publish('delay.updated', [roomForFlight(f.id)], (eventId) => ({
+        eventId,
+        flightId: f.id,
+        flightNumber: f.flightNumber,
+        delayMinutes: f.delayMinutes,
+        estimatedDepUtc: estimated,
+        at,
+      }));
+    } catch (err) {
+      this.log.warn('delay.updated emit failed', {
+        flightId,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  /** Staff-room notice (OPS dashboards) — cancellations, dispatch failures, … */
+  async opsAlert(alert: {
+    type: string;
+    severity: 'info' | 'warning' | 'critical';
+    ref: string;
+    detail: string;
+  }): Promise<void> {
+    try {
+      const at = new Date().toISOString();
+      await this.publish('ops.alert', ['ops'], (eventId) => ({
+        eventId,
+        type: alert.type,
+        severity: alert.severity,
+        ref: alert.ref,
+        detail: alert.detail,
+        at,
+      }));
+    } catch (err) {
+      this.log.warn('ops.alert emit failed', {
+        type: alert.type,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   async notificationNew(notificationId: string): Promise<void> {
     try {
       const n = await this.prisma.notification.findUnique({
