@@ -1,0 +1,108 @@
+import type { AirportDto, FlightSearchResultDto, FlightOptionDto } from '@flight13/shared';
+import { formatMoney } from '@flight13/shared';
+import Link from 'next/link';
+import { SearchForm } from '@/components/search-form';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { formatDurationShort } from '@/lib/format';
+import { apiGetOrNull } from '@/lib/api';
+import { getTranslator } from '@/lib/i18n';
+
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+const first = (value: string | string[] | undefined): string | undefined =>
+  Array.isArray(value) ? value[0] : value;
+
+function cheapest(option: FlightOptionDto): number {
+  return Math.min(...option.fareOptions.map((f) => f.pricing.totalMinor));
+}
+
+/** Search results — server-rendered (public data, zero client JS beyond the form). */
+export default async function FlightsPage({ searchParams }: { searchParams: SearchParams }) {
+  const { t, locale } = await getTranslator();
+  const sp = await searchParams;
+  const origin = first(sp.origin);
+  const destination = first(sp.destination);
+  const date = first(sp.date);
+  const adults = first(sp.adults);
+  const hasQuery = Boolean(origin && destination && date);
+
+  const [airports, results] = await Promise.all([
+    apiGetOrNull<AirportDto[]>('/api/v1/airports', { revalidate: 300 }),
+    hasQuery
+      ? apiGetOrNull<FlightSearchResultDto>(
+          `/api/v1/flights/search?origin=${encodeURIComponent(origin ?? '')}` +
+            `&destination=${encodeURIComponent(destination ?? '')}` +
+            `&date=${encodeURIComponent(date ?? '')}&adults=${encodeURIComponent(adults ?? '1')}`,
+          { revalidate: 30 },
+        )
+      : Promise.resolve(null),
+  ]);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <h1 className="text-xl font-semibold sm:text-2xl">{t('search.title')}</h1>
+
+      <Card>
+        <CardContent className="pt-6">
+          <SearchForm airports={airports ?? []} defaults={{ origin, destination, date, adults }} />
+        </CardContent>
+      </Card>
+
+      {!hasQuery && <p className="text-sm text-muted-foreground">{t('search.prompt')}</p>}
+
+      {hasQuery && results === null && (
+        <p
+          className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          role="alert"
+        >
+          {t('search.unavailable')}
+        </p>
+      )}
+
+      {results && results.results.length === 0 && (
+        <p className="rounded-md border px-3 py-4 text-center text-sm text-muted-foreground">
+          {t('search.empty')}
+        </p>
+      )}
+
+      {results && results.results.length > 0 && (
+        <ul className="flex flex-col gap-3">
+          {results.results.map((option) => (
+            <li key={option.flightId}>
+              <Link
+                href={`/flights/${option.flightId}`}
+                className="block rounded-xl border transition-colors hover:border-primary/50 hover:bg-accent/40"
+              >
+                <Card className="border-0 shadow-none">
+                  <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{option.flightNumber}</span>
+                        <Badge variant="outline">{t(`flight.status.${option.status}`)}</Badge>
+                      </div>
+                      <span className="text-lg font-medium">
+                        {option.departLocal.replace('T', ' ').slice(0, 16)} →{' '}
+                        {option.arriveLocal.replace('T', ' ').slice(0, 16)}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {option.origin.code} ({option.origin.city}) → {option.destination.code} (
+                        {option.destination.city}) · {formatDurationShort(option.durationMinutes)}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-start gap-1 sm:items-end">
+                      <span className="text-lg font-semibold">
+                        {formatMoney(cheapest(option), results.meta.currency, locale)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{t('results.from')}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

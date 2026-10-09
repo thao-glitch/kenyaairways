@@ -1,7 +1,9 @@
 import type { AirportDto, HealthDto, MetaDto } from '@flight13/shared';
+import Link from 'next/link';
 import { apiGetOrNull } from '@/lib/api';
 import { getTranslator } from '@/lib/i18n';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 /**
@@ -76,12 +78,19 @@ export default async function HomePage() {
           </CardContent>
         </Card>
 
-        {/* Search teaser (M3) */}
+        {/* Search teaser → live search */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">{t('home.search.title')}</CardTitle>
             <CardDescription>{t('home.search.coming')}</CardDescription>
           </CardHeader>
+          <CardContent>
+            <Link href="/flights">
+              <Button variant="outline" className="w-full">
+                {t('home.search.cta')}
+              </Button>
+            </Link>
+          </CardContent>
         </Card>
 
         {/* Developers */}

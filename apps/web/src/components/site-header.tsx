@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { getTranslator } from '@/lib/i18n';
 import { setLocaleAction } from '@/app/actions';
+import { SessionNav } from '@/components/session-nav';
 
 /**
- * Mobile-first header: brand, locale switcher (English/Swahili server action),
- * API docs link. Search and account nav arrive with M3/M6.
+ * Mobile-first header: brand, flight search + manage-booking nav, live
+ * session island (sign-in/out), locale switcher, API docs link.
  */
 export async function SiteHeader() {
   const { t, locale } = await getTranslator();
@@ -23,6 +24,21 @@ export async function SiteHeader() {
         </Link>
 
         <div className="flex items-center gap-2">
+          <nav className="flex items-center gap-1" aria-label={t('nav.home')}>
+            <Link
+              href="/flights"
+              className="rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              {t('nav.flights')}
+            </Link>
+            <Link
+              href="/pnr"
+              className="hidden rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground sm:block"
+            >
+              {t('nav.manage')}
+            </Link>
+          </nav>
+          <SessionNav />
           <form
             action={setLocaleAction}
             className="flex items-center gap-1"

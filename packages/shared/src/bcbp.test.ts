@@ -39,6 +39,15 @@ describe('buildBcbp', () => {
     //  M1 └────── name 20 ─────┘ E └PNR─┘ └NBO┘ └MBA┘ K1 ─flight─ ─date class └─seat── ─seq─
   });
 
+  it('fits a 3-char airline code into the 2-char carrier field (F13 → F1)', () => {
+    // AIRLINE_IATA_CODE accepts 2–3 chars (default F13); check-in strips the
+    // full designator first, so flight 101 of F13101 arrives here as '101'.
+    const bcbp = buildBcbp({ ...base, carrier: 'F13', flightNumber: '101' });
+    expect(bcbp).toHaveLength(54);
+    expect(bcbp.slice(35, 37)).toBe('F1'); // truncated to the spec's 2 chars
+    expect(bcbp.slice(37, 41)).toBe('0101'); // flight 101, zero-filled to 4
+  });
+
   it('zero-fills flight and sequence, left-pads seat', () => {
     const bcbp = buildBcbp({ ...base, flightNumber: 'K1307', sequence: 42 });
     expect(bcbp.slice(37, 41)).toBe('1307'); // letters stripped

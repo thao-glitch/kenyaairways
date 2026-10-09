@@ -25,7 +25,7 @@ timezone `Africa/Nairobi` (stored UTC, displayed airport-local) · phones E.164 
 | M4  | Booking lifecycle + seat holds                                      | ✅ done |
 | M5  | Payments: M-Pesa STK/C2B, Stripe, refunds, reconciliation           | ✅ done |
 | M6  | PNR, ticketing, real-time status (Socket.IO)                        | ✅ done |
-| M7  | Seat map + assignment, check-in, boarding pass                      | ⬜      |
+| M7  | Seat map + assignment, check-in, boarding pass                      | ✅ done |
 | M8  | Ops workspaces, KCAA manifest hooks, reporting                      | ⬜      |
 | M9  | Kenya DPA (consent/export/delete/retention), i18n, hardening        | ⬜      |
 | M10 | Load/concurrency tests, CI/CD, observability, docs                  | ⬜      |
@@ -63,6 +63,20 @@ instance), then run `pnpm db:migrate && pnpm db:seed && pnpm dev`.
 pnpm verify        # prettier --check + eslint + tsc --noEmit + vitest (all workspaces)
 ```
 
+### Verify the full journey
+
+With the stack running and the seed applied:
+
+1. Search on `/flights` (e.g. NBO → MBA, tomorrow) → open a flight → **Select** a fare.
+2. Register or sign in — cookies are httpOnly; the client refreshes them silently.
+3. Submit the booking form → `/bookings/:id`: seats held with a live countdown and a
+   Socket.IO connection (polling fallback when offline).
+4. Pay with M-Pesa (mock mode: **Simulate: success**) → the booking turns **Confirmed**.
+5. **Issue tickets** → **Check in now** → open the **Boarding pass**: seat, sequence,
+   airport-local times and the printable 54-char IATA BCBP payload.
+6. Live status: `booking:{id}` / `flight:{id}` / `seat.*` events stream into the hub
+   without a reload.
+
 ### Seeded users
 
 One user per role — `PASSENGER`, `AGENT`, `OPS`, `FINANCE`, `ADMIN` — at
@@ -93,6 +107,7 @@ Base URL: `http://localhost:4000` · global prefix `/api/v1` · OpenAPI at `/api
 | GET    | `/api/v1/flights/:id`                  | Flight detail                                                                                                                                                                        | public                   |
 | GET    | `/api/v1/flights/:id/fares`            | Fare options + tax/fee breakdown (DB rules)                                                                                                                                          | public                   |
 | GET    | `/api/v1/flights/:id/status`           | Live status + recent status timeline                                                                                                                                                 | public                   |
+| GET    | `/api/v1/flights/:id/seats`            | Seat map with live hold/sold state                                                                                                                                                   | public                   |
 | POST   | `/api/v1/bookings`                     | Create booking: seat holds + TTL, pay to confirm                                                                                                                                     | access token             |
 | GET    | `/api/v1/bookings` · `/bookings/:id`   | List / detail (owner or staff)                                                                                                                                                       | access token             |
 | POST   | `/api/v1/bookings/:id/cancel`          | Cancel + release inventory                                                                                                                                                           | access token             |
@@ -105,13 +120,18 @@ Base URL: `http://localhost:4000` · global prefix `/api/v1` · OpenAPI at `/api
 | POST   | `/api/v1/payments/cb/:secret/…`        | Neutral callbacks: `stk`, `c2b/*`, `stripe`                                                                                                                                          | secret + IP list         |
 | GET    | `/api/v1/pnr/:code`                    | PNR lookup: booking + issued tickets                                                                                                                                                 | owner or staff           |
 | POST   | `/api/v1/ticketing/issue`              | Issue e-tickets (idempotent, one per passenger)                                                                                                                                      | owner or staff           |
+| POST   | `/api/v1/check-in`                     | Check passengers in + issue boarding passes (window enforced, idempotent)                                                                                                            | access token             |
+| GET    | `/api/v1/check-in?bookingId=`          | Check-in status + boarding pass ids for a booking                                                                                                                                    | access token             |
+| GET    | `/api/v1/boarding-passes/:id`          | One boarding pass incl. IATA BCBP payload (54-char M1)                                                                                                                               | owner or staff           |
 | WS     | `/rt`                                  | Socket.IO: `room.join`/`room.leave`/`ping` → `ack`, events `booking.updated`, `payment.updated`, `seat.*`, `flight.status.changed`, `notification.new` (+ replay via `sinceEventId`) | access token (handshake) |
 
 **Session model:** access JWT (`f13_at`, 15 min) + rotating refresh JWT (`f13_rt`, 7 days),
 both httpOnly/SameSite=Lax cookies (Bearer access token also accepted). Refresh reuse
 revokes the whole token family; logout denies the family immediately via Redis, so access
 tokens die before their TTL. Login is throttled per IP and locks the account after
-`LOGIN_MAX_ATTEMPTS` failures for `LOGIN_LOCK_MINUTES`.
+`LOGIN_MAX_ATTEMPTS` failures for `LOGIN_LOCK_MINUTES`. The web client rotates silently:
+on a 401 it calls `POST /auth/refresh` once (shared in-flight promise per tab) and
+retries the request.
 
 ---
 
@@ -161,4 +181,5 @@ missing/invalid value. `.env.example` documents every key; secrets are generated
 - `packages/shared` — pure unit tests (money, phone, PNR, state machine, M-Pesa codes)
 - `apps/api` — Vitest (SWC for Nest decorator metadata), Supertest e2e against a real app
   instance; requires Postgres + Redis reachable per `.env`
-- `apps/web` — Vitest for i18n/message parity; Playwright planned for M10
+- `apps/web` — Vitest for formatting/timezone helpers, i18n/message parity; Playwright
+  planned for M10

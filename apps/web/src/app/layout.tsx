@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
-import { getTranslator } from '@/lib/i18n';
+import { I18nProvider } from '@/components/i18n-provider';
+import { catalogs, getTranslator } from '@/lib/i18n';
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getTranslator();
@@ -34,10 +35,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <a href="#main" className="skip-link">
           {t('a11y.skipToContent')}
         </a>
-        <SiteHeader />
-        <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
-          {children}
-        </main>
+        <I18nProvider locale={locale} messages={catalogs[locale]}>
+          <SiteHeader />
+          <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+            {children}
+          </main>
+        </I18nProvider>
         <SiteFooter />
       </body>
     </html>

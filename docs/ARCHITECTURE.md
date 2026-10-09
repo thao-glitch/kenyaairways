@@ -50,7 +50,7 @@ apps/api
 │   └── modules/                 one folder per bounded context
 │       ├── health/              /healthz /readyz
 │       ├── meta/                /api/v1/meta
-│       └── flights/             /api/v1/airports (search lands here in M3)
+│       └── flights/             /api/v1/airports, search, fares, seat map, status
 ├── prisma/schema.prisma         34 models, 29 enums
 ├── prisma/migrations/
 ├── prisma/seed.ts               idempotent, re-runnable
@@ -58,9 +58,12 @@ apps/api
 
 apps/web
 └── src
-    ├── app/                     App Router: layout, page, loading, not-found, actions
-    ├── components/              site chrome + shadcn-style ui primitives
-    ├── lib/                     env, fetch client, i18n, cn()
+    ├── app/                     App Router pages: flights, book, bookings/[id], pnr,
+    │                            login/register, boarding-passes/[id] (server shells)
+    ├── components/              site chrome, booking/payment/seat/check-in islands,
+    │                            i18n-provider (client), shadcn-style ui primitives
+    ├── lib/                     api-client (silent refresh), auth, format (KES/tz),
+    │                            realtime (socket.io singleton), i18n (server-only)
     └── messages/{en,sw}.json    locale bundles (parity-tested)
 
 packages/shared/src
@@ -173,7 +176,7 @@ rotating); `Authorization: Bearer` also works for the access token. Global guard
 | M4        | ~~`POST /bookings`, `GET /bookings`, `GET /bookings/:id`, `POST /bookings/:id/cancel`, `POST /bookings/:id/seats`, `DELETE /bookings/:id/seats/:seatLabel`~~ ✅ done (expiry via BullMQ sweep)                                                                                                                                                                                                  |
 | M5        | ~~`POST /payments`, `GET /payments?bookingId=`, `GET /payments/:id`, `POST /payments/:id/stk`, `POST /payments/:id/simulate` (mock), `POST /payments/:id/refund` (FINANCE + OTP), `POST /payments/cb/:secret/stk`, `POST /payments/cb/:secret/c2b/validate`, `POST /payments/cb/:secret/c2b/confirm`, `POST /payments/cb/:secret/stripe`~~ ✅ done (BullMQ workers + `payment-reconcile` sweep) |
 | M6        | ~~`GET /pnr/:code`, `POST /ticketing/issue`, `GET /flights/:id/status`~~ ✅ done (Socket.IO `/rt` gateway; ops status endpoints deferred to M8)                                                                                                                                                                                                                                                 |
-| M7        | `GET /flights/:id/seats`, `POST /check-in`, `GET /boarding-passes/:id`                                                                                                                                                                                                                                                                                                                          |
+| M7        | ~~`GET /flights/:id/seats`, `POST /check-in`, `GET /check-in?bookingId=`, `GET /boarding-passes/:id`~~ ✅ done (check-in window + 54-char BCBP)                                                                                                                                                                                                                                                 |
 | M8        | `GET /ops/manifests`, `POST /ops/manifests/:id/dispatch` (KCAA hook), `GET /reports/*`                                                                                                                                                                                                                                                                                                          |
 | M9        | `GET/POST /me/consents`, `POST /me/dsar` (access/export/delete), retention jobs                                                                                                                                                                                                                                                                                                                 |
 
@@ -280,7 +283,70 @@ sequenceDiagram
 Refunds require the `FINANCE` role **and** an OTP step-up before dispatch; every transition
 is audited and logged with PII masked.
 
-## 7. Security & compliance
+## 7. Check-in & boarding pass
+
+**Window.** `checkInWindow(nowUtc, departureUtc)` is a pure, unit-tested function: open
+from `CHECK_IN_OPEN_HOURS` (default 24) before departure until `CHECK_IN_CLOSE_MINUTES`
+(default 60) before. Outside the window the API answers `CHECK_IN_CLOSED` (409) and the
+web states the exact open/close moments in **airport-local** time.
+
+**Assignment.** `POST /check-in` (idempotent per passenger) takes a `CONFIRMED`,
+ticketed booking and, inside one transaction: checks in every requested passenger,
+keeping seats already held for the booking and claiming the first free seats in row
+order, then upserts one `BoardingPass` per check-in. Re-POSTing returns the same rows —
+concurrent or repeated check-ins can never double-assign a seat (seat claims are unique
+in the transaction) and `GET /check-in?bookingId=` reflects status + pass ids.
+
+**BCBP payload.** Each pass carries the IATA BCBP `M1` core (54 chars, layout table and
+builder in `packages/shared/src/bcbp.ts`):
+
+```
+M1WANJALA/AMANI       EZU986ZNBOMBAF10101283S1A   0001
+M1 └────── name 20 ─────┘ E └─PNR─┘ └NBO┘ └MBA┘ F1 └─┘ 283 S └─1A──┘ 0001
+                                                  └carrier/fight──┘
+```
+
+Notes: the carrier field is **exactly 2 chars**, so `AIRLINE_IATA_CODE` (2–3 alnum,
+e.g. `F13`) is truncated there (`F13`→`F1`); the flight field is the flight number with
+the _full_ designator stripped first (`F13101` → `101` → zero-filled `0101`); the date
+is the Julian day of the **UTC** departure; seat is left-justified, sequence
+zero-filled. The web renders the raw payload monospaced with a print action — no
+scannable barcode rendering yet (noted gap).
+
+**Real time.** Check-in completion and seat changes emit `seat.*` / `booking.updated`
+into the `flight:{id}` and `booking:{id}` rooms, so other passengers' seat maps update
+live.
+
+## 8. Web app (M7 passenger flow)
+
+- **Data access** — the browser calls the API **directly cross-origin**
+  (`NEXT_PUBLIC_API_URL`) with `credentials: 'include'`. Cookies are
+  httpOnly/`SameSite=Lax` (localhost ports share a cookie jar), CORS allows exactly the
+  web origin with credentials, and there is **no Next.js proxy**: one auth path, one
+  origin in the logs. Server components fetch only **public** data (search, flight
+  detail, page shells); every authed view is a client component.
+- **Session** — `lib/auth.ts` + `lib/api-client.ts`. On a 401 the client performs one
+  shared `POST /auth/refresh` (rotation) and retries the request once; concurrent 401s
+  in a tab await the same promise, so the refresh token is never replayed and guard
+  rejections (no side effects) are safe to retry.
+- **i18n** — parity-tested server catalogs (`messages/{en,sw}.json`) stream into a
+  client `I18nProvider`, so client components translate via `useT()`
+  (`lib/i18n.ts` itself is `server-only`). Language switch sets the cookie and reloads.
+- **Real time** — `lib/realtime.ts` owns a module-singleton `socket.io-client` to `/rt`
+  (cookie handshake) plus `useRealtime(rooms, handler)`, which joins/leaves
+  `booking:{id}` + `flight:{id}` when the room set changes. Events refresh data
+  (`seat.*` re-fetches the map); if the socket drops the booking hub falls back to
+  5-second polling while payment is pending.
+- **Journey** — `/flights` → `/flights/[id]` (fares) → `/book` (401 bounces to
+  `/login?next=…`, register preserves `next`) → `/bookings/[id]` (pay · seats · issue ·
+  check-in · cancel) → `/pnr` lookup → `/boarding-passes/[id]` (airport-local times,
+  BCBP, print).
+- **Footnote** — route-level `loading.tsx` + React 19 streaming means a suspended page
+  swaps in via `requestAnimationFrame`; in _hidden_ tabs rAF never fires, so the
+  skeleton stays until the tab is visible (observed during browser verification — not
+  an application bug).
+
+## 9. Security & compliance
 
 - **Auth**: JWT access (15 min) + rotating refresh in httpOnly cookies; roles
   `PASSENGER · AGENT · OPS · FINANCE · ADMIN`; login throttling + OTP (SMS) hooks.
@@ -292,7 +358,7 @@ is audited and logged with PII masked.
 - **KCAA manifest** dispatch is an interface (`ManifestDispatcher`) with a no-op default —
   a government endpoint can be plugged in without touching booking code.
 
-## 8. Milestone plan
+## 10. Milestone plan
 
 | #   | Scope                                                        | Exit criteria                                                |
 | --- | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -302,7 +368,7 @@ is audited and logged with PII masked.
 | M4  | ✅ Booking + seat holds                                      | concurrency test proves no double-booking                    |
 | M5  | ✅ Payments (STK, C2B, Stripe, refunds, recon)               | duplicate/lost callbacks never double-confirm                |
 | M6  | ✅ PNR, ticketing, Socket.IO status                          | realtime e2e: stream, room auth, replay, idempotent issue    |
-| M7  | Seats, check-in, boarding pass                               | full search→book→pay→check-in flow green                     |
+| M7  | ✅ Seats, check-in, boarding pass                            | full search→book→pay→check-in flow green                     |
 | M8  | Ops workspace, KCAA hooks, reporting                         | manifest hook unit-tested with fake endpoint                 |
 | M9  | DPA flows, i18n, hardening                                   | export/delete tests; SW translations complete                |
 | M10 | Load, CI/CD polish, Playwright, observability                | CI runs verify + docker build; soak test                     |
