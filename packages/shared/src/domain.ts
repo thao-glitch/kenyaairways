@@ -99,3 +99,9 @@ export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 
 export const HOLD_STATUSES = ['ACTIVE', 'RELEASED', 'CONVERTED', 'EXPIRED'] as const;
 export type HoldStatus = (typeof HOLD_STATUSES)[number];
+
+export const TICKET_STATUSES = ['ISSUED', 'VOID', 'REFUNDED'] as const;
+export type TicketStatus = (typeof TICKET_STATUSES)[number];
+
+export const STATUS_SOURCES = ['MANUAL', 'SYSTEM', 'SIMULATOR'] as const;
+export type StatusSource = (typeof STATUS_SOURCES)[number];

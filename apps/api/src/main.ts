@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
 import { configureApp } from './app.setup';
 import { getEnv } from './config/env';
@@ -16,6 +17,7 @@ async function bootstrap(): Promise<void> {
   });
 
   configureApp(app, env);
+  app.useWebSocketAdapter(new IoAdapter(app)); // Socket.IO for the /rt gateway
   app.enableShutdownHooks();
 
   await app.listen(env.PORT, '0.0.0.0');

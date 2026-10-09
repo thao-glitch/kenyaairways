@@ -20,6 +20,7 @@ import { randomToken } from '../../common/crypto';
 import { PrismaService } from '../../prisma/prisma.module';
 import { GLOBAL_PREFIX } from '../../app.setup';
 import { BookingsService, STAFF_ROLES, type BookingActor } from '../bookings/bookings.service';
+import { RtEventsService } from '../../realtime/rt-events.service';
 import type { Db } from '../bookings/inventory.service';
 import { OtpService } from '../auth/otp.service';
 import { PAYMENT_CB_QUEUE, PAYMENT_STATUSES_TO_CLAIM, type PaymentCbJob } from './queues';
@@ -228,6 +229,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly bookings: BookingsService,
     private readonly otp: OtpService,
+    private readonly rt: RtEventsService,
     @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProvider,
   ) {}
 
@@ -322,6 +324,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       provider: fresh.provider,
       amountMinor: fresh.amountMinor,
     });
+    await this.rt.paymentUpdated(fresh.id);
     return toPaymentDto(fresh);
   }
 
@@ -343,6 +346,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     await this.audit('payment.stk.initiate', actor, fresh.id, 'SUCCESS', {
       pnr: payment.booking.pnr,
     });
+    await this.rt.paymentUpdated(fresh.id);
     return toPaymentDto(fresh);
   }
 
@@ -381,6 +385,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         pnr: booking.pnr,
         message: (err as Error).message,
       });
+      await this.rt.paymentUpdated(paymentId);
       throw err;
     }
 
@@ -573,6 +578,24 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         source,
       });
     }
+
+    // Real-time fan-out on the same committed state: payment always moves on a
+    // terminal result; the booking only does when money was accepted.
+    if (outcome !== 'duplicate' && outcome !== 'skipped') {
+      const link = await this.prisma.mpesaTransaction.findUnique({
+        where: { id: mpesaTxId },
+        select: { paymentId: true, payment: { select: { bookingId: true } } },
+      });
+      if (link) {
+        await this.rt.paymentUpdated(link.paymentId, {
+          resultCode: result.resultCode,
+          resultMessage: info.en,
+        });
+        if (outcome === 'paid' || outcome === 'unconfirmable') {
+          await this.rt.bookingUpdated(link.payment.bookingId);
+        }
+      }
+    }
     return outcome;
   }
 
@@ -697,6 +720,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
           failureMessage: info.en,
         },
       });
+      await this.rt.paymentUpdated(payment.id, { resultCode, resultMessage: info.en });
     } else {
       const outcome = await this.prisma.$transaction((tx) =>
         this.applyPaidLocked(
@@ -710,6 +734,8 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         source: 'simulate',
         outcome,
       });
+      await this.rt.paymentUpdated(payment.id, { resultCode, resultMessage: info.en });
+      await this.rt.bookingUpdated(payment.bookingId);
     }
     return toPaymentDto(await this.prisma.payment.findUniqueOrThrow({ where: { id: paymentId } }));
   }
@@ -838,7 +864,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
             : null,
       });
       if (claimed.count === 0) return 'duplicate' as const;
-      await tx.payment.create({
+      const created = await tx.payment.create({
         data: {
           bookingId: booking.id,
           provider: 'MPESA_C2B',
@@ -850,11 +876,23 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
           paidAt: new Date(),
         },
       });
+      await tx.mpesaC2BPayment.update({
+        where: { id: row.id },
+        data: { paymentId: created.id },
+      });
       return target.toLowerCase() as 'matched' | 'overpaid';
     });
 
     if (outcome !== 'skipped' && outcome !== 'duplicate') {
       await this.audit(`payment.c2b.${outcome}`, null, c2bId, 'SUCCESS', { outcome });
+    }
+    if (outcome === 'matched' || outcome === 'overpaid') {
+      const fresh = await this.prisma.mpesaC2BPayment.findUnique({
+        where: { id: c2bId },
+        select: { bookingId: true, paymentId: true },
+      });
+      if (fresh?.paymentId) await this.rt.paymentUpdated(fresh.paymentId);
+      if (fresh?.bookingId) await this.rt.bookingUpdated(fresh.bookingId);
     }
     this.log.info('c2b processed', { c2bId, outcome });
   }
@@ -880,6 +918,8 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       );
       if (res === 'paid')
         await this.audit('payment.paid', null, payment.id, 'SUCCESS', { source: 'stripe-webhook' });
+      await this.rt.paymentUpdated(payment.id);
+      if (res === 'paid') await this.rt.bookingUpdated(payment.bookingId);
       return;
     }
 
@@ -895,6 +935,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         },
       });
       await this.audit('payment.failed', null, payment.id, 'FAILURE', { source: 'stripe-webhook' });
+      await this.rt.paymentUpdated(payment.id);
     }
   }
 
@@ -934,6 +975,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
             await this.audit('payment.reconcile.expired', null, payment.id, 'SUCCESS', {
               attempts,
             });
+            await this.rt.paymentUpdated(payment.id);
           } else {
             await this.prisma.payment.update({
               where: { id: payment.id },
@@ -955,6 +997,8 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
           if (res === 'paid') {
             await this.audit('payment.paid', null, payment.id, 'SUCCESS', { source: 'reconcile' });
           }
+          await this.rt.paymentUpdated(payment.id);
+          if (res === 'paid') await this.rt.bookingUpdated(payment.bookingId);
         } else {
           const code = codeForOutcome(answer);
           const info = describeMpesaResult(code);
@@ -966,6 +1010,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
             source: 'reconcile',
             code,
           });
+          await this.rt.paymentUpdated(payment.id);
         }
       }
       return polled;
@@ -1119,6 +1164,8 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       route,
       reason: dto.reason,
     });
+    await this.rt.paymentUpdated(payment.id);
+    if (fullyRefunded) await this.rt.bookingUpdated(payment.bookingId);
     return toRefundDto(refund);
   }
 

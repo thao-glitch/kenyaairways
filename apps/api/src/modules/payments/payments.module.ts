@@ -3,6 +3,7 @@ import { getEnv } from '../../config/env';
 import { RedisService } from '../../redis/redis.module';
 import { AuthModule } from '../auth/auth.module';
 import { BookingsModule } from '../bookings/bookings.module';
+import { RealtimeModule } from '../../realtime/realtime.module';
 import { PaymentsController } from './payments.controller';
 import { PaymentsCbController } from './payments-cb.controller';
 import { PaymentsService } from './payments.service';
@@ -15,7 +16,7 @@ import { createPaymentProvider } from './providers/provider.factory';
  * C2B matching, reconciliation and FINANCE-gated refunds.
  */
 @Module({
-  imports: [BookingsModule, AuthModule],
+  imports: [BookingsModule, AuthModule, RealtimeModule],
   controllers: [PaymentsController, PaymentsCbController],
   providers: [
     PaymentsService,

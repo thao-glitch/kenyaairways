@@ -24,7 +24,7 @@ timezone `Africa/Nairobi` (stored UTC, displayed airport-local) · phones E.164 
 | M3  | Flight inventory, search, fare rules                                | ✅ done |
 | M4  | Booking lifecycle + seat holds                                      | ✅ done |
 | M5  | Payments: M-Pesa STK/C2B, Stripe, refunds, reconciliation           | ✅ done |
-| M6  | PNR, ticketing, real-time status (Socket.IO)                        | ⬜      |
+| M6  | PNR, ticketing, real-time status (Socket.IO)                        | ✅ done |
 | M7  | Seat map + assignment, check-in, boarding pass                      | ⬜      |
 | M8  | Ops workspaces, KCAA manifest hooks, reporting                      | ⬜      |
 | M9  | Kenya DPA (consent/export/delete/retention), i18n, hardening        | ⬜      |
@@ -75,33 +75,37 @@ One user per role — `PASSENGER`, `AGENT`, `OPS`, `FINANCE`, `ADMIN` — at
 
 Base URL: `http://localhost:4000` · global prefix `/api/v1` · OpenAPI at `/api/docs`.
 
-| Method | Path                                   | Purpose                                           | Auth             |
-| ------ | -------------------------------------- | ------------------------------------------------- | ---------------- |
-| GET    | `/healthz`                             | Liveness (no dependencies)                        | public           |
-| GET    | `/readyz`                              | Readiness: Postgres + Redis (503 degraded)        | public           |
-| GET    | `/api/v1/meta`                         | Airline, IATA code, currencies, locales, timezone | public           |
-| GET    | `/api/v1/airports`                     | Seeded airport directory (NBO/WIL/…/DXB)          | public           |
-| POST   | `/api/v1/auth/register`                | Create account + start session (terms consent)    | public           |
-| POST   | `/api/v1/auth/login`                   | Credentials → httpOnly session cookies            | public           |
-| POST   | `/api/v1/auth/refresh`                 | Rotate refresh token, mint access token           | refresh cookie   |
-| POST   | `/api/v1/auth/logout`                  | Revoke token family, clear cookies                | refresh cookie   |
-| GET    | `/api/v1/auth/me`                      | Current session user                              | access token     |
-| POST   | `/api/v1/auth/otp/request`             | Send 6-digit OTP (SMS/email, rate-limited)        | public           |
-| POST   | `/api/v1/auth/otp/verify`              | Consume OTP                                       | public           |
-| GET    | `/api/v1/admin/users`                  | Paginated user directory                          | `ADMIN`          |
-| GET    | `/api/v1/flights/search`               | Date/route/pax search with priced fare options    | public           |
-| GET    | `/api/v1/flights/:id`                  | Flight detail                                     | public           |
-| GET    | `/api/v1/flights/:id/fares`            | Fare options + tax/fee breakdown (DB rules)       | public           |
-| POST   | `/api/v1/bookings`                     | Create booking: seat holds + TTL, pay to confirm  | access token     |
-| GET    | `/api/v1/bookings` · `/bookings/:id`   | List / detail (owner or staff)                    | access token     |
-| POST   | `/api/v1/bookings/:id/cancel`          | Cancel + release inventory                        | access token     |
-| POST   | `/api/v1/bookings/:id/seats`           | Hold a specific seat (DB-unique active key)       | access token     |
-| POST   | `/api/v1/payments`                     | Payment intent (idempotency key, starts STK)      | access token     |
-| POST   | `/api/v1/payments/:id/stk`             | Re-initiate the provider attempt                  | access token     |
-| GET    | `/api/v1/payments?bookingId=` · `/:id` | Payments for a booking / detail                   | access token     |
-| POST   | `/api/v1/payments/:id/simulate`        | Deliver an STK result (mock mode only)            | access token     |
-| POST   | `/api/v1/payments/:id/refund`          | Refund (FINANCE role + OTP step-up)               | `FINANCE`        |
-| POST   | `/api/v1/payments/cb/:secret/…`        | Neutral callbacks: `stk`, `c2b/*`, `stripe`       | secret + IP list |
+| Method | Path                                   | Purpose                                                                                                                                                                              | Auth                     |
+| ------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
+| GET    | `/healthz`                             | Liveness (no dependencies)                                                                                                                                                           | public                   |
+| GET    | `/readyz`                              | Readiness: Postgres + Redis (503 degraded)                                                                                                                                           | public                   |
+| GET    | `/api/v1/meta`                         | Airline, IATA code, currencies, locales, timezone                                                                                                                                    | public                   |
+| GET    | `/api/v1/airports`                     | Seeded airport directory (NBO/WIL/…/DXB)                                                                                                                                             | public                   |
+| POST   | `/api/v1/auth/register`                | Create account + start session (terms consent)                                                                                                                                       | public                   |
+| POST   | `/api/v1/auth/login`                   | Credentials → httpOnly session cookies                                                                                                                                               | public                   |
+| POST   | `/api/v1/auth/refresh`                 | Rotate refresh token, mint access token                                                                                                                                              | refresh cookie           |
+| POST   | `/api/v1/auth/logout`                  | Revoke token family, clear cookies                                                                                                                                                   | refresh cookie           |
+| GET    | `/api/v1/auth/me`                      | Current session user                                                                                                                                                                 | access token             |
+| POST   | `/api/v1/auth/otp/request`             | Send 6-digit OTP (SMS/email, rate-limited)                                                                                                                                           | public                   |
+| POST   | `/api/v1/auth/otp/verify`              | Consume OTP                                                                                                                                                                          | public                   |
+| GET    | `/api/v1/admin/users`                  | Paginated user directory                                                                                                                                                             | `ADMIN`                  |
+| GET    | `/api/v1/flights/search`               | Date/route/pax search with priced fare options                                                                                                                                       | public                   |
+| GET    | `/api/v1/flights/:id`                  | Flight detail                                                                                                                                                                        | public                   |
+| GET    | `/api/v1/flights/:id/fares`            | Fare options + tax/fee breakdown (DB rules)                                                                                                                                          | public                   |
+| GET    | `/api/v1/flights/:id/status`           | Live status + recent status timeline                                                                                                                                                 | public                   |
+| POST   | `/api/v1/bookings`                     | Create booking: seat holds + TTL, pay to confirm                                                                                                                                     | access token             |
+| GET    | `/api/v1/bookings` · `/bookings/:id`   | List / detail (owner or staff)                                                                                                                                                       | access token             |
+| POST   | `/api/v1/bookings/:id/cancel`          | Cancel + release inventory                                                                                                                                                           | access token             |
+| POST   | `/api/v1/bookings/:id/seats`           | Hold a specific seat (DB-unique active key)                                                                                                                                          | access token             |
+| POST   | `/api/v1/payments`                     | Payment intent (idempotency key, starts STK)                                                                                                                                         | access token             |
+| POST   | `/api/v1/payments/:id/stk`             | Re-initiate the provider attempt                                                                                                                                                     | access token             |
+| GET    | `/api/v1/payments?bookingId=` · `/:id` | Payments for a booking / detail                                                                                                                                                      | access token             |
+| POST   | `/api/v1/payments/:id/simulate`        | Deliver an STK result (mock mode only)                                                                                                                                               | access token             |
+| POST   | `/api/v1/payments/:id/refund`          | Refund (FINANCE role + OTP step-up)                                                                                                                                                  | `FINANCE`                |
+| POST   | `/api/v1/payments/cb/:secret/…`        | Neutral callbacks: `stk`, `c2b/*`, `stripe`                                                                                                                                          | secret + IP list         |
+| GET    | `/api/v1/pnr/:code`                    | PNR lookup: booking + issued tickets                                                                                                                                                 | owner or staff           |
+| POST   | `/api/v1/ticketing/issue`              | Issue e-tickets (idempotent, one per passenger)                                                                                                                                      | owner or staff           |
+| WS     | `/rt`                                  | Socket.IO: `room.join`/`room.leave`/`ping` → `ack`, events `booking.updated`, `payment.updated`, `seat.*`, `flight.status.changed`, `notification.new` (+ replay via `sinceEventId`) | access token (handshake) |
 
 **Session model:** access JWT (`f13_at`, 15 min) + rotating refresh JWT (`f13_rt`, 7 days),
 both httpOnly/SameSite=Lax cookies (Bearer access token also accepted). Refresh reuse

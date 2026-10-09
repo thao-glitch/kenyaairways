@@ -13,6 +13,8 @@ import type {
   RefundStatus,
   RefundRoute,
   RouteType,
+  StatusSource,
+  TicketStatus,
   TripType,
   UserStatus,
 } from './domain';
@@ -323,4 +325,66 @@ export interface MpesaTxDto {
   mpesaReceiptNumber: string | null;
   queryAttempts: number;
   createdAt: string;
+}
+
+// ── ticketing, PNR, flight status (M6) ──────────────────────────────────────
+
+/**
+ * An airline-issued e-ticket: one row per passenger (`bookingPassengerId` is
+ * unique, so re-issuing a booking is idempotent). `ticketNumber` is the 13-char
+ * airline document number.
+ */
+export interface TicketDto {
+  id: string;
+  bookingId: string;
+  passengerId: string;
+  passengerName: string;
+  flightId: string;
+  seatLabel: string | null;
+  ticketNumber: string;
+  status: TicketStatus;
+  baggageKg: number;
+  fareMinor: number;
+  taxesMinor: number;
+  currency: Currency;
+  issuedAt: string | null;
+}
+
+/** `GET /pnr/:code` — booking + issued tickets, owner or staff only. */
+export interface PnrLookupDto {
+  booking: BookingDto;
+  tickets: TicketDto[];
+}
+
+/** `POST /ticketing/issue` — idempotent: returns existing tickets on replay. */
+export interface TicketIssueResultDto {
+  tickets: TicketDto[];
+  alreadyIssued: boolean;
+}
+
+/** One entry of the public flight status timeline. */
+export interface FlightStatusEventDto {
+  id: string;
+  status: FlightStatus;
+  gate: string | null;
+  delayMinutes: number | null;
+  message: string | null;
+  source: StatusSource;
+  at: string;
+}
+
+/** `GET /flights/:id/status` — current status + recent timeline (public). */
+export interface FlightStatusDto {
+  flightId: string;
+  flightNumber: string;
+  originCode: string;
+  destinationCode: string;
+  status: FlightStatus;
+  gate: string | null;
+  delayMinutes: number;
+  scheduledDepUtc: string;
+  scheduledArrUtc: string;
+  actualDepUtc: string | null;
+  boardingUtc: string | null;
+  events: FlightStatusEventDto[];
 }

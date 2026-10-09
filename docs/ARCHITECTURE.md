@@ -172,26 +172,50 @@ rotating); `Authorization: Bearer` also works for the access token. Global guard
 | M3        | ~~`GET /flights/search`, `GET /flights/:id`, `GET /flights/:id/fares`, `GET /fare-classes`~~ ✅ done                                                                                                                                                                                                                                                                                            |
 | M4        | ~~`POST /bookings`, `GET /bookings`, `GET /bookings/:id`, `POST /bookings/:id/cancel`, `POST /bookings/:id/seats`, `DELETE /bookings/:id/seats/:seatLabel`~~ ✅ done (expiry via BullMQ sweep)                                                                                                                                                                                                  |
 | M5        | ~~`POST /payments`, `GET /payments?bookingId=`, `GET /payments/:id`, `POST /payments/:id/stk`, `POST /payments/:id/simulate` (mock), `POST /payments/:id/refund` (FINANCE + OTP), `POST /payments/cb/:secret/stk`, `POST /payments/cb/:secret/c2b/validate`, `POST /payments/cb/:secret/c2b/confirm`, `POST /payments/cb/:secret/stripe`~~ ✅ done (BullMQ workers + `payment-reconcile` sweep) |
-| M6        | `GET /pnr/:code`, `POST /ticketing/issue`, `GET /flights/:id/status`, ops status endpoints                                                                                                                                                                                                                                                                                                      |
+| M6        | ~~`GET /pnr/:code`, `POST /ticketing/issue`, `GET /flights/:id/status`~~ ✅ done (Socket.IO `/rt` gateway; ops status endpoints deferred to M8)                                                                                                                                                                                                                                                 |
 | M7        | `GET /flights/:id/seats`, `POST /check-in`, `GET /boarding-passes/:id`                                                                                                                                                                                                                                                                                                                          |
 | M8        | `GET /ops/manifests`, `POST /ops/manifests/:id/dispatch` (KCAA hook), `GET /reports/*`                                                                                                                                                                                                                                                                                                          |
 | M9        | `GET/POST /me/consents`, `POST /me/dsar` (access/export/delete), retention jobs                                                                                                                                                                                                                                                                                                                 |
 
 ## 5. Real-time catalog (Socket.IO, namespace `/rt`)
 
-Rooms: `user:{id}`, `booking:{id}`, `flight:{id}` (see `packages/shared/src/ws-events.ts`).
+Rooms: `user:{id}` (auto-joined at the handshake), `booking:{id}`, `flight:{id}`, plus
+staff dashboards `ops` / `finance` / `board` (room names in `packages/shared`, builders in
+`apps/api/src/common` — see `ws-events.ts` for payloads).
 
-| Event                               | Room    | Payload gist                                   |
-| ----------------------------------- | ------- | ---------------------------------------------- |
-| `booking.status`                    | booking | state-machine transition, actor, timestamp     |
-| `booking.expiring`                  | booking | seconds left on unpaid hold                    |
-| `payment.status`                    | booking | intent status + typed M-Pesa result code       |
-| `flight.status`                     | flight  | `FlightStatus` + `StatusSource`                |
-| `seat.taken`                        | flight  | seat id removed from map (conflict resolution) |
-| `checkin.opened` / `checkin.closed` | flight  | window changes                                 |
-| `notify`                            | user    | i18n message key + params (SMS mirrors it)     |
+| Event                            | Room(s)                | Payload gist                                           |
+| -------------------------------- | ---------------------- | ------------------------------------------------------ |
+| `booking.updated`                | booking + owner's user | id, pnr, status, source, expiresAt/total               |
+| `payment.updated`                | booking + owner's user | payment status, provider, typed M-Pesa result code     |
+| `seat.held`                      | flight                 | flightId, seatId, label, expiresAt                     |
+| `seat.released`                  | flight                 | flightId, seatId, label                                |
+| `seat.booked`                    | flight                 | seat converted (sold) at payment                       |
+| `flight.status.changed`          | flight                 | status, gate, delay, `StatusSource`                    |
+| `gate.changed` / `delay.updated` | flight                 | gate / delay minutes                                   |
+| `notification.new`               | user (or booking)      | templateCode, channel, preview                         |
+| `ops.alert`                      | ops                    | type, severity, reference                              |
+| `ack`                            | — (direct to socket)   | join/leave/ping results `{ ref, ok, message? }`        |
+| `error`                          | — (direct to socket)   | rejection `{ ref?, code, message }` (e.g. `FORBIDDEN`) |
 
-Auth: JWT from the same access token as REST, validated on the handshake.
+Client → server: `room.join { room, sinceEventId? }`, `room.leave { room }`, `ping`.
+
+**Auth.** The handshake carries the same access token as REST (httpOnly `f13_at` cookie,
+`auth.token`, or `Bearer`); missing/invalid/revoked tokens are disconnected before any
+room exists. A per-socket packet gate buffers messages that arrive while the handshake is
+still verifying, so handlers never see a half-authenticated socket. The gateway is marked
+`@Public()` because the HTTP guards are request-shaped (they read `req.headers`) and the
+global guards also run against `@SubscribeMessage` handlers — the gateway performs the
+equivalent checks itself and re-authorizes **every** `room.join` (own user room, own
+bookings — staff see all — any flight for a signed-in user, dashboard rooms by role).
+
+**Delivery + replay.** Each event is `XADD`-ed to a per-room Redis stream
+(`MAXLEN ~ 100`) with a monotonic `<ms>-<seq>` id that doubles as the payload's
+`eventId` and replay cursor; a joining client may pass `sinceEventId` to receive what it
+missed while offline (best-effort — streams are trimmed). Live fan-out passes the whole
+room set to socket.io in one emit, so a socket sitting in both `booking:` and `user:`
+rooms gets exactly one copy. Emissions happen only **after** the DB commit and every
+failure is swallowed with a warning — real-time delivery must never break a business
+action.
 
 ## 6. Payments
 
@@ -232,7 +256,7 @@ sequenceDiagram
     A->>Q: enqueue payment-cb job (jobId dedupe — DB claim is authoritative)
     Q->>A: map ResultCode 0/1/1032/1037/2001 → typed message
     A->>A: one transaction, conditional claims → Payment PAID, Booking CONFIRMED
-    A-->>C: WS payment.status + booking.status
+    A-->>C: WS payment.updated + booking.updated
 ```
 
 Late/duplicate callbacks re-enter the same idempotent job and never double-confirm.
@@ -277,7 +301,7 @@ is audited and logged with PII masked.
 | M3  | ✅ Search, fares, tax application                            | search returns priced options incl. taxes                    |
 | M4  | ✅ Booking + seat holds                                      | concurrency test proves no double-booking                    |
 | M5  | ✅ Payments (STK, C2B, Stripe, refunds, recon)               | duplicate/lost callbacks never double-confirm                |
-| M6  | PNR, ticketing, Socket.IO status                             | real-time propagation test                                   |
+| M6  | ✅ PNR, ticketing, Socket.IO status                          | realtime e2e: stream, room auth, replay, idempotent issue    |
 | M7  | Seats, check-in, boarding pass                               | full search→book→pay→check-in flow green                     |
 | M8  | Ops workspace, KCAA hooks, reporting                         | manifest hook unit-tested with fake endpoint                 |
 | M9  | DPA flows, i18n, hardening                                   | export/delete tests; SW translations complete                |

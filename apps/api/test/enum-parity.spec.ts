@@ -15,6 +15,8 @@ import {
   RefundRoute,
   Role,
   RouteType,
+  StatusSource,
+  TicketStatus,
   TripType,
   UserStatus,
 } from '@prisma/client';
@@ -33,7 +35,9 @@ import {
   REFUND_ROUTES,
   REFUND_STATUSES,
   ROUTE_TYPES,
+  STATUS_SOURCES,
   SUPPORTED_ROLES,
+  TICKET_STATUSES,
   TRIP_TYPES,
   USER_STATUSES,
 } from '@flight13/shared';
@@ -61,6 +65,8 @@ const pairs: Array<[string, readonly string[], object]> = [
   ['DocType', DOC_TYPES, DocType],
   ['NotificationChannel', NOTIFICATION_CHANNELS, NotificationChannel],
   ['HoldStatus', HOLD_STATUSES, HoldStatus],
+  ['TicketStatus', TICKET_STATUSES, TicketStatus],
+  ['StatusSource', STATUS_SOURCES, StatusSource],
 ];
 
 describe('shared ↔ prisma enum parity', () => {

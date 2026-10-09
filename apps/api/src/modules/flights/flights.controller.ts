@@ -1,6 +1,11 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
-import type { FareClassDetailDto, FareOptionDto, FlightOptionDto } from '@flight13/shared';
+import type {
+  FareClassDetailDto,
+  FareOptionDto,
+  FlightOptionDto,
+  FlightStatusDto,
+} from '@flight13/shared';
 import { Public } from '../../common/decorators/public.decorator';
 import { FlightsService } from './flights.service';
 import { FlightSearchDto } from './dto/flight-search.dto';
@@ -33,6 +38,13 @@ export class FlightsController {
     const parsed = seats ? Number.parseInt(seats, 10) : 1;
     const seatsNeeded = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 9) : 1;
     return this.flights.flightFares(id, seatsNeeded);
+  }
+
+  @Get(':id/status')
+  @ApiOperation({ summary: 'Live flight status + recent status timeline (M6)' })
+  @ApiParam({ name: 'id' })
+  status(@Param('id') id: string): Promise<FlightStatusDto> {
+    return this.flights.flightStatus(id);
   }
 }
 

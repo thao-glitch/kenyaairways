@@ -7,6 +7,7 @@ import {
   type FlightOptionDto,
   type FlightSearchQueryDto,
   type FlightSearchResultDto,
+  type FlightStatusDto,
 } from '@flight13/shared';
 import type { Flight, Fare } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.module';
@@ -22,6 +23,41 @@ export class FlightsService {
     private readonly prisma: PrismaService,
     private readonly pricing: PricingService,
   ) {}
+
+  /**
+   * `GET /flights/:id/status` — current status plus the recent timeline
+   * (M6). Public: departure boards and passenger screens show this without a
+   * session; updates to it broadcast `flight.status.changed` over `/rt`.
+   */
+  async flightStatus(id: string): Promise<FlightStatusDto> {
+    const flight = await this.prisma.flight.findUnique({
+      where: { id },
+      include: { statusEvents: { orderBy: { createdAt: 'desc' }, take: 20 } },
+    });
+    if (!flight) throw new AppError('NOT_FOUND', 'Flight not found');
+    return {
+      flightId: flight.id,
+      flightNumber: flight.flightNumber,
+      originCode: flight.originCode,
+      destinationCode: flight.destinationCode,
+      status: flight.status,
+      gate: flight.gate,
+      delayMinutes: flight.delayMinutes,
+      scheduledDepUtc: flight.scheduledDepUtc.toISOString(),
+      scheduledArrUtc: flight.scheduledArrUtc.toISOString(),
+      actualDepUtc: flight.actualDepUtc?.toISOString() ?? null,
+      boardingUtc: flight.boardingUtc?.toISOString() ?? null,
+      events: flight.statusEvents.map((ev) => ({
+        id: ev.id,
+        status: ev.status,
+        gate: ev.gate,
+        delayMinutes: ev.delayMinutes,
+        message: ev.message,
+        source: ev.source,
+        at: ev.createdAt.toISOString(),
+      })),
+    };
+  }
 
   async search(dto: FlightSearchDto): Promise<FlightSearchResultDto> {
     const originCode = dto.origin.toUpperCase();

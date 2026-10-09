@@ -3,12 +3,14 @@ import {
   AppError,
   canTransition,
   generateUniquePnr,
+  isValidPnr,
   PASSENGER_FARE_BPS,
   toLocalIso,
   type BookingBreakdownLineDto,
   type BookingDto,
   type BookingSegmentDto,
   type PricingDto,
+  type TicketDto,
 } from '@flight13/shared';
 import type {
   Airport,
@@ -25,11 +27,13 @@ import type {
 import { PrismaService } from '../../prisma/prisma.module';
 import { PricingService } from '../pricing/pricing.service';
 import { InventoryService } from './inventory.service';
+import { RtEventsService } from '../../realtime/rt-events.service';
 import { getEnv } from '../../config/env';
 import { blindIndex, encryptField, randomToken } from '../../common/crypto';
 import { maskDeep } from '../../common/logger';
 import type { AuthUser } from '../../common/auth-request';
 import type { CreateBookingDto, PassengerInputDto } from './dto/create-booking.dto';
+import { toTicketDto } from '../ticketing/ticket-mapper';
 
 export interface BookingActor {
   userId: string | null;
@@ -85,6 +89,7 @@ export class BookingsService {
     private readonly prisma: PrismaService,
     private readonly pricing: PricingService,
     private readonly inventory: InventoryService,
+    private readonly rt: RtEventsService,
   ) {}
 
   async create(actor: BookingActor, dto: CreateBookingDto): Promise<BookingDto> {
@@ -212,6 +217,18 @@ export class BookingsService {
     });
 
     await this.audit('booking.create', actor, booking.id, 'SUCCESS', { pnr, totalMinor: total });
+    // Real-time: the new hold (and any seats grabbed during creation) so a
+    // client already watching the flight/booking rooms sees them instantly.
+    await this.rt.bookingUpdated(booking.id);
+    for (const hold of booking.seatHolds) {
+      if (hold.status !== 'ACTIVE') continue;
+      await this.rt.seatChanged('seat.held', {
+        flightId: hold.flightId,
+        seatId: hold.seatId,
+        label: hold.seat.label,
+        expiresAt: hold.expiresAt,
+      });
+    }
     return toBookingDto(booking);
   }
 
@@ -223,6 +240,25 @@ export class BookingsService {
     if (!booking) throw new AppError('NOT_FOUND', 'Booking not found');
     assertAccess(booking, actor);
     return toBookingDto(booking);
+  }
+
+  /** `GET /pnr/:code` — a PNR is a locator, never a credential: auth + access. */
+  async getByPnr(
+    actor: BookingActor,
+    code: string,
+  ): Promise<{ booking: BookingDto; tickets: TicketDto[] }> {
+    const pnr = code.trim().toUpperCase();
+    const booking = isValidPnr(pnr)
+      ? await this.prisma.booking.findUnique({ where: { pnr }, include: this.include() })
+      : null;
+    if (!booking) throw new AppError('NOT_FOUND', 'Booking not found');
+    assertAccess(booking, actor);
+    const tickets = await this.prisma.ticket.findMany({
+      where: { bookingId: booking.id },
+      include: { bookingPassenger: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    return { booking: toBookingDto(booking), tickets: tickets.map(toTicketDto) };
   }
 
   async listMine(
@@ -268,6 +304,11 @@ export class BookingsService {
     if (!booking) throw new AppError('NOT_FOUND', 'Booking not found');
     assertAccess(booking, actor);
 
+    // Seats this booking currently blocks — must be re-broadcast as free.
+    const heldSeats = booking.seatHolds.filter(
+      (h) => h.status === 'ACTIVE' || h.status === 'CONVERTED',
+    );
+
     const changed = await this.transition(booking.id, 'CANCELLED', async (tx, current) => {
       const seats = current.adultCount + current.childCount;
       if (current.status === 'CONFIRMED' || current.status === 'CHECKED_IN') {
@@ -291,6 +332,14 @@ export class BookingsService {
     }
 
     await this.audit('booking.cancel', actor, id, 'SUCCESS', { pnr: booking.pnr, reason });
+    await this.rt.bookingUpdated(id);
+    for (const hold of heldSeats) {
+      await this.rt.seatChanged('seat.released', {
+        flightId: hold.flightId,
+        seatId: hold.seatId,
+        label: hold.seat.label,
+      });
+    }
     const fresh = await this.prisma.booking.findUnique({ where: { id }, include: this.include() });
     return toBookingDto(fresh!);
   }
@@ -378,6 +427,15 @@ export class BookingsService {
       booking.expiresAt ?? new Date(Date.now() + getEnv().BOOKING_EXPIRE_TTL_SECONDS * 1000),
     );
     const fresh = await this.prisma.booking.findUnique({ where: { id }, include: this.include() });
+    const hold = fresh?.seatHolds.find((h) => h.seat.label === seatLabel && h.status === 'ACTIVE');
+    if (hold) {
+      await this.rt.seatChanged('seat.held', {
+        flightId: hold.flightId,
+        seatId: hold.seatId,
+        label: hold.seat.label,
+        expiresAt: hold.expiresAt,
+      });
+    }
     return toBookingDto(fresh!);
   }
 
@@ -396,6 +454,11 @@ export class BookingsService {
       where: { id: target.id },
       data: { status: 'RELEASED', releasedAt: new Date(), activeKey: null },
     });
+    await this.rt.seatChanged('seat.released', {
+      flightId: target.flightId,
+      seatId: target.seatId,
+      label: seatLabel,
+    });
     const fresh = await this.prisma.booking.findUnique({ where: { id }, include: this.include() });
     return toBookingDto(fresh!);
   }
@@ -409,6 +472,10 @@ export class BookingsService {
     });
     let expired = 0;
     for (const row of due) {
+      const heldSeats = await this.prisma.seatHold.findMany({
+        where: { bookingId: row.id, status: 'ACTIVE' },
+        select: { flightId: true, seatId: true, seat: { select: { label: true } } },
+      });
       const changed = await this.transition(row.id, 'EXPIRED', async (tx, current) => {
         const seats = current.adultCount + current.childCount;
         for (const seg of current.segments) {
@@ -419,7 +486,17 @@ export class BookingsService {
           data: { status: 'EXPIRED', releasedAt: new Date(), activeKey: null },
         });
       });
-      if (changed) expired += 1;
+      if (changed) {
+        expired += 1;
+        await this.rt.bookingUpdated(row.id);
+        for (const hold of heldSeats) {
+          await this.rt.seatChanged('seat.released', {
+            flightId: hold.flightId,
+            seatId: hold.seatId,
+            label: hold.seat.label,
+          });
+        }
+      }
     }
     if (expired > 0) {
       await this.audit('booking.expire', SYSTEM_ACTOR, undefined, 'SUCCESS', { count: expired });

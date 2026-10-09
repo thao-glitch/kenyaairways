@@ -12,6 +12,8 @@ import { UsersModule } from './modules/users/users.module';
 import { FlightsModule } from './modules/flights/flights.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { RealtimeModule } from './realtime/realtime.module';
+import { TicketingModule } from './modules/ticketing/ticketing.module';
 import { JobsModule } from './jobs/jobs.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -41,6 +43,8 @@ function validationExceptionFactory(errors: ValidationError[]): AppError {
     FlightsModule,
     BookingsModule,
     PaymentsModule,
+    RealtimeModule,
+    TicketingModule,
     JobsModule,
   ],
   providers: [
