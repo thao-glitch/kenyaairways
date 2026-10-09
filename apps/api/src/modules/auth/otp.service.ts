@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { randomInt } from 'node:crypto';
 import type { OtpChannel, OtpPurpose } from '@prisma/client';
-import { AppError, normalizeKenyanPhone } from '@flight13/shared';
+import { AppError, DEFAULT_LOCALE, normalizeKenyanPhone } from '@flight13/shared';
 import { PrismaService } from '../../prisma/prisma.module';
 import { RedisService } from '../../redis/redis.module';
 import { getEnv } from '../../config/env';
@@ -9,6 +9,7 @@ import { sha256 } from '../../common/crypto';
 import { hitRateLimit } from '../../common/rate-limit';
 import { createLogger } from '../../common/logger';
 import { SmsSender } from '../notifications/sms.sender';
+import { renderNotification, type NotificationTemplateCode } from '../notifications/templates';
 
 export interface OtpRequestResult {
   destination: string;
@@ -74,14 +75,24 @@ export class OtpService {
     });
 
     const minutes = Math.round(env.OTP_TTL_SECONDS / 60);
-    const body = `Flight13: your verification code is ${code}. Valid for ${minutes} minute(s). Never share it.`;
+    // The destination may belong to a known account — render in their locale.
+    const owner = await this.prisma.user.findFirst({
+      where: { OR: [{ email: destination }, { phone: destination }] },
+      select: { id: true, locale: true },
+    });
+    const templateCode = `otp.${purpose.toLowerCase()}` as NotificationTemplateCode;
+    const { subject, body } = renderNotification(templateCode, owner?.locale ?? DEFAULT_LOCALE, {
+      code,
+      minutes,
+    });
     const { providerRef } = await this.sms.send(destination, body);
     await this.prisma.notification.create({
       data: {
+        userId: owner?.id ?? null,
         channel: channel === 'SMS' ? 'SMS' : 'EMAIL',
-        templateCode: `otp.${purpose.toLowerCase()}`,
+        templateCode,
         recipient: destination,
-        subject: 'Flight13 verification code',
+        subject,
         body,
         status: 'SENT',
         providerRef,

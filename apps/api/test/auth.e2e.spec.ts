@@ -49,8 +49,7 @@ describe('auth (e2e)', () => {
     prisma = app.get(PrismaService);
 
     // Fixed-window counters persist in Redis between runs — start each run clean.
-    const stale = await app.get(RedisService).raw.keys('f13:rl:*');
-    if (stale.length > 0) await app.get(RedisService).raw.del(...stale);
+    await app.get(RedisService).clearKeys('f13:rl:*');
   });
 
   afterAll(async () => {

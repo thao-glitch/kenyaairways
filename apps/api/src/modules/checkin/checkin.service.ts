@@ -9,10 +9,13 @@ import {
 } from '@flight13/shared';
 import { getEnv } from '../../config/env';
 import { randomToken } from '../../common/crypto';
-import { maskDeep } from '../../common/logger';
+import { createLogger, maskDeep } from '../../common/logger';
 import { PrismaService } from '../../prisma/prisma.module';
 import { RtEventsService } from '../../realtime/rt-events.service';
 import { STAFF_ROLES, type BookingActor } from '../bookings/bookings.service';
+import { mirrorSms } from '../notifications/mirror';
+import { renderNotification } from '../notifications/templates';
+import { SmsSender } from '../notifications/sms.sender';
 
 interface CheckInLike {
   id: string;
@@ -67,9 +70,12 @@ function toCheckInDto(row: CheckInLike, fallbackName: string): CheckInDto {
  */
 @Injectable()
 export class CheckInService {
+  private readonly log = createLogger('checkin');
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly rt: RtEventsService,
+    private readonly sms: SmsSender,
   ) {}
 
   async checkIn(
@@ -336,6 +342,10 @@ export class CheckInService {
       } catch {
         // audit must never fail a completed check-in
       }
+      const { subject, body } = renderNotification('checkin.completed', booking.locale, {
+        pnr: booking.pnr,
+        seats: dtos.map((d) => d.seatLabel ?? '-').join(', '),
+      });
       const notification = await this.prisma.notification.create({
         data: {
           userId: booking.userId,
@@ -343,13 +353,14 @@ export class CheckInService {
           channel: 'INAPP',
           templateCode: 'checkin.completed',
           recipient: booking.contactEmail ?? booking.contactPhone ?? '-',
-          subject: `Checked in — ${booking.pnr}`,
-          body: `You are checked in. Seats: ${dtos.map((d) => d.seatLabel ?? '-').join(', ')}. Boarding passes are in your booking.`,
+          subject,
+          body,
           status: 'SENT',
           sentAt: new Date(),
         },
       });
       await this.rt.notificationNew(notification.id);
+      await mirrorSms(this.prisma, this.sms, this.log, booking, 'checkin.completed', subject, body);
       if (bookingStatus !== booking.status) await this.rt.bookingUpdated(booking.id);
     }
 

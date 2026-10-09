@@ -95,6 +95,21 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.client.del(...keys);
   }
 
+  /**
+   * Deletes every key matching an absolute glob (e.g. `f13:rl:*`) — used by
+   * test setups to reset rate-limit windows. ioredis quirk: KEYS patterns are
+   * sent as-is, but DEL arguments get `keyPrefix` applied, so absolute
+   * results must be stripped before deletion or every key misses.
+   */
+  async clearKeys(absolutePattern: string): Promise<number> {
+    const keys = await this.client.keys(absolutePattern);
+    if (keys.length === 0) return 0;
+    const relative = keys.map((key) =>
+      key.startsWith(REDIS_PREFIX) ? key.slice(REDIS_PREFIX.length) : key,
+    );
+    return this.client.del(...relative);
+  }
+
   async publish(channel: string, payload: unknown): Promise<number> {
     return this.client.publish(channel, JSON.stringify(payload));
   }

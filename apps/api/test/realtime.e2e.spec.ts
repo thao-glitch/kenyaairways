@@ -160,8 +160,7 @@ describe('realtime + ticketing (e2e): /rt stream, PNR, e-ticket issuance', () =>
     await app.init();
     prisma = app.get(PrismaService);
 
-    const stale = await app.get(RedisService).raw.keys('f13:rl:*');
-    if (stale.length > 0) await app.get(RedisService).raw.del(...stale);
+    await app.get(RedisService).clearKeys('f13:rl:*');
 
     const address = app.getHttpServer().address() as AddressInfo | null;
     if (!address || typeof address === 'string') {

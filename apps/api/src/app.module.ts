@@ -17,9 +17,11 @@ import { TicketingModule } from './modules/ticketing/ticketing.module';
 import { CheckInModule } from './modules/checkin/checkin.module';
 import { OpsModule } from './modules/ops/ops.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { PrivacyModule } from './modules/privacy/privacy.module';
 import { JobsModule } from './jobs/jobs.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { RateLimitGuard } from './common/guards/rate-limit.guard';
 import { AppExceptionFilter } from './common/filters/app-exception.filter';
 
 /** class-validator → the API's shared error envelope (422 VALIDATION_ERROR). */
@@ -51,10 +53,13 @@ function validationExceptionFactory(errors: ValidationError[]): AppError {
     CheckInModule,
     OpsModule,
     ReportsModule,
+    PrivacyModule,
     JobsModule,
   ],
   providers: [
-    // Order matters: authentication first, then role checks against req.user.
+    // Order matters: cheap per-IP throttling first, then authentication,
+    // then role checks against req.user.
+    { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     {

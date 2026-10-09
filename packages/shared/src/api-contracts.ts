@@ -5,6 +5,7 @@ import type {
   CabinClass,
   C2BStatus,
   CheckInStatus,
+  ConsentPurpose,
   DispatchStatus,
   DocType,
   FlightStatus,
@@ -18,6 +19,8 @@ import type {
   SeatMapStatus,
   SeatZone,
   StatusSource,
+  SubjectRequestStatus,
+  SubjectRequestType,
   TicketStatus,
   TripType,
   UserStatus,
@@ -552,4 +555,33 @@ export interface LoadReportDto {
     seatsSold: number;
     loadFactorPct: number | null;
   };
+}
+
+/** One row of `GET /me/consents` — consent is an append-only audit trail. */
+export interface ConsentDto {
+  id: string;
+  purpose: ConsentPurpose;
+  policyVersion: string;
+  granted: boolean;
+  grantedAt: string;
+  revokedAt: string | null;
+  source: string | null;
+}
+
+/** One row of `GET /me/dsar` — the subject's own request history. */
+export interface SubjectRequestDto {
+  id: string;
+  type: SubjectRequestType;
+  status: SubjectRequestStatus;
+  requestedAt: string;
+  processedAt: string | null;
+  resultKey: string | null; // `sha256:<hex>` digest of an EXPORT bundle
+  notes: string | null;
+}
+
+/** `POST /me/dsar` response — EXPORT carries the full copy inline. */
+export interface SubjectRequestResultDto {
+  request: SubjectRequestDto;
+  /** EXPORT only: everything held about the subject (own data, unmasked). */
+  data?: Record<string, unknown> | null;
 }

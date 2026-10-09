@@ -125,3 +125,20 @@ export type SeatMapStatus = (typeof SEAT_MAP_STATUSES)[number];
 /** KCAA manifest dispatch attempt lifecycle (M8). */
 export const DISPATCH_STATUSES = ['PENDING', 'DISPATCHED', 'SKIPPED', 'FAILED'] as const;
 export type DispatchStatus = (typeof DISPATCH_STATUSES)[number];
+
+/** Consent purposes tracked per subject (Kenya DPA 2019, M9). */
+export const CONSENT_PURPOSES = [
+  'TERMS',
+  'PRIVACY',
+  'MARKETING',
+  'COOKIES',
+  'DATA_PROCESSING',
+] as const;
+export type ConsentPurpose = (typeof CONSENT_PURPOSES)[number];
+
+/** Data subject request kinds — a full copy, or erasure of identifying data. */
+export const SUBJECT_REQUEST_TYPES = ['EXPORT', 'DELETE'] as const;
+export type SubjectRequestType = (typeof SUBJECT_REQUEST_TYPES)[number];
+
+export const SUBJECT_REQUEST_STATUSES = ['PENDING', 'PROCESSING', 'COMPLETED', 'REJECTED'] as const;
+export type SubjectRequestStatus = (typeof SUBJECT_REQUEST_STATUSES)[number];

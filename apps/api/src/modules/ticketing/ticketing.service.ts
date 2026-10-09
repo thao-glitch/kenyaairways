@@ -4,7 +4,10 @@ import { AppError, type TicketIssueResultDto } from '@flight13/shared';
 import { PrismaService } from '../../prisma/prisma.module';
 import { RtEventsService } from '../../realtime/rt-events.service';
 import { STAFF_ROLES, type BookingActor } from '../bookings/bookings.service';
-import { maskDeep } from '../../common/logger';
+import { createLogger, maskDeep } from '../../common/logger';
+import { mirrorSms } from '../notifications/mirror';
+import { renderNotification } from '../notifications/templates';
+import { SmsSender } from '../notifications/sms.sender';
 import { toTicketDto } from './ticket-mapper';
 
 /**
@@ -17,9 +20,12 @@ import { toTicketDto } from './ticket-mapper';
  */
 @Injectable()
 export class TicketingService {
+  private readonly log = createLogger('ticketing');
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly rt: RtEventsService,
+    private readonly sms: SmsSender,
   ) {}
 
   async issue(actor: BookingActor, bookingId: string): Promise<TicketIssueResultDto> {
@@ -125,7 +131,11 @@ export class TicketingService {
       // audit must never fail the issued tickets
     }
 
-    // In-app notice + real-time push (SMS mirrors it from M9).
+    // In-app notice + real-time push, then the SMS mirror on the same template.
+    const { subject, body } = renderNotification('ticket.issued', booking.locale, {
+      pnr: booking.pnr,
+      tickets: tickets.map((t) => t.ticketNumber).join(', '),
+    });
     const notification = await this.prisma.notification.create({
       data: {
         userId: booking.userId,
@@ -133,13 +143,14 @@ export class TicketingService {
         channel: 'INAPP',
         templateCode: 'ticket.issued',
         recipient: booking.contactEmail ?? booking.contactPhone ?? '-',
-        subject: `Tickets issued for ${booking.pnr}`,
-        body: `Your Flight13 ticket number(s): ${tickets.map((t) => t.ticketNumber).join(', ')}`,
+        subject,
+        body,
         status: 'SENT',
         sentAt: new Date(),
       },
     });
     await this.rt.notificationNew(notification.id);
+    await mirrorSms(this.prisma, this.sms, this.log, booking, 'ticket.issued', subject, body);
 
     return { tickets: tickets.map(toTicketDto), alreadyIssued: false };
   }

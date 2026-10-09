@@ -185,8 +185,7 @@ describe('payments (e2e): STK, callbacks, C2B, refunds, reconciliation', () => {
     payments = app.get(PaymentsService);
     bookingsSvc = app.get(BookingsService);
 
-    const stale = await app.get(RedisService).raw.keys('f13:rl:*');
-    if (stale.length > 0) await app.get(RedisService).raw.del(...stale);
+    await app.get(RedisService).clearKeys('f13:rl:*');
 
     const register = async (email: string, phone: string, first: string, last: string) => {
       const res = await request(server())

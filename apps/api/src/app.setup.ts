@@ -15,6 +15,11 @@ export const GLOBAL_PREFIX = 'api/v1';
 export function configureApp(app: INestApplication, env: Env = getEnv()): INestApplication {
   app.setGlobalPrefix(GLOBAL_PREFIX, { exclude: ['healthz', 'readyz'] });
 
+  // Express stamps its banner on every response — no framework fingerprinting.
+  (app.getHttpAdapter().getInstance() as { disable?: (setting: string) => void }).disable?.(
+    'x-powered-by',
+  );
+
   app.use(
     helmet({
       // Swagger UI is served from this origin and needs inline styles/scripts;

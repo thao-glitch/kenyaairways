@@ -140,8 +140,7 @@ describe('check-in + boarding passes (e2e)', () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    const stale = await app.get(RedisService).raw.keys('f13:rl:*');
-    if (stale.length > 0) await app.get(RedisService).raw.del(...stale);
+    await app.get(RedisService).clearKeys('f13:rl:*');
 
     ownerCookie = await register(1);
     otherCookie = await register(2);

@@ -5,10 +5,19 @@ import { PaymentsModule } from '../modules/payments/payments.module';
 import { BookingExpiryProcessor } from './booking-expiry.processor';
 import { ManifestDispatchProcessor } from './manifest-dispatch.processor';
 import { PaymentCbProcessor } from './payment-cb.processor';
+import { RetentionProcessor } from './retention.processor';
+import { RetentionService } from './retention.service';
 
 /** Background workers (BullMQ). Kept out of feature modules so HTTP stays fast. */
 @Module({
   imports: [BookingsModule, PaymentsModule, OpsModule],
-  providers: [BookingExpiryProcessor, PaymentCbProcessor, ManifestDispatchProcessor],
+  providers: [
+    BookingExpiryProcessor,
+    PaymentCbProcessor,
+    ManifestDispatchProcessor,
+    RetentionService,
+    RetentionProcessor,
+  ],
+  exports: [RetentionService],
 })
 export class JobsModule {}

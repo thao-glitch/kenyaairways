@@ -35,11 +35,18 @@ describe('i18n message catalogs', () => {
     }
   });
 
-  it('actually translates (Swahili differs from English for prose strings)', () => {
-    const prose = ['nav.home', 'home.hero.title', 'footer.rights'];
-    for (const key of prose) {
-      expect((sw as Record<string, string>)[key]).not.toBe((en as Record<string, string>)[key]);
+  it('actually translates: sw differs from en for every key but the brand/language labels', () => {
+    // These three are identical by design — a brand name and the names of the
+    // two language options themselves. Anything else equal means a missing
+    // translation that key-completeness alone would not catch.
+    const identicalByDesign = new Set(['app.name', 'nav.english', 'nav.swahili']);
+    const equal: string[] = [];
+    for (const key of enKeys) {
+      const enValue = (en as Record<string, string>)[key];
+      const swValue = (sw as Record<string, string>)[key];
+      if (swValue === enValue) equal.push(key);
     }
+    expect(new Set(equal)).toEqual(identicalByDesign);
   });
 
   it('interpolates variables and falls back to the key when missing', () => {

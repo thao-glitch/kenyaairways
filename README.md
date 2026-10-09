@@ -27,7 +27,7 @@ timezone `Africa/Nairobi` (stored UTC, displayed airport-local) · phones E.164 
 | M6  | PNR, ticketing, real-time status (Socket.IO)                        | ✅ done |
 | M7  | Seat map + assignment, check-in, boarding pass                      | ✅ done |
 | M8  | Ops workspaces, KCAA manifest hooks, reporting                      | ✅ done |
-| M9  | Kenya DPA (consent/export/delete/retention), i18n, hardening        | ⬜      |
+| M9  | Kenya DPA (consent/export/delete/retention), i18n, hardening        | ✅ done |
 | M10 | Load/concurrency tests, CI/CD, observability, docs                  | ⬜      |
 
 ---
@@ -129,6 +129,10 @@ Base URL: `http://localhost:4000` · global prefix `/api/v1` · OpenAPI at `/api
 | GET    | `/api/v1/ops/dispatches?flightId=`            | Recent manifest dispatch attempts (status, attempts, digest)                                                                                                                                                                       | `OPS` or `ADMIN`          |
 | GET    | `/api/v1/reports/revenue?from=&to=&currency=` | Daily gross/refund/net by **Nairobi** calendar day                                                                                                                                                                                 | `FINANCE` or `ADMIN`      |
 | GET    | `/api/v1/reports/load?from=&to=&origin=`      | Capacity vs sold per flight — load factor                                                                                                                                                                                          | `FINANCE`, `OPS`, `ADMIN` |
+| GET    | `/api/v1/me/consents`                         | Consent history — append-only ledger (Kenya DPA)                                                                                                                                                                                   | access token              |
+| POST   | `/api/v1/me/consents`                         | Record a consent grant or withdrawal (never rewrites history)                                                                                                                                                                      | access token              |
+| GET    | `/api/v1/me/dsar`                             | Own data subject request history (export/erasure)                                                                                                                                                                                  | access token              |
+| POST   | `/api/v1/me/dsar`                             | File a DSAR: `EXPORT` returns the full copy inline with a `sha256:` digest, `DELETE` erases PII (bookings unlinked, kept for the statutory window)                                                                                 | access token              |
 | WS     | `/rt`                                         | Socket.IO: `room.join`/`room.leave`/`ping` → `ack`, events `booking.updated`, `payment.updated`, `seat.*`, `flight.status.changed`, `gate.changed`, `delay.updated`, `ops.alert`, `notification.new` (+ replay via `sinceEventId`) | access token (handshake)  |
 
 **Session model:** access JWT (`f13_at`, 15 min) + rotating refresh JWT (`f13_rt`, 7 days),
@@ -182,6 +186,17 @@ missing/invalid value. `.env.example` documents every key; secrets are generated
   callback path with the secret from `.env`. Before live mode: **Stripe settlement in KES**
   and live Daraja **B2C refund completion** (recorded `PROCESSING`, closed manually today)
   need finance/ops sign-off.
+- **Kenya DPA 2019** flows live under `/api/v1/me/*`: consent is an append-only ledger,
+  `POST /me/dsar` serves access/export (full copy + `sha256:` digest, inline — there is no
+  object store) and erasure (account scrubbed to a DISABLED shell, bookings unlinked but
+  retained). Retention is enforced by a daily BullMQ sweep: audit logs/notifications are
+  deleted after `DATA_RETENTION_LOG_DAYS` (default 365), terminal bookings keep their
+  financial record but lose passenger PII after `DATA_RETENTION_BOOKING_DAYS` (default
+  2555 ≈ 7 years) — **compliance must confirm both windows and the statutory basis**.
+- **SMS delivery** is pluggable via `SMS_PROVIDER`: `mock` (default, logs only),
+  `africastalking` or `twilio` (credentials required by Zod when selected). OTPs, ticket
+  issue and check-in render localized (en/sw) templates; the ticketing/check-in notices
+  mirror in-app notifications by SMS when the booking has an MSISDN.
 
 ---
 

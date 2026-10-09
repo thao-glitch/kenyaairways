@@ -50,8 +50,7 @@ describe('bookings (e2e)', () => {
     prisma = app.get(PrismaService);
     bookings = app.get(BookingsService);
 
-    const stale = await app.get(RedisService).raw.keys('f13:rl:*');
-    if (stale.length > 0) await app.get(RedisService).raw.del(...stale);
+    await app.get(RedisService).clearKeys('f13:rl:*');
 
     // Two passengers for owner/other access checks.
     const register = async (suffix: number) => {

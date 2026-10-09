@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
+import { RedisService } from '../src/redis/redis.module';
 
 /**
  * Boots the real application (Prisma + Redis + global middleware) exactly as
@@ -17,6 +18,9 @@ describe('health & meta (e2e)', () => {
     app = moduleRef.createNestApplication();
     configureApp(app);
     await app.init();
+
+    // Start the shared per-IP rate-limit window from zero (the guard is global).
+    await app.get(RedisService).clearKeys('f13:rl:*');
   });
 
   afterAll(async () => {
