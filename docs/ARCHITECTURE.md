@@ -59,7 +59,8 @@ apps/api
 apps/web
 └── src
     ├── app/                     App Router pages: flights, book, bookings/[id], pnr,
-    │                            login/register, boarding-passes/[id] (server shells)
+    │                            login/register, boarding-passes/[id] (server shells),
+    │                            ops/finance/agent/admin (role-gated staff consoles)
     ├── components/              site chrome, booking/payment/seat/check-in islands,
     │                            i18n-provider (client), shadcn-style ui primitives
     ├── lib/                     api-client (silent refresh), auth, format (KES/tz),
@@ -152,6 +153,7 @@ OpenAPI served at `/api/docs` (disabled when `ENABLE_SWAGGER=false`).
 | GET    | `/api/v1/auth/me`                       | session probe → `SessionUserDto`                       |
 | POST   | `/api/v1/auth/otp/request`              | MFA-ready OTP dispatch (mock SMS provider)             |
 | POST   | `/api/v1/auth/otp/verify`               | OTP consume (hashed, attempt-limited)                  |
+| GET    | `/api/v1/auth/otp/preview`              | Outstanding OTP code — mock SMS mode only (404 else)   |
 | GET    | `/api/v1/admin/users`                   | `ADMIN`-only directory                                 |
 | GET    | `/api/v1/flights/search`                | priced, availability-checked flight options (M3)       |
 | GET    | `/api/v1/flights/:id`                   | flight detail with local times and fares (M3)          |
@@ -343,6 +345,15 @@ live.
   `/login?next=…`, register preserves `next`) → `/bookings/[id]` (pay · seats · issue ·
   check-in · cancel) → `/pnr` lookup → `/boarding-passes/[id]` (airport-local times,
   BCBP, print).
+- **Staff consoles** — `/ops` (OPS/ADMIN), `/finance` (FINANCE/ADMIN), `/agent`
+  (AGENT/ADMIN) and `/admin` (ADMIN) wrap their console in `<RequireRole>`, a client
+  component that resolves `GET /auth/me` (skeleton → sign-in prompt → friendly
+  denial) and provides the session user through context (`useStaffUser()`), because
+  server components cannot serialize render functions across the RSC boundary. The
+  API `@Roles` guards remain the authority — this is presentation only. The finance
+  refund panel performs the full step-up: `POST /auth/otp/request` (to the officer's
+  own phone) then, in mock SMS mode only, reads the code back from
+  `GET /auth/otp/preview` to autofill the demo.
 - **Footnote** — route-level `loading.tsx` + React 19 streaming means a suspended page
   swaps in via `requestAnimationFrame`; in _hidden_ tabs rAF never fires, so the
   skeleton stays until the tab is visible (observed during browser verification — not

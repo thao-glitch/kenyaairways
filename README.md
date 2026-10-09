@@ -81,6 +81,12 @@ With the stack running and the seed applied:
    airport-local times and the printable 54-char IATA BCBP payload.
 6. Live status: `booking:{id}` / `flight:{id}` / `seat.*` events stream into the hub
    without a reload.
+7. **Staff consoles** — sign in as the seeded staff users (see below). `/ops`
+   (flight board, status/gate/delay control, manifest + KCAA dispatch), `/finance`
+   (revenue & load factor, OTP-gated refunds — mock SMS mode autofills the code via
+   `GET /auth/otp/preview`), `/agent` (book on the customer's behalf, look up any
+   PNR) and `/admin` (paginated user directory). The nav shows only the consoles your
+   role may open; the API remains the authority.
 
 ### Seeded users
 
@@ -108,6 +114,7 @@ Base URL: `http://localhost:4000` · global prefix `/api/v1` · OpenAPI at `/api
 | GET    | `/api/v1/auth/me`                             | Current session user                                                                                                                                                                                                               | access token              |
 | POST   | `/api/v1/auth/otp/request`                    | Send 6-digit OTP (SMS/email, rate-limited)                                                                                                                                                                                         | public                    |
 | POST   | `/api/v1/auth/otp/verify`                     | Consume OTP                                                                                                                                                                                                                        | public                    |
+| GET    | `/api/v1/auth/otp/preview`                    | Read the outstanding OTP for a destination — **mock SMS mode only** (404 otherwise), so demos can complete the refund step-up without a phone                                                                                      | public (mock only)        |
 | GET    | `/api/v1/admin/users`                         | Paginated user directory                                                                                                                                                                                                           | `ADMIN`                   |
 | GET    | `/api/v1/flights/search`                      | Date/route/pax search with priced fare options                                                                                                                                                                                     | public                    |
 | GET    | `/api/v1/flights/:id`                         | Flight detail                                                                                                                                                                                                                      | public                    |

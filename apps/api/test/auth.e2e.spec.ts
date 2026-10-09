@@ -256,6 +256,34 @@ describe('auth (e2e)', () => {
       .expect(401);
   });
 
+  it('exposes the outstanding OTP via the mock-only preview helper', async () => {
+    const destination = `+2547${digits8(9)}`;
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/otp/request')
+      .send({ destination, purpose: 'RESET_PASSWORD' })
+      .expect(202);
+
+    // Mock mode stashes the plaintext code so a browser demo can read it.
+    const preview = await request(app.getHttpServer())
+      .get('/api/v1/auth/otp/preview')
+      .query({ destination, purpose: 'RESET_PASSWORD' })
+      .expect(200);
+    expect(preview.body.code).toMatch(/^\d{6}$/);
+
+    // It matches the notification the mock SMS "sent" and verifies cleanly.
+    const notification = await prisma.notification.findFirst({
+      where: { recipient: destination, templateCode: 'otp.reset_password' },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(notification!.body).toContain(preview.body.code);
+
+    // An unknown destination has no outstanding code → 404, not a leak.
+    await request(app.getHttpServer())
+      .get('/api/v1/auth/otp/preview')
+      .query({ destination: `+2547${digits8(11)}`, purpose: 'RESET_PASSWORD' })
+      .expect(404);
+  });
+
   it('enforces RBAC on /admin/users', async () => {
     const env = getEnv();
 

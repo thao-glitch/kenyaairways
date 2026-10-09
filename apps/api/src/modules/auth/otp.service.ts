@@ -74,6 +74,14 @@ export class OtpService {
       },
     });
 
+    // Mock SMS mode: stash the plaintext code in Redis so the demo UI can
+    // complete the step-up (there is no real handset to read). This never runs
+    // in a real deployment — `SMS_PROVIDER` is africastalking/twilio there —
+    // and is the OTP counterpart to the mock STK `simulate` endpoint.
+    if (env.SMS_PROVIDER === 'mock') {
+      await this.redis.set(`otp-dev:${purpose}:${destination}`, code, env.OTP_TTL_SECONDS);
+    }
+
     const minutes = Math.round(env.OTP_TTL_SECONDS / 60);
     // The destination may belong to a known account — render in their locale.
     const owner = await this.prisma.user.findFirst({
@@ -156,5 +164,23 @@ export class OtpService {
 
   private async consume(id: string): Promise<void> {
     await this.prisma.otpCode.update({ where: { id }, data: { consumedAt: new Date() } });
+  }
+
+  /**
+   * Dev/demo helper: returns the plaintext code stashed by `request()` — but
+   * ONLY when `SMS_PROVIDER=mock`. In any real deployment the stash is never
+   * written, so this throws NOT_FOUND and the endpoint is inert. Mirrors the
+   * mock-only `POST /payments/:id/simulate` STK helper.
+   */
+  async preview(rawDestination: string, purpose: OtpPurpose): Promise<{ code: string }> {
+    if (getEnv().SMS_PROVIDER !== 'mock') {
+      throw new AppError('NOT_FOUND', 'OTP preview is only available when SMS_PROVIDER=mock');
+    }
+    const { destination } = this.classify(rawDestination);
+    const code = await this.redis.get<string>(`otp-dev:${purpose}:${destination}`);
+    if (typeof code !== 'string') {
+      throw new AppError('NOT_FOUND', 'No outstanding verification code for that destination');
+    }
+    return { code };
   }
 }

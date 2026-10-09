@@ -3,9 +3,17 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import type { SessionUserDto } from '@flight13/shared';
+import type { Role, SessionUserDto } from '@flight13/shared';
 import { useT } from '@/components/i18n-provider';
 import { getSession, logout } from '@/lib/auth';
+
+/** Which staff consoles a role may open (mirrors the API's `@Roles` guards). */
+const CONSOLES: { href: string; labelKey: string; allow: readonly Role[] }[] = [
+  { href: '/ops', labelKey: 'nav.ops', allow: ['OPS', 'ADMIN'] },
+  { href: '/finance', labelKey: 'nav.finance', allow: ['FINANCE', 'ADMIN'] },
+  { href: '/agent', labelKey: 'nav.agent', allow: ['AGENT', 'ADMIN'] },
+  { href: '/admin', labelKey: 'nav.admin', allow: ['ADMIN'] },
+];
 
 /**
  * Live account state in the header: skeleton while probing `/auth/me`, then
@@ -62,6 +70,15 @@ export function SessionNav() {
 
   return (
     <div className="flex items-center gap-1">
+      {CONSOLES.filter((c) => c.allow.includes(user.role)).map((c) => (
+        <Link
+          key={c.href}
+          href={c.href}
+          className="rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+        >
+          {t(c.labelKey)}
+        </Link>
+      ))}
       <Link
         href="/pnr"
         className="max-w-24 truncate rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"

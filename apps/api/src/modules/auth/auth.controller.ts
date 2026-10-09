@@ -1,5 +1,6 @@
-import { Body, Controller, Get, HttpCode, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Query, Req, Res } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import type { OtpPurpose } from '@prisma/client';
 import type { Request, Response } from 'express';
 import type { SessionUserDto } from '@flight13/shared';
 import { Public } from '../../common/decorators/public.decorator';
@@ -107,6 +108,20 @@ export class AuthController {
   async verifyOtp(@Body() dto: OtpVerifyDto): Promise<{ verified: true }> {
     const result = await this.otp.verify(dto.destination, dto.purpose, dto.code);
     return { verified: result.verified };
+  }
+
+  @Public()
+  @Get('otp/preview')
+  @ApiOperation({
+    summary: 'Read the outstanding OTP code (MOCK SMS mode only — dev/demo helper)',
+  })
+  @ApiOkResponse({ description: 'The plaintext code stashed for the mock SMS sink' })
+  @ApiResponse({ status: 404, description: 'Not available unless SMS_PROVIDER=mock' })
+  async previewOtp(
+    @Query('destination') destination: string,
+    @Query('purpose') purpose: OtpPurpose,
+  ): Promise<{ code: string }> {
+    return this.otp.preview(destination, purpose);
   }
 }
 
