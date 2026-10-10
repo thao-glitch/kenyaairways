@@ -9,6 +9,7 @@ import { getEnv } from '../../config/env';
 import { createLogger } from '../../common/logger';
 import { PaymentsService } from './payments.service';
 import { CallbackIpGuard } from './callback-ip.guard';
+import { MethodConfigService } from './config/method-config.service';
 
 const log = createLogger('payments-cb');
 
@@ -26,7 +27,10 @@ const log = createLogger('payments-cb');
 @ApiTags('callbacks')
 @Controller('payments/cb')
 export class PaymentsCbController {
-  constructor(private readonly payments: PaymentsService) {}
+  constructor(
+    private readonly payments: PaymentsService,
+    private readonly methods: MethodConfigService,
+  ) {}
 
   @Post(':secret/c2b/validate')
   @HttpCode(200)
@@ -78,20 +82,27 @@ export class PaymentsCbController {
     @Req() req: Request,
   ): Promise<Record<string, unknown>> {
     assertCallbackSecret(secret);
-    const env = getEnv();
-    if (env.STRIPE_MODE !== 'live') {
+    const verification = await this.methods.stripeVerification();
+    if (verification.mode !== 'live') {
       throw new AppError('NOT_FOUND', 'Stripe webhooks are disabled (STRIPE_MODE=mock)');
     }
     const signature = req.headers['stripe-signature'];
     const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body ?? {}));
-    let event: Stripe.Event;
-    try {
-      event = new Stripe(env.STRIPE_SECRET_KEY).webhooks.constructEvent(
-        raw,
-        typeof signature === 'string' ? signature : '',
-        env.STRIPE_WEBHOOK_SECRET,
-      );
-    } catch {
+    const sig = typeof signature === 'string' ? signature : '';
+    // Current webhook secret first, then the previous one while its 24h
+    // rotation grace lasts — events dispatched before an admin rotation
+    // keep verifying, so in-flight callbacks are never orphaned.
+    const client = new Stripe(verification.secretKey);
+    let event: Stripe.Event | null = null;
+    for (const candidate of verification.secrets) {
+      try {
+        event = client.webhooks.constructEvent(raw, sig, candidate);
+        break;
+      } catch {
+        // try the next candidate
+      }
+    }
+    if (!event) {
       throw new AppError('VALIDATION_ERROR', 'Invalid Stripe signature');
     }
     await this.payments.ingestStripeEvent(event);

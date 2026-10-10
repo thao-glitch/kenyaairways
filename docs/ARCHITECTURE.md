@@ -230,9 +230,26 @@ action.
 ## 6. Payments
 
 Provider selection is a typed interface (`PaymentProvider`) with implementations
-`MpesaProvider` (STK + C2B), `StripeProvider`, `MockProvider` — chosen at boot by
-`PAYMENT_PROVIDER_DEFAULT` plus `MPESA_MODE` / `STRIPE_MODE` (mock by default, no network
-calls in dev/CI). One **active** provider per environment; the others never load.
+`MpesaProvider` (STK + C2B), `StripeProvider`, `MockProvider`. Configuration resolves
+through `MethodConfigService`: environment defaults (`PAYMENT_PROVIDER_DEFAULT`,
+`MPESA_MODE`/`STRIPE_MODE`, Daraja & Stripe credentials) with per-method **database
+overrides** editable on the admin "Payment plans" tab — applied hot within the config
+TTL, no restart. Secrets are stored sealed with AES-256-GCM (`ENCRYPTION_KEY`, same
+envelope as identity documents) and never leave the API: reads answer with masked
+status only (`••••••••1234`). Saves are validated against the _effective_ merged state,
+so flipping a method to `live` without usable credentials fails loudly at save time —
+and every mutation writes an audit entry (`payment_config.update/revert/default_provider`).
+
+`PaymentProviderRegistry` builds and memoizes the effective provider per config
+version: `active()` routes **new** payments (the plan default, rejected with
+`PAYMENT_METHOD_DISABLED` when the method is off), while every existing `Payment` keeps
+its own `provider` column — query, refunds, callbacks and re-initiations always speak to
+the method that took the money, so switching the default or disabling a method never
+strands in-flight activity. Reconciliation runs both branches (Stripe intents _and_
+M-Pesa STK attempts) each pass, regardless of the current default. The neutral
+callback-path secret (`MPESA_CALLBACK_SECRET`) and the amount-rounding policy stay
+env-only; the Stripe webhook verifies the current signing secret plus the previous one
+inside a 24h rotation grace. Mock by default: no network calls in dev/CI.
 
 All provider callbacks funnel through one Prisma transaction with conditional claims
 (`MpesaTransaction` → `Payment` → `bookings.confirmPaid`), so duplicate or lost-then-replayed

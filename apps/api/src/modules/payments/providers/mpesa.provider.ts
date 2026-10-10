@@ -1,4 +1,5 @@
 import { Buffer } from 'node:buffer';
+import { createHash } from 'node:crypto';
 import type { PaymentProviderType } from '@prisma/client';
 import { AppError, describeMpesaResult, toMpesaMsisdn } from '@flight13/shared';
 import { getEnv, type Env } from '../../../config/env';
@@ -14,7 +15,22 @@ import type {
   ProviderRefundResult,
 } from './payment-provider';
 
-const OAUTH_CACHE_KEY = 'mpesa:oauth';
+const OAUTH_CACHE_KEY_PREFIX = 'mpesa:oauth:';
+
+/**
+ * Daraja credentials resolved from the effective config (DB override or env).
+ * Built per config version by PaymentProviderRegistry — a provider instance
+ * therefore speaks with exactly the credentials it was created from.
+ */
+export interface MpesaRuntimeConfig {
+  mpesaEnv: 'sandbox' | 'production';
+  consumerKey: string;
+  consumerSecret: string;
+  shortcode: string;
+  passkey: string;
+  initiatorName: string;
+  securityCredential: string;
+}
 
 /**
  * `YYYYMMDDHHmmss` in Africa/Nairobi (EAT, UTC+3) — the timestamp Daraja
@@ -88,8 +104,8 @@ export function buildStkPayload(input: StkPayloadInput): Record<string, unknown>
   };
 }
 
-function darajaHost(env: Env): string {
-  return env.MPESA_ENV === 'production'
+function darajaHost(mpesaEnv: 'sandbox' | 'production'): string {
+  return mpesaEnv === 'production'
     ? 'https://api.safaricom.co.ke'
     : 'https://sandbox.safaricom.co.ke';
 }
@@ -120,36 +136,43 @@ export class MpesaProvider implements PaymentProvider {
   readonly name: PaymentProviderType = 'MPESA_STK';
   private readonly log: Logger = createLogger('mpesa-provider');
 
-  constructor(private readonly redis: RedisService) {}
+  constructor(
+    private readonly redis: RedisService,
+    private readonly cfg: MpesaRuntimeConfig,
+  ) {}
 
-  private env(): Env {
-    return getEnv();
+  /** OAuth tokens are cached per consumer key — a rotation gets a fresh token. */
+  private oauthCacheKey(): string {
+    return `${OAUTH_CACHE_KEY_PREFIX}${createHash('sha256').update(this.cfg.consumerKey).digest('hex').slice(0, 12)}`;
   }
 
   private async accessToken(): Promise<string> {
-    const env = this.env();
-    const cached = await this.redis.raw.get(OAUTH_CACHE_KEY);
+    const cacheKey = this.oauthCacheKey();
+    const cached = await this.redis.raw.get(cacheKey);
     if (cached) return cached;
 
     const basic = Buffer.from(
-      `${env.MPESA_CONSUMER_KEY}:${env.MPESA_CONSUMER_SECRET}`,
+      `${this.cfg.consumerKey}:${this.cfg.consumerSecret}`,
       'utf8',
     ).toString('base64');
-    const res = await fetch(`${darajaHost(env)}/oauth/v1/generate?grant_type=client_credentials`, {
-      headers: { Authorization: `Basic ${basic}` },
-    });
+    const res = await fetch(
+      `${darajaHost(this.cfg.mpesaEnv)}/oauth/v1/generate?grant_type=client_credentials`,
+      {
+        headers: { Authorization: `Basic ${basic}` },
+      },
+    );
     if (!res.ok) {
       throw new AppError('PAYMENT_PROVIDER_ERROR', `Daraja OAuth failed (${res.status})`);
     }
     const body = (await res.json()) as { access_token: string; expires_in: string | number };
     const ttl = Math.max(Number(body.expires_in) - 60, 60);
-    await this.redis.raw.set(OAUTH_CACHE_KEY, body.access_token, 'EX', ttl);
+    await this.redis.raw.set(cacheKey, body.access_token, 'EX', ttl);
     return body.access_token;
   }
 
   private async post(path: string, payload: unknown): Promise<Record<string, unknown>> {
     const token = await this.accessToken();
-    const res = await fetch(`${darajaHost(this.env())}${path}`, {
+    const res = await fetch(`${darajaHost(this.cfg.mpesaEnv)}${path}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -167,11 +190,11 @@ export class MpesaProvider implements PaymentProvider {
   }
 
   async initiate(input: ProviderInitiateInput): Promise<ProviderInitiateResult> {
-    const env = this.env();
     if (!input.msisdn) {
       throw new AppError('VALIDATION_ERROR', 'An M-Pesa phone number is required for STK push');
     }
-    const amountMajor = roundKesFromMinor(input.amountMinor, env.MPESA_AMOUNT_ROUNDING);
+    // Rounding policy is a finance decision — env-only, not admin-editable.
+    const amountMajor = roundKesFromMinor(input.amountMinor, getEnv().MPESA_AMOUNT_ROUNDING);
     if (amountMajor === null) {
       throw new AppError(
         'PAYMENT_AMOUNT_MISMATCH',
@@ -180,8 +203,8 @@ export class MpesaProvider implements PaymentProvider {
     }
     const timestamp = mpesaTimestamp();
     const payload = buildStkPayload({
-      shortcode: env.MPESA_SHORTCODE,
-      passkey: env.MPESA_PASSKEY,
+      shortcode: this.cfg.shortcode,
+      passkey: this.cfg.passkey,
       timestamp,
       amountMajor,
       msisdn: toMpesaMsisdn(input.msisdn),
@@ -201,11 +224,10 @@ export class MpesaProvider implements PaymentProvider {
   }
 
   async query(providerRef: string): Promise<ProviderQueryResult> {
-    const env = this.env();
     const timestamp = mpesaTimestamp();
     const payload = {
-      BusinessShortCode: env.MPESA_SHORTCODE,
-      Password: buildStkPassword(env.MPESA_SHORTCODE, env.MPESA_PASSKEY, timestamp),
+      BusinessShortCode: this.cfg.shortcode,
+      Password: buildStkPassword(this.cfg.shortcode, this.cfg.passkey, timestamp),
       Timestamp: timestamp,
       CheckoutRequestID: providerRef,
     };
@@ -227,14 +249,13 @@ export class MpesaProvider implements PaymentProvider {
   }
 
   async refund(input: ProviderRefundInput): Promise<ProviderRefundResult> {
-    const env = this.env();
-    const amountMajor = roundKesFromMinor(input.amountMinor, env.MPESA_AMOUNT_ROUNDING);
+    const amountMajor = roundKesFromMinor(input.amountMinor, getEnv().MPESA_AMOUNT_ROUNDING);
     if (amountMajor === null) {
       throw new AppError('PAYMENT_AMOUNT_MISMATCH', 'Refund amount is not whole shillings');
     }
     const payload = {
-      Initiator: env.MPESA_INITIATOR_NAME,
-      SecurityCredential: env.MPESA_SECURITY_CREDENTIAL,
+      Initiator: this.cfg.initiatorName,
+      SecurityCredential: this.cfg.securityCredential,
       CommandID: 'Refund',
       TransactionID: input.providerRef, // MpesaReceiptNumber
       Amount: amountMajor,

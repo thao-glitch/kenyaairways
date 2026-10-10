@@ -1,8 +1,5 @@
 import type { PaymentProviderType } from '@prisma/client';
 
-/** Injection token — the active provider is picked by env (mock by default). */
-export const PAYMENT_PROVIDER = 'PAYMENT_PROVIDER';
-
 export interface ProviderInitiateInput {
   paymentId: string;
   /** Daraja AccountReference: the PNR (≤12 chars, we send 6). */
@@ -52,10 +49,11 @@ export interface ProviderRefundResult {
 
 /**
  * Typed seam between the booking money flow and external processors
- * (Safaricom Daraja, Stripe). Exactly one provider is active per environment
- * (`PAYMENT_PROVIDER_DEFAULT`, with `MPESA_MODE`/`STRIPE_MODE` selecting mock
- * vs live) — mock implementations are deterministic and never touch a network,
- * which is what the test suite runs against.
+ * (Safaricom Daraja, Stripe). Instances are built on demand by
+ * `PaymentProviderRegistry` from the effective configuration — environment
+ * defaults overridden field-by-field by the admin "payment plans" tab — and
+ * mock implementations are deterministic and never touch a network, which is
+ * what the test suite runs against.
  */
 export interface PaymentProvider {
   readonly name: PaymentProviderType;

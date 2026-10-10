@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { ExecutionContext } from '@nestjs/common';
 import { AppError } from '@flight13/shared';
 import { CallbackIpGuard, clientIp } from './callback-ip.guard';
-import { getEnv } from '../../config/env';
 
 function context(ip?: string, forwarded?: string): ExecutionContext {
   return {
@@ -15,35 +14,41 @@ function context(ip?: string, forwarded?: string): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
+/** Allowlist source under test: the effective (env or admin) config. */
+function guardWith(allowlist: () => string[]): CallbackIpGuard {
+  return new CallbackIpGuard({ callbackAllowlist: async () => allowlist() });
+}
+
 describe('CallbackIpGuard (Daraja/Stripe callback allowlist)', () => {
-  const env = getEnv();
-  const original = env.MPESA_ALLOWED_CALLBACK_IPS;
+  let allowlist: string[] = [];
   afterEach(() => {
-    env.MPESA_ALLOWED_CALLBACK_IPS = original;
+    allowlist = [];
   });
 
-  it('allows every source when no allowlist is configured (dev default)', () => {
-    env.MPESA_ALLOWED_CALLBACK_IPS = '';
-    expect(new CallbackIpGuard().canActivate(context('196.201.214.200'))).toBe(true);
+  it('allows every source when no allowlist is configured (dev default)', async () => {
+    allowlist = [];
+    await expect(guardWith(() => allowlist).canActivate(context('196.201.214.200'))).resolves.toBe(
+      true,
+    );
   });
 
-  it('accepts listed IPs, including the x-forwarded-for first hop', () => {
-    env.MPESA_ALLOWED_CALLBACK_IPS = '196.201.214.200, 1.2.3.4';
-    const guard = new CallbackIpGuard();
-    expect(guard.canActivate(context('196.201.214.200'))).toBe(true);
-    expect(guard.canActivate(context('10.0.0.1', '1.2.3.4, 10.0.0.1'))).toBe(true);
+  it('accepts listed IPs, including the x-forwarded-for first hop', async () => {
+    allowlist = ['196.201.214.200', '1.2.3.4'];
+    const guard = guardWith(() => allowlist);
+    await expect(guard.canActivate(context('196.201.214.200'))).resolves.toBe(true);
+    await expect(guard.canActivate(context('10.0.0.1', '1.2.3.4, 10.0.0.1'))).resolves.toBe(true);
   });
 
-  it('rejects unlisted sources with FORBIDDEN', () => {
-    env.MPESA_ALLOWED_CALLBACK_IPS = '1.2.3.4';
-    let thrown: unknown;
-    try {
-      new CallbackIpGuard().canActivate(context('6.6.6.6'));
-    } catch (err) {
-      thrown = err;
-    }
+  it('rejects unlisted sources with FORBIDDEN', async () => {
+    allowlist = ['1.2.3.4'];
+    await expect(guardWith(() => allowlist).canActivate(context('6.6.6.6'))).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    // still an AppError instance, not a plain rejection
+    const thrown = await guardWith(() => allowlist)
+      .canActivate(context('6.6.6.6'))
+      .catch((err: unknown) => err);
     expect(thrown).toBeInstanceOf(AppError);
-    expect((thrown as AppError).code).toBe('FORBIDDEN');
   });
 
   it('clientIp prefers x-forwarded-for over the socket address', () => {

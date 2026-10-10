@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
 import { z } from 'zod';
@@ -12,7 +12,7 @@ import {
   type PaymentDto,
   type RefundDto,
 } from '@flight13/shared';
-import type { Booking, MpesaTxStatus, Payment, Refund } from '@prisma/client';
+import type { Booking, MpesaTxStatus, Payment, PaymentProviderType, Refund } from '@prisma/client';
 import type Stripe from 'stripe';
 import { getEnv } from '../../config/env';
 import { createLogger, maskDeep, type Logger } from '../../common/logger';
@@ -24,7 +24,7 @@ import { RtEventsService } from '../../realtime/rt-events.service';
 import type { Db } from '../bookings/inventory.service';
 import { OtpService } from '../auth/otp.service';
 import { PAYMENT_CB_QUEUE, PAYMENT_STATUSES_TO_CLAIM, type PaymentCbJob } from './queues';
-import { PAYMENT_PROVIDER, type PaymentProvider } from './providers/payment-provider';
+import { PaymentProviderRegistry, type ActiveProvider } from './config/payment-provider.registry';
 import { roundKesFromMinor } from './providers/mpesa.provider';
 import type { CreatePaymentDto, RefundPaymentDto } from './dto/payment.dto';
 
@@ -230,7 +230,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     private readonly bookings: BookingsService,
     private readonly otp: OtpService,
     private readonly rt: RtEventsService,
-    @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProvider,
+    private readonly registry: PaymentProviderRegistry,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -263,10 +263,16 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
-    const msisdn = this.resolveMsisdn(dto.msisdn, actor, booking);
-    const env = getEnv();
-    const isPush = this.provider.name !== 'STRIPE';
-    if (isPush && this.provider.name === 'MPESA_STK' && env.MPESA_MODE === 'live' && !msisdn) {
+    const active = await this.registry.active();
+    if (!active.enabled) {
+      throw new AppError(
+        'PAYMENT_METHOD_DISABLED',
+        `Payment method ${active.type} is not accepting payments`,
+      );
+    }
+    const msisdn = this.resolveMsisdn(dto.msisdn, actor, booking, active.type, active.mode);
+    const isPush = active.type !== 'STRIPE';
+    if (isPush && active.type === 'MPESA_STK' && active.mode === 'live' && !msisdn) {
       throw new AppError('VALIDATION_ERROR', 'A phone number is required for M-Pesa STK push');
     }
 
@@ -294,7 +300,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       payment = await this.prisma.payment.create({
         data: {
           bookingId: booking.id,
-          provider: this.provider.name,
+          provider: active.type,
           status: 'REQUIRES_ACTION',
           amountMinor: booking.totalMinor,
           currency: booking.currency,
@@ -317,7 +323,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       throw err;
     }
 
-    await this.initiate(payment.id, booking, msisdn, actor);
+    await this.initiate(payment.id, booking, msisdn, actor, false, active);
     const fresh = await this.prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
     await this.audit('payment.create', actor, fresh.id, 'SUCCESS', {
       pnr: booking.pnr,
@@ -340,8 +346,21 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         `Booking is ${payment.booking.status} — a new payment attempt is not possible`,
       );
     }
-    const msisdn = this.resolveMsisdn(undefined, actor, payment.booking);
-    await this.initiate(payment.id, payment.booking, msisdn, actor, true);
+    const resolved = await this.registry.resolve(payment.provider);
+    if (!resolved.enabled) {
+      throw new AppError(
+        'PAYMENT_METHOD_DISABLED',
+        `Payment method ${resolved.type} is not accepting payments`,
+      );
+    }
+    const msisdn = this.resolveMsisdn(
+      undefined,
+      actor,
+      payment.booking,
+      resolved.type,
+      resolved.mode,
+    );
+    await this.initiate(payment.id, payment.booking, msisdn, actor, true, resolved);
     const fresh = await this.prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
     await this.audit('payment.stk.initiate', actor, fresh.id, 'SUCCESS', {
       pnr: payment.booking.pnr,
@@ -350,18 +369,24 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     return toPaymentDto(fresh);
   }
 
+  /**
+   * `resolved` is the provider the Payment row was created with (active at
+   * create time) — re-initiations keep speaking to the same method even if
+   * the admin has since switched the default.
+   */
   private async initiate(
     paymentId: string,
     booking: Booking,
     msisdn: string | undefined,
     actor: BookingActor,
-    reinitiate = false,
+    reinitiate: boolean,
+    resolved: ActiveProvider,
   ): Promise<void> {
     const env = getEnv();
     let providerRef: string;
     let clientSecret: string | null = null;
     try {
-      const result = await this.provider.initiate({
+      const result = await resolved.provider.initiate({
         paymentId,
         accountReference: booking.pnr,
         amountMinor: booking.totalMinor,
@@ -400,10 +425,10 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
           failureMessage: null,
         },
       });
-      if (this.provider.name !== 'STRIPE') {
+      if (resolved.type !== 'STRIPE') {
         // what we ask Daraja to debit (rounding policy) vs what the booking owes
         const debit =
-          this.provider.name === 'MPESA_STK' && env.MPESA_MODE === 'live'
+          resolved.type === 'MPESA_STK' && resolved.mode === 'live'
             ? Math.round(
                 (roundKesFromMinor(booking.totalMinor, env.MPESA_AMOUNT_ROUNDING) ?? 0) * 100,
               )
@@ -651,10 +676,13 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     paymentId: string,
     resultCode: number,
   ): Promise<PaymentDto> {
-    if (getEnv().MPESA_MODE !== 'mock') {
+    const payment = await this.loadPayment(paymentId, actor);
+    // Simulation mirrors the payment's own method — only mock-mode methods
+    // can be driven from the outside.
+    const resolved = await this.registry.resolve(payment.provider);
+    if (resolved.mode !== 'mock') {
       throw new AppError('NOT_FOUND', 'Payment simulation only exists in mock mode');
     }
-    const payment = await this.loadPayment(paymentId, actor);
     if (payment.status === 'PAID') throw new AppError('CONFLICT', 'Payment already completed');
     // No booking-status guard here: a real Daraja callback carries no booking
     // context either. applyPaidLocked decides — an EXPIRED/CANCELLED booking
@@ -664,7 +692,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     const info = describeMpesaResult(resultCode);
     const success = info.category === 'success';
 
-    if (this.provider.name !== 'STRIPE') {
+    if (payment.provider !== 'STRIPE') {
       const tx = await this.prisma.mpesaTransaction.findFirst({
         where: { paymentId },
         orderBy: { createdAt: 'desc' },
@@ -947,20 +975,23 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     const cutoff = new Date(Date.now() - env.RECONCILE_STK_AFTER_SECONDS * 1000);
     let polled = 0;
 
-    if (this.provider.name === 'STRIPE') {
-      const stale = await this.prisma.payment.findMany({
-        where: {
-          provider: 'STRIPE',
-          status: 'REQUIRES_ACTION',
-          providerRef: { not: null },
-          createdAt: { lt: cutoff },
-        },
-        take: 25,
-      });
-      for (const payment of stale) {
+    const staleIntents = await this.prisma.payment.findMany({
+      where: {
+        provider: 'STRIPE',
+        status: 'REQUIRES_ACTION',
+        providerRef: { not: null },
+        createdAt: { lt: cutoff },
+      },
+      take: 25,
+    });
+    // Routed by each payment's own method — a default-method switch never
+    // strands an existing intent.
+    if (staleIntents.length > 0) {
+      const stripe = await this.registry.resolve('STRIPE');
+      for (const payment of staleIntents) {
         const attempts =
           Number((payment.metadata as { queryAttempts?: number } | null)?.queryAttempts ?? 0) + 1;
-        const answer = await this.provider.query(payment.providerRef!);
+        const answer = await stripe.provider.query(payment.providerRef!);
         polled += 1;
         if (answer.outcome === 'PENDING') {
           if (attempts >= 10) {
@@ -1013,7 +1044,6 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
           await this.rt.paymentUpdated(payment.id);
         }
       }
-      return polled;
     }
 
     const stale = await this.prisma.mpesaTransaction.findMany({
@@ -1025,8 +1055,10 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       orderBy: { createdAt: 'asc' },
       take: 25,
     });
+    // STK attempts poll through the M-Pesa method regardless of the default.
+    const mpesa = stale.length > 0 ? await this.registry.resolve('MPESA_STK') : null;
     for (const tx of stale) {
-      const answer = await this.provider.query(tx.checkoutRequestId);
+      const answer = await mpesa!.provider.query(tx.checkoutRequestId);
       polled += 1;
       await this.prisma.mpesaTransaction.updateMany({
         where: { id: tx.id, status: 'PENDING' },
@@ -1107,8 +1139,11 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     });
 
     const providerRef = await this.resolveRefundRef(payment);
+    // Refunds speak to the method that took the money — never the current
+    // default, so switching methods never blocks a refund of captured money.
+    const refundMethod = await this.registry.resolve(payment.provider);
     try {
-      const result = await this.provider.refund({
+      const result = await refundMethod.provider.refund({
         providerRef,
         amountMinor: amount,
         currency: payment.currency,
@@ -1208,13 +1243,15 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     explicit: string | undefined,
     actor: BookingActor,
     booking: Booking,
+    providerType: PaymentProviderType,
+    mode: 'mock' | 'live',
   ): string | undefined {
     const raw = explicit ?? actor.phone ?? booking.contactPhone ?? undefined;
     if (!raw) return undefined;
     try {
       return toMpesaMsisdn(raw);
     } catch {
-      if (this.provider.name === 'MPESA_STK' && getEnv().MPESA_MODE === 'live') {
+      if (providerType === 'MPESA_STK' && mode === 'live') {
         throw new AppError('VALIDATION_ERROR', 'Phone is not a Kenyan mobile number');
       }
       return undefined;

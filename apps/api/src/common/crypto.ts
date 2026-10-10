@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from 'node:crypto';
+import { getEnv } from '../config/env';
 
 /**
  * Field-level encryption for identity documents (Kenya DPA 2019:
@@ -59,4 +60,46 @@ export function sha256(value: string): string {
 
 export function randomToken(bytes = 32): string {
   return randomBytes(bytes).toString('base64url');
+}
+
+// ── payment-method secret storage ───────────────────────────────────────────
+// PaymentMethodConfig.secretsEnc: the admin console stores provider
+// credentials as one encrypted JSON map per method, reusing the same
+// ENCRYPTION_KEY envelope as identity documents.
+
+/** True when the env holds a usable 32-byte key (always, post env-validation). */
+export function encryptionKeyConfigured(): boolean {
+  try {
+    return keyFrom(getEnv().ENCRYPTION_KEY).length === 32;
+  } catch {
+    return false;
+  }
+}
+
+/** Seal a string map (empty → null: nothing to protect). */
+export function sealSecrets(secrets: Record<string, string>): string | null {
+  const entries = Object.entries(secrets).filter(([, v]) => v.length > 0);
+  if (entries.length === 0) return null;
+  return encryptField(JSON.stringify(Object.fromEntries(entries)), getEnv().ENCRYPTION_KEY);
+}
+
+/** Open an envelope back into a map; corrupt/foreign input yields {} (fail-soft). */
+export function openSecrets(envelope: string | null | undefined): Record<string, string> {
+  if (!envelope) return {};
+  try {
+    const parsed: unknown = JSON.parse(decryptField(envelope, getEnv().ENCRYPTION_KEY));
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, string>;
+    }
+    return {};
+  } catch {
+    return {}; // wrong key or tampered payload — never surface raw failures
+  }
+}
+
+/** Masked view of a secret for the admin UI: never the value, only its shape. */
+export function maskSecret(value: string | undefined | null): string | null {
+  if (!value) return null;
+  if (value.length <= 4) return '••••';
+  return `••••••••${value.slice(-4)}`;
 }

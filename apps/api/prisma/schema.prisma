@@ -836,6 +836,36 @@ model Payment {
   @@index([providerRef])
 }
 
+/// Admin-configurable payment method details ("payment plans"). A row
+/// overrides the matching environment defaults field-by-field; providers
+/// without a row fall back entirely to env. Secrets are stored as an
+/// AES-256-GCM envelope (ENCRYPTION_KEY, same as identity documents) and are never returned
+/// by the API — only masked status. In-flight payments are unaffected by
+/// later edits: every Payment keeps its own provider, and the neutral
+/// callback path secret stays env-only.
+model PaymentMethodConfig {
+  id                 String              @id @default(cuid())
+  provider           PaymentProviderType @unique
+  enabled            Boolean             @default(true)
+  settings           Json? // non-secret: { mode, mpesaEnv, shortcode, callbackBaseUrl, allowedCallbackIps, initiatorName }
+  secretsEnc         String? // encryptField JSON map (ENCRYPTION_KEY): { consumerKey, consumerSecret, passkey, securityCredential, secretKey, webhookSecret }
+  previousSecretsEnc String? // prior secrets, kept briefly so provider signatures validate across a rotation
+  secretsRotatedAt   DateTime?
+  version            Int                 @default(1)
+  updatedById        String?
+  updatedAt          DateTime            @updatedAt
+  createdAt          DateTime            @default(now())
+}
+
+/// Singleton row: the payment method new payments are created with
+/// (falls back to PAYMENT_PROVIDER_DEFAULT when unset).
+model PaymentPlanSettings {
+  id              Boolean              @id @default(true)
+  defaultProvider PaymentProviderType?
+  updatedById     String?
+  updatedAt       DateTime             @updatedAt
+}
+
 model MpesaTransaction {
   id                  String        @id @default(cuid())
   paymentId           String

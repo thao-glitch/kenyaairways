@@ -1,7 +1,6 @@
 import Stripe from 'stripe';
 import type { PaymentProviderType } from '@prisma/client';
 import { AppError } from '@flight13/shared';
-import { getEnv } from '../../../config/env';
 import { createLogger, type Logger } from '../../../common/logger';
 import type {
   PaymentProvider,
@@ -35,8 +34,9 @@ export class StripeProvider implements PaymentProvider {
   private readonly stripe: Stripe;
   private readonly log: Logger = createLogger('stripe-provider');
 
-  constructor() {
-    this.stripe = new Stripe(getEnv().STRIPE_SECRET_KEY);
+  /** `secretKey` comes from the effective config (DB override or env). */
+  constructor(cfg: { secretKey: string }) {
+    this.stripe = new Stripe(cfg.secretKey);
   }
 
   async initiate(input: ProviderInitiateInput): Promise<ProviderInitiateResult> {

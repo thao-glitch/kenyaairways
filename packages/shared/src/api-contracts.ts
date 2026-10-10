@@ -305,6 +305,55 @@ export interface RefundDto {
   createdAt: string;
 }
 
+/**
+ * Admin "payment plans": where an effective payment-method value comes from —
+ * environment defaults (`ENV`) or an admin override row (`DATABASE`).
+ */
+export type PaymentMethodSource = 'ENV' | 'DATABASE';
+
+/** Non-secret, admin-editable details of one payment method. */
+export interface PaymentMethodSettingsDto {
+  /** mock = deterministic in-process provider; live = Daraja / Stripe. */
+  mode?: 'mock' | 'live';
+  mpesaEnv?: 'sandbox' | 'production';
+  shortcode?: string;
+  callbackBaseUrl?: string;
+  allowedCallbackIps?: string;
+  initiatorName?: string;
+}
+
+/**
+ * Secret fields are write-only: reads answer with `configured` + a mask only;
+ * clients submit a new value to rotate or `''` to clear (env takes over).
+ */
+export interface PaymentMethodSecretDto {
+  configured: boolean;
+  /** '••••••••1234' shape — never the value itself. */
+  masked: string | null;
+}
+
+/** One configured payment method (M-Pesa Daraja, Stripe, Mock). */
+export interface PaymentMethodConfigDto {
+  provider: PaymentProviderType;
+  enabled: boolean;
+  source: PaymentMethodSource;
+  /** Override version (null = still following environment defaults). */
+  version: number | null;
+  settings: PaymentMethodSettingsDto;
+  secrets: Record<string, PaymentMethodSecretDto>;
+  updatedById: string | null;
+  updatedAt: string | null;
+}
+
+/** Admin "payment plans" view: the default method + every configurable method. */
+export interface PaymentPlanDto {
+  /** Method NEW payments are created with (in-flight payments unaffected). */
+  defaultProvider: PaymentProviderType;
+  /** False ⇒ secret fields are rejected (ENCRYPTION_KEY unusable). */
+  encryptionKeyConfigured: boolean;
+  methods: PaymentMethodConfigDto[];
+}
+
 /** An incoming paybill (C2B) transaction — matched to a PNR or suspense. */
 export interface C2BPaymentDto {
   id: string;
