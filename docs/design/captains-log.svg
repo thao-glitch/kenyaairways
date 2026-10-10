@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 460" width="640" height="460" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="cl-head" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stopColor="#0B1220"/>
+      <stop offset="1" stopColor="#0A4E7A"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="640" height="460" rx="16" fill="#F6FAFC"/>
+  <text x="28" y="40" font-size="11" fill="#64748B" letter-spacing="2">CONCEPT · NARRATIVE FLIGHT FEED</text>
+
+  <!-- live header -->
+  <rect x="20" y="52" width="600" height="76" rx="12" fill="url(#cl-head)"/>
+  <circle cx="50" cy="80" r="5" fill="#34D399"/>
+  <text x="64" y="85" font-size="18" font-weight="800" fill="#FFFFFF" letter-spacing="1">CAPTAIN’S LOG</text>
+  <text x="64" y="106" font-size="12" fill="#9CC7E3">KF1304 · Nairobi (NBO) → Mombasa (MBA) · live from 10,000 m</text>
+  <g transform="translate(566 74) rotate(14)">
+    <path d="M18 0 L-4 12 L1 8 Z" fill="#FFFFFF"/>
+    <path d="M18 0 L7 22 L1 8 Z" fill="#DFF3FC"/>
+  </g>
+
+  <!-- timeline entries -->
+  <line x1="64" y1="156" x2="64" y2="296" stroke="#CBD5E1" stroke-width="2" stroke-dasharray="2 6"/>
+  <g font-size="13">
+    <circle cx="64" cy="158" r="7" fill="#0A7CC1"/>
+    <text x="84" y="154" font-weight="700" fill="#0F172A">14:32 · Wheels up</text>
+    <text x="84" y="172" fill="#475569">Cleared runway 04Right — a clean lift-off into the afternoon haze over the plains.</text>
+
+    <circle cx="64" cy="210" r="7" fill="#0A7CC1"/>
+    <text x="84" y="206" font-weight="700" fill="#0F172A">14:38 · Climb complete</text>
+    <text x="84" y="224" fill="#475569">Level FL240. The Ngong hills are putting on a show off the left wing.</text>
+
+    <circle cx="64" cy="262" r="7" fill="#94A3B8"/>
+    <text x="84" y="258" font-weight="700" fill="#0F172A">14:55 · Sea breeze ahead</text>
+    <text x="84" y="276" fill="#475569">Forecast: light tailwind, smooth arrival. Coastal clear by 15:20.</text>
+  </g>
+
+  <!-- gate wisdom bar -->
+  <rect x="40" y="316" width="560" height="72" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <text x="60" y="340" font-size="11" fill="#64748B" letter-spacing="1.5">GATE WISDOM · 143 PASSENGERS PREDICTED ON-TIME</text>
+  <rect x="60" y="352" width="520" height="16" rx="8" fill="#E2E8F0"/>
+  <rect x="60" y="352" width="322" height="16" rx="8" fill="#34C759"/>
+  <rect x="382" y="352" width="198" height="16" fill="#F59E0B"/>
+  <rect x="374" y="352" width="8" height="16" fill="#FFFFFF"/>
+  <text x="66" y="380" font-size="11" font-weight="700" fill="#15803D">On time 62%</text>
+  <text x="580" y="380" font-size="11" font-weight="700" fill="#B45309" text-anchor="end">Late 38%</text>
+
+  <!-- board-me mix chip -->
+  <rect x="40" y="404" width="560" height="36" rx="10" fill="#0B1220"/>
+  <g fill="#5EEAD4">
+    <rect x="60" y="417" width="3" height="10" rx="1.5"/>
+    <rect x="68" y="413" width="3" height="18" rx="1.5"/>
+    <rect x="76" y="416" width="3" height="12" rx="1.5"/>
+    <rect x="84" y="411" width="3" height="22" rx="1.5"/>
+    <rect x="92" y="415" width="3" height="14" rx="1.5"/>
+    <rect x="100" y="418" width="3" height="8" rx="1.5"/>
+    <rect x="108" y="414" width="3" height="16" rx="1.5"/>
+  </g>
+  <text x="124" y="427" font-size="12" fill="#E2E8F0">Boarding in 18 min · taarab-coastal mix set to Gate 12</text>
+</svg>

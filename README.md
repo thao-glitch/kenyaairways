@@ -162,10 +162,12 @@ retries the request.
 
 ```
 apps/api        NestJS API, Prisma schema/migrations/seed, e2e tests
-apps/web        Next.js web app (mobile-first, EN/SW)
+apps/web        Next.js web app (mobile-first, EN/SW) with an original SVG
+                visual identity (apps/web/src/components/art, app/icon.svg)
 packages/shared Zod-safe shared contracts: money, phone, PNR, booking-state machine,
                 M-Pesa result codes, WS event catalog, API DTOs
 docs/           Architecture and milestone documentation
+docs/design/    Original SVG concept mockups for proposed next-level upgrades
 scripts/        bootstrap (.env generator)
 ```
 

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import type { AirportDto, BoardingPassDto } from '@flight13/shared';
+import { BrandMark } from '@/components/art/brand-mark';
+import { RouteArc } from '@/components/art/route-arc';
 import { useT } from '@/components/i18n-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -78,8 +80,25 @@ export function PassPanel({ passId }: { passId: string }) {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <Card className="print:shadow-none">
-        <CardHeader>
+      <Card className="overflow-hidden print:shadow-none">
+        {/* Ticket header band — brand, flight number and the route itself */}
+        <div className="bg-gradient-to-r from-primary to-sky-700 px-6 py-4 text-primary-foreground">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <BrandMark className="h-7 w-7" />
+              <span className="text-[11px] font-semibold uppercase tracking-widest">
+                {t('pass.title')}
+              </span>
+            </div>
+            <span className="font-mono text-sm font-medium">{pass.flightNumber}</span>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <span className="text-2xl font-bold tracking-tight">{pass.originCode}</span>
+            <RouteArc className="h-6 w-28 text-primary-foreground/80" />
+            <span className="text-2xl font-bold tracking-tight">{pass.destinationCode}</span>
+          </div>
+        </div>
+        <CardHeader className="border-t border-dashed">
           <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
             <span>{pass.passengerName}</span>
             <Badge variant="success">{t('pass.issued')}</Badge>

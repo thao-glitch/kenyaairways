@@ -1,5 +1,8 @@
 import type { AirportDto, HealthDto, MetaDto } from '@flight13/shared';
 import Link from 'next/link';
+import { DestinationArt } from '@/components/art/destination-art';
+import { HeroSky } from '@/components/art/hero-sky';
+import { SearchForm } from '@/components/search-form';
 import { apiGetOrNull } from '@/lib/api';
 import { getTranslator } from '@/lib/i18n';
 import { Badge } from '@/components/ui/badge';
@@ -22,20 +25,32 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Hero */}
-      <section className="rounded-xl border bg-gradient-to-b from-accent/60 to-background p-6 text-center sm:p-10">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">{t('home.hero.title')}</h1>
-        <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">
-          {t('home.hero.subtitle')}
-        </p>
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-          <Badge variant="secondary">{meta?.currency ?? 'KES'}</Badge>
-          <Badge variant="secondary">{meta?.timezone ?? 'Africa/Nairobi'}</Badge>
-          {meta && <Badge variant="outline">{meta.airline.iataCode}</Badge>}
+      {/* Hero — original dawn-plains artwork behind a live search form */}
+      <section className="relative overflow-hidden rounded-xl border">
+        <HeroSky className="absolute inset-0 h-full w-full" />
+        <div className="relative bg-background/45 p-6 backdrop-blur-[2px] sm:p-10">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">
+              {t('home.hero.title')}
+            </h1>
+            <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">
+              {t('home.hero.subtitle')}
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <Badge variant="secondary">{meta?.currency ?? 'KES'}</Badge>
+              <Badge variant="secondary">{meta?.timezone ?? 'Africa/Nairobi'}</Badge>
+              {meta && <Badge variant="outline">{meta.airline.iataCode}</Badge>}
+            </div>
+          </div>
+          {airports && airports.length > 0 && (
+            <div className="mx-auto mt-6 max-w-3xl rounded-xl border bg-background/90 p-4 shadow-sm">
+              <SearchForm airports={airports} />
+            </div>
+          )}
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Service status */}
         <Card>
           <CardHeader>
@@ -78,35 +93,18 @@ export default async function HomePage() {
           </CardContent>
         </Card>
 
-        {/* Search teaser → live search */}
+        {/* Manage booking (flight search now lives in the hero) */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">{t('home.search.title')}</CardTitle>
-            <CardDescription>{t('home.search.coming')}</CardDescription>
+            <CardTitle className="text-base">{t('home.manage.title')}</CardTitle>
+            <CardDescription>{t('home.manage.body')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/flights">
+            <Link href="/pnr">
               <Button variant="outline" className="w-full">
-                {t('home.search.cta')}
+                {t('nav.manage')}
               </Button>
             </Link>
-          </CardContent>
-        </Card>
-
-        {/* Developers */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t('home.docs.title')}</CardTitle>
-            <CardDescription>{t('home.docs.body')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <a
-              href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/docs`}
-              className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-              rel="noreferrer"
-            >
-              {t('nav.docs')} →
-            </a>
           </CardContent>
         </Card>
       </div>
@@ -124,21 +122,24 @@ export default async function HomePage() {
         {airports && airports.length > 0 ? (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {airports.map((airport) => (
-              <li key={airport.code} className="rounded-lg border p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-base font-semibold">{airport.code}</span>
-                  <Badge
-                    variant={airport.domestic ? 'secondary' : 'outline'}
-                    className="text-[10px]"
-                  >
-                    {airport.domestic
-                      ? t('home.network.domestic')
-                      : t('home.network.international')}
-                  </Badge>
+              <li key={airport.code} className="overflow-hidden rounded-lg border bg-background">
+                <DestinationArt code={airport.code} className="h-16 w-full" />
+                <div className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-base font-semibold">{airport.code}</span>
+                    <Badge
+                      variant={airport.domestic ? 'secondary' : 'outline'}
+                      className="text-[10px]"
+                    >
+                      {airport.domestic
+                        ? t('home.network.domestic')
+                        : t('home.network.international')}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 truncate text-sm text-muted-foreground" title={airport.name}>
+                    {airport.city}
+                  </p>
                 </div>
-                <p className="mt-1 truncate text-sm text-muted-foreground" title={airport.name}>
-                  {airport.city}
-                </p>
               </li>
             ))}
           </ul>

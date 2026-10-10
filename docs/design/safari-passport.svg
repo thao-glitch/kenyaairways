@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 440" width="640" height="440" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <rect width="640" height="440" rx="16" fill="#F4EFE2"/>
+  <text x="28" y="36" font-size="11" fill="#8A7B5C" letter-spacing="2">CONCEPT · COLLECTIBLE ROUTE STAMPS</text>
+
+  <!-- passport spread -->
+  <rect x="20" y="48" width="600" height="372" rx="12" fill="#FBF7EC" stroke="#E4DAC4"/>
+  <line x1="320" y1="48" x2="320" y2="420" stroke="#E4DAC4" stroke-width="2"/>
+  <line x1="324" y1="48" x2="324" y2="420" stroke="#EFE7D4"/>
+
+  <!-- left page header -->
+  <text x="48" y="84" font-size="15" font-weight="800" fill="#3E3A2E" letter-spacing="4">SAFARI PASSPORT</text>
+  <text x="48" y="102" font-size="10" fill="#8A7B5C" letter-spacing="1.5">FLIGHT13 · ROUTE STAMP COLLECTION</text>
+  <path d="M48 112 H292" stroke="#D8CDB2" stroke-dasharray="3 5"/>
+
+  <!-- stamp: NBO circle (savannah) -->
+  <g transform="translate(110 176) rotate(-8)">
+    <circle r="54" fill="none" stroke="#0A4E7A" stroke-width="3"/>
+    <circle r="46" fill="none" stroke="#0A4E7A" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <path d="M0 -30 L-13 4 L-4 0 Z" fill="#0A4E7A"/>
+    <path d="M0 -30 L6 8 L-4 0 Z" fill="#0A4E7A" fill-opacity="0.7"/>
+    <text y="26" font-size="13" font-weight="800" fill="#0A4E7A" text-anchor="middle">NBO</text>
+    <text y="40" font-size="7.5" fill="#0A4E7A" text-anchor="middle" letter-spacing="1">JOMO KENYATTA</text>
+  </g>
+
+  <!-- stamp: MBA oval (coast, dhow) -->
+  <g transform="translate(240 176) rotate(6)">
+    <ellipse rx="54" ry="40" fill="none" stroke="#B3402A" stroke-width="3"/>
+    <ellipse rx="46" ry="33" fill="none" stroke="#B3402A" stroke-width="1.25" stroke-dasharray="4 4"/>
+    <path d="M-14 8 L14 8 Q8 16 -8 16 Z" fill="#B3402A"/>
+    <path d="M-2 6 L-2 -18 L14 4 Z" fill="#B3402A"/>
+    <text y="26" font-size="13" font-weight="800" fill="#B3402A" text-anchor="middle">MBA</text>
+    <text y="37" font-size="7.5" fill="#B3402A" text-anchor="middle" letter-spacing="1">MOMBASA COAST</text>
+  </g>
+
+  <!-- stamp: EDL hexagon (highlands) -->
+  <g transform="translate(110 316) rotate(5)">
+    <path d="M0 -52 L45 -26 L45 26 L0 52 L-45 26 L-45 -26 Z" fill="none" stroke="#2E7D4F" stroke-width="3"/>
+    <path d="M-22 6 L-6 -16 L4 -4 L14 -18 L26 6 Z" fill="#2E7D4F"/>
+    <circle cx="24" cy="-24" r="6" fill="#2E7D4F"/>
+    <text y="30" font-size="13" font-weight="800" fill="#2E7D4F" text-anchor="middle">EDL</text>
+    <text y="42" font-size="7.5" fill="#2E7D4F" text-anchor="middle" letter-spacing="1">RIFT ESCARPMENT</text>
+  </g>
+
+  <!-- stamp: streak ribbon -->
+  <g transform="translate(236 312) rotate(-4)">
+    <rect x="-56" y="-30" width="112" height="60" rx="8" fill="none" stroke="#8A6B23" stroke-width="3"/>
+    <rect x="-48" y="-22" width="96" height="44" rx="5" fill="none" stroke="#8A6B23" stroke-width="1.25" stroke-dasharray="4 4"/>
+    <text y="-2" font-size="11" font-weight="800" fill="#8A6B23" text-anchor="middle" letter-spacing="1">SAFARI STREAK</text>
+    <text y="14" font-size="9" fill="#8A6B23" text-anchor="middle">5 routes · 30 days</text>
+  </g>
+
+  <!-- right page header -->
+  <text x="348" y="84" font-size="15" font-weight="800" fill="#3E3A2E" letter-spacing="4">ARRIVALS</text>
+  <path d="M348 96 H592" stroke="#D8CDB2" stroke-dasharray="3 5"/>
+
+  <!-- stamp: DXB starburst -->
+  <g transform="translate(420 170) rotate(8)">
+    <path d="M0 -54 L11 -18 L48 -30 L28 0 L48 30 L11 18 L0 54 L-11 18 L-48 30 L-28 0 L-48 -30 L-11 -18 Z"
+          fill="none" stroke="#6D28D9" stroke-width="2.5"/>
+    <text y="-2" font-size="14" font-weight="800" fill="#6D28D9" text-anchor="middle">DXB</text>
+    <text y="14" font-size="7.5" fill="#6D28D9" text-anchor="middle" letter-spacing="1">INTERNATIONAL</text>
+  </g>
+
+  <!-- stamp: EBB circle -->
+  <g transform="translate(540 176) rotate(-6)">
+    <circle r="50" fill="none" stroke="#0A7CC1" stroke-width="3"/>
+    <circle r="42" fill="none" stroke="#0A7CC1" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <text y="-4" font-size="14" font-weight="800" fill="#0A7CC1" text-anchor="middle">EBB</text>
+    <text y="12" font-size="7.5" fill="#0A7CC1" text-anchor="middle" letter-spacing="1">ENTEBBE</text>
+    <text y="30" font-size="8" fill="#0A7CC1" text-anchor="middle">08 OCT 26</text>
+  </g>
+
+  <!-- stamp: LHR partial -->
+  <g transform="translate(448 316) rotate(7)">
+    <circle r="50" fill="none" stroke="#334155" stroke-width="3"/>
+    <circle r="42" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <text y="-4" font-size="14" font-weight="800" fill="#334155" text-anchor="middle">LHR</text>
+    <text y="12" font-size="7.5" fill="#334155" text-anchor="middle" letter-spacing="1">HEATHROW</text>
+    <text y="30" font-size="8" fill="#334155" text-anchor="middle">21 NOV 26</text>
+  </g>
+
+  <!-- empty slot -->
+  <g transform="translate(570 316)">
+    <circle r="46" fill="none" stroke="#C9BFA6" stroke-width="2.5" stroke-dasharray="6 6"/>
+    <text y="4" font-size="24" fill="#C9BFA6" text-anchor="middle">?</text>
+    <text y="30" font-size="8" fill="#C9BFA6" text-anchor="middle" letter-spacing="1">NEXT ROUTE</text>
+  </g>
+
+  <text x="320" y="436" font-size="10" fill="#8A7B5C" text-anchor="middle">Stamp art is minted server-side per completed segment — no NFTs, no chain, just designed memories.</text>
+</svg>

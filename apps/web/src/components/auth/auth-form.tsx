@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
+import { HeroSky } from '@/components/art/hero-sky';
 import { useT } from '@/components/i18n-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,6 +70,10 @@ export function AuthForm({ mode, next }: { mode: 'login' | 'register'; next?: st
 
   return (
     <form onSubmit={(e) => void onSubmit(e)} className="mx-auto flex max-w-md flex-col gap-4">
+      {/* Brand art banner — the same dawn-plains scene as the home hero */}
+      <div className="overflow-hidden rounded-xl border">
+        <HeroSky className="h-28 w-full" />
+      </div>
       <div>
         <h1 className="text-xl font-semibold">
           {mode === 'login' ? t('auth.login.title') : t('auth.register.title')}

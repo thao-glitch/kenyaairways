@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" width="640" height="420" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="cp-band" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stopColor="#0A7CC1"/>
+      <stop offset="1" stopColor="#0A4E7A"/>
+    </linearGradient>
+    <linearGradient id="cp-ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stopColor="#34C759"/>
+      <stop offset="1" stopColor="#1F8A3F"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="640" height="420" rx="16" fill="#F6FAFC"/>
+  <text x="28" y="40" font-size="11" fill="#64748B" letter-spacing="2">CONCEPT · GROUP CONTRIBUTORY PAYMENT</text>
+
+  <!-- header band -->
+  <rect x="20" y="52" width="600" height="66" rx="12" fill="url(#cp-band)"/>
+  <g transform="translate(44 72)">
+    <path d="M24 0 L2 14 L8 9 Z" fill="#FFFFFF"/>
+    <path d="M24 0 L11 26 L8 9 Z" fill="#DFF3FC"/>
+  </g>
+  <text x="84" y="84" font-size="20" font-weight="700" fill="#FFFFFF">Chama Pay</text>
+  <text x="84" y="104" font-size="11" fill="#BFE2F6">M-Pesa STK · everyone contributes, one booking confirms</text>
+  <rect x="486" y="70" width="112" height="30" rx="15" fill="#FFFFFF" fill-opacity="0.14"/>
+  <text x="542" y="90" font-size="12" font-weight="600" fill="#FFFFFF" text-anchor="middle">KF 1304 · NBO→MBA</text>
+
+  <!-- funding ring -->
+  <g transform="rotate(-90 180 250)">
+    <circle cx="180" cy="250" r="78" fill="none" stroke="#E2E8F0" stroke-width="20"/>
+    <circle cx="180" cy="250" r="78" fill="none" stroke="url(#cp-ring)" stroke-width="20"
+            stroke-linecap="round" stroke-dasharray="333 490"/>
+  </g>
+  <text x="180" y="244" font-size="34" font-weight="800" fill="#0F172A" text-anchor="middle">68%</text>
+  <text x="180" y="270" font-size="12" fill="#64748B" text-anchor="middle">KES 8,400 of 12,500</text>
+  <text x="180" y="288" font-size="11" fill="#94A3B8" text-anchor="middle">4 chama members</text>
+
+  <!-- contributor chips around the ring -->
+  <g font-size="12" font-weight="700" text-anchor="middle">
+    <g><circle cx="86" cy="166" r="21" fill="#FFFFFF" stroke="#2E9E4F" stroke-width="2.5"/><text x="86" y="171" fill="#2E9E4F">AK</text></g>
+    <g><circle cx="276" cy="166" r="21" fill="#FFFFFF" stroke="#2E9E4F" stroke-width="2.5"/><text x="276" y="171" fill="#2E9E4F">MO</text></g>
+    <g><circle cx="86" cy="336" r="21" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2.5"/><text x="86" y="341" fill="#F59E0B">JN</text></g>
+    <g><circle cx="276" cy="336" r="21" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2.5" stroke-dasharray="4 4"/><text x="276" y="341" fill="#94A3B8">WS</text></g>
+  </g>
+
+  <!-- contributor ticker -->
+  <rect x="360" y="140" width="260" height="220" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <text x="380" y="166" font-size="11" fill="#64748B" letter-spacing="1.5">CONTRIBUTIONS</text>
+
+  <g font-size="13">
+    <g transform="translate(380 180)">
+      <circle cx="12" cy="12" r="12" fill="#DCFCE7"/><text x="12" y="16" font-size="10" font-weight="700" fill="#15803D" text-anchor="middle">AK</text>
+      <text x="34" y="16" fill="#0F172A">Amina K.</text>
+      <text x="176" y="16" font-weight="700" fill="#0F172A" text-anchor="end">4,000</text>
+      <rect x="196" y="4" width="48" height="18" rx="9" fill="#DCFCE7"/>
+      <text x="220" y="17" font-size="9" font-weight="700" fill="#15803D" text-anchor="middle">PAID</text>
+    </g>
+    <g transform="translate(380 222)">
+      <circle cx="12" cy="12" r="12" fill="#DCFCE7"/><text x="12" y="16" font-size="10" font-weight="700" fill="#15803D" text-anchor="middle">MO</text>
+      <text x="34" y="16" fill="#0F172A">Moses O.</text>
+      <text x="176" y="16" font-weight="700" fill="#0F172A" text-anchor="end">3,400</text>
+      <rect x="196" y="4" width="48" height="18" rx="9" fill="#DCFCE7"/>
+      <text x="220" y="17" font-size="9" font-weight="700" fill="#15803D" text-anchor="middle">PAID</text>
+    </g>
+    <g transform="translate(380 264)">
+      <circle cx="12" cy="12" r="12" fill="#FEF3C7"/><text x="12" y="16" font-size="10" font-weight="700" fill="#B45309" text-anchor="middle">JN</text>
+      <text x="34" y="16" fill="#0F172A">Jane N.</text>
+      <text x="176" y="16" font-weight="700" fill="#0F172A" text-anchor="end">1,000</text>
+      <rect x="196" y="4" width="48" height="18" rx="9" fill="#FEF3C7"/>
+      <text x="220" y="17" font-size="9" font-weight="700" fill="#B45309" text-anchor="middle">STK…</text>
+    </g>
+    <g transform="translate(380 306)">
+      <circle cx="12" cy="12" r="12" fill="#F1F5F9" stroke="#CBD5E1"/><text x="12" y="16" font-size="10" font-weight="700" fill="#64748B" text-anchor="middle">WS</text>
+      <text x="34" y="16" fill="#64748B">Wilson S.</text>
+      <text x="176" y="16" font-weight="700" fill="#94A3B8" text-anchor="end">4,100</text>
+      <rect x="196" y="4" width="48" height="18" rx="9" fill="#F1F5F9"/>
+      <text x="220" y="17" font-size="9" font-weight="700" fill="#64748B" text-anchor="middle">INVITE</text>
+    </g>
+  </g>
+
+  <!-- expiry chip -->
+  <rect x="360" y="336" width="260" height="34" rx="10" fill="#FFF7ED" stroke="#FDBA74"/>
+  <circle cx="382" cy="353" r="6" fill="none" stroke="#F59E0B" stroke-width="2"/>
+  <path d="M382 350 v3 l2 2" stroke="#F59E0B" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <text x="398" y="357" font-size="12" font-weight="600" fill="#9A3412">Seat hold expires in 14:32</text>
+
+  <!-- auto-confirm note -->
+  <text x="20" y="404" font-size="11" fill="#64748B">Target hit → booking auto-confirms and tickets issue · expiry → contributions refund to their original payers</text>
+</svg>

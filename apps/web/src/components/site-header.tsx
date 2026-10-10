@@ -1,11 +1,12 @@
 import Link from 'next/link';
+import { BrandMark } from '@/components/art/brand-mark';
 import { getTranslator } from '@/lib/i18n';
 import { setLocaleAction } from '@/app/actions';
 import { SessionNav } from '@/components/session-nav';
 
 /**
  * Mobile-first header: brand, flight search + manage-booking nav, live
- * session island (sign-in/out), locale switcher, API docs link.
+ * session island (sign-in/out), locale switcher.
  */
 export async function SiteHeader() {
   const { t, locale } = await getTranslator();
@@ -14,12 +15,7 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-3 px-4">
         <Link href="/" className="flex items-center gap-2 font-semibold" aria-label={t('app.name')}>
-          <span
-            aria-hidden="true"
-            className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground"
-          >
-            13
-          </span>
+          <BrandMark className="h-8 w-8" />
           <span className="text-base">{t('app.name')}</span>
         </Link>
 
@@ -75,13 +71,6 @@ export async function SiteHeader() {
               {t('nav.swahili')}
             </button>
           </form>
-          <a
-            href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/docs`}
-            className="hidden rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground sm:block"
-            rel="noreferrer"
-          >
-            {t('nav.docs')}
-          </a>
         </div>
       </div>
     </header>

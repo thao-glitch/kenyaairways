@@ -2,6 +2,8 @@ import type { FlightOptionDto } from '@flight13/shared';
 import { formatMoney } from '@flight13/shared';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { DestinationArt } from '@/components/art/destination-art';
+import { RouteArc } from '@/components/art/route-arc';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,14 +24,20 @@ export default async function FlightDetailPage({ params }: { params: Params }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-xl font-semibold sm:text-2xl">{flight.flightNumber}</h1>
-          <Badge variant="outline">{t(`flight.status.${flight.status}`)}</Badge>
+      {/* Route banner — destination poster art behind the flight identity */}
+      <div className="overflow-hidden rounded-xl border">
+        <div className="relative">
+          <DestinationArt code={flight.destination.code} className="h-36 w-full" />
+          <div className="absolute inset-0 flex flex-col justify-end gap-1 bg-gradient-to-t from-background/95 via-background/45 to-transparent p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl font-semibold sm:text-2xl">{flight.flightNumber}</h1>
+              <Badge variant="outline">{t(`flight.status.${flight.status}`)}</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {flight.origin.name} → {flight.destination.name}
+            </p>
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          {flight.origin.name} → {flight.destination.name}
-        </p>
       </div>
 
       <Card>
@@ -42,8 +50,11 @@ export default async function FlightDetailPage({ params }: { params: Params }) {
               {flight.origin.code} · {flight.origin.timezone}
             </p>
           </div>
-          <div className="text-sm text-muted-foreground">
-            {formatDurationShort(flight.durationMinutes)}
+          <div className="flex flex-col items-center gap-1">
+            <RouteArc className="h-8 w-36 text-primary/70" />
+            <div className="text-sm text-muted-foreground">
+              {formatDurationShort(flight.durationMinutes)}
+            </div>
           </div>
           <div className="sm:text-right">
             <p className="text-2xl font-semibold">

@@ -60,8 +60,11 @@ apps/web
 └── src
     ├── app/                     App Router pages: flights, book, bookings/[id], pnr,
     │                            login/register, boarding-passes/[id] (server shells),
-    │                            ops/finance/agent/admin (role-gated staff consoles)
+    │                            ops/finance/agent/admin (role-gated staff consoles),
+    │                            icon.svg (brand dart mark)
     ├── components/              site chrome, booking/payment/seat/check-in islands,
+    │                            art/ (original hand-drawn SVG identity — dawn-plains
+    │                            hero, destination posters, route arcs, empty states),
     │                            i18n-provider (client), shadcn-style ui primitives
     ├── lib/                     api-client (silent refresh), auth, format (KES/tz),
     │                            realtime (socket.io singleton), i18n (server-only)
