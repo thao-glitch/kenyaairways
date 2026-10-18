@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Flight13",
+    "slug": "flight13",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "flight13",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ke.co.flight13"
+    },
+    "android": {
+      "package": "ke.co.flight13",
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": ["expo-secure-store", "expo-sqlite", "expo-constants", "expo-device"]
+  }
+}
