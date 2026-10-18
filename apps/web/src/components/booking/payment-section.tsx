@@ -21,9 +21,9 @@ const ACTIVE_STATUSES: readonly string[] = ['REQUIRES_ACTION', 'PENDING'];
  * Pay flow: clicking Pay opens the M-Pesa payment-number panel straight away
  * (number + PNR + amount on screen — nothing is SMS'd), the passenger pays by
  * hand and pastes the confirmation message here (`POST /payments/:id/
- * mpesa-manual`); staff verify it in the verifier console and the booking
- * confirms. STK push stays available as an opt-in secondary path. The paybill
- * number comes from the admin payment plan via the public site settings.
+ * mpesa-manual`) — it is verified on the spot and the booking confirms. STK
+ * push stays available as an opt-in secondary path. The payment number comes
+ * from the admin payment plan via the public site settings.
  * Mock mode adds explicit result buttons so demos don't wait on a Daraja
  * callback that will never come.
  */
@@ -45,7 +45,6 @@ export function PaymentSection({
   // Manual paybill details (paybill number lives in the payment plan).
   const [verify, setVerify] = useState<MpesaManualVerificationDto | null>(null);
   const [message, setMessage] = useState('');
-  const [verifySent, setVerifySent] = useState(false);
 
   const refreshPayment = useCallback(async () => {
     try {
@@ -124,7 +123,7 @@ export function PaymentSection({
     });
   }
 
-  /** Manual paybill: open a payment that settles when staff verify the SMS. */
+  /** Manual payment: open one that settles when the passenger pastes the SMS. */
   function onStartManual(): void {
     void run(async () => {
       const created = await apiCall<PaymentDto>('/api/v1/payments', {
@@ -135,17 +134,21 @@ export function PaymentSection({
     });
   }
 
-  /** Paste the confirmation SMS → staff verify it in the verifier console. */
+  /** Paste the confirmation SMS → verified on the spot, booking confirms. */
   function onSubmitMessage(): void {
     if (!payment || !message.trim()) return;
     void run(async () => {
-      const record = await apiCall<MpesaManualVerificationDto>(
-        `/api/v1/payments/${payment.id}/mpesa-manual`,
-        { method: 'POST', body: { message: message.trim() } },
-      );
-      setVerify(record);
+      const res = await apiCall<{
+        record: MpesaManualVerificationDto;
+        payment: PaymentDto;
+      }>(`/api/v1/payments/${payment.id}/mpesa-manual`, {
+        method: 'POST',
+        body: { message: message.trim() },
+      });
+      setVerify(res.record);
+      setPayment(res.payment);
       setMessage('');
-      setVerifySent(true);
+      onChanged(); // booking confirmed — parent re-fetches
     });
   }
 
@@ -213,6 +216,11 @@ export function PaymentSection({
             </div>
           </dl>
 
+          {verify && verify.status === 'CONFIRMED' && (
+            <div className="rounded-md border border-success/40 bg-success/10 px-3 py-2 text-xs text-success">
+              {t('pay.manual.confirmed', { receipt: verify.receiptNumber })}
+            </div>
+          )}
           {verify && verify.status === 'PENDING' && (
             <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs">
               {t('pay.manual.pending', { receipt: verify.receiptNumber })}
@@ -224,7 +232,7 @@ export function PaymentSection({
             </div>
           )}
 
-          {(!verify || verify.status === 'REJECTED' || verifySent) && (
+          {(!verify || verify.status === 'REJECTED') && (
             <label className="flex flex-col gap-1 text-xs font-medium">
               {t('pay.manual.pasteLabel')}
               <textarea
@@ -237,7 +245,7 @@ export function PaymentSection({
             </label>
           )}
           <div className="flex flex-wrap gap-2">
-            {(!verify || verify.status === 'REJECTED' || verifySent) && (
+            {(!verify || verify.status === 'REJECTED') && (
               <Button size="sm" disabled={busy || !message.trim()} onClick={onSubmitMessage}>
                 {busy ? t('pay.working') : t('pay.manual.submit')}
               </Button>

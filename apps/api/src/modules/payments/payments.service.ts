@@ -273,10 +273,16 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       );
     }
     // Manual paybill flow: the passenger pays the paybill themselves and
-    // pastes the confirmation SMS — nothing is pushed to the phone, and only
-    // M-Pesa methods (which settle by receipt) can be paid this way.
+    // pastes the confirmation SMS — nothing is pushed to the phone, and no
+    // provider is involved at all, so any M-Pesa method (which settle by
+    // receipt) can be paid this way. MOCK counts too: in mock mode it is the
+    // M-Pesa simulation, and the demo site's primary Pay CTA is the manual
+    // panel — blocking it there would break the whole pay-by-hand journey.
     const manual = dto.manual === true;
-    if (manual && !(active.type === 'MPESA_STK' || active.type === 'MPESA_C2B')) {
+    if (
+      manual &&
+      !(active.type === 'MPESA_STK' || active.type === 'MPESA_C2B' || active.type === 'MOCK')
+    ) {
       throw new AppError(
         'VALIDATION_ERROR',
         `Manual paybill payment is only available for M-Pesa (current method: ${active.type})`,
@@ -338,8 +344,9 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (manual) {
-      // No provider attempt: the passenger settles by paying the paybill and
-      // pasting the SMS. The row stays REQUIRES_ACTION until staff verify.
+      // No provider attempt: the passenger pays the number by hand and pastes
+      // the confirmation SMS, which settles the row through the same funnel.
+      // It stays REQUIRES_ACTION until that message arrives.
       await this.prisma.payment.update({
         where: { id: payment.id },
         data: {

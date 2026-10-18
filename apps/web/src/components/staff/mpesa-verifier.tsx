@@ -20,10 +20,10 @@ const statusVariant = (status: string): 'success' | 'warning' | 'destructive' =>
 };
 
 /**
- * Manual M-Pesa paybill verifier (FINANCE/ADMIN). Paste the confirmation SMS
- * the passenger received, dry-run it, then confirm it against the payment the
- * SMS account reference (or an explicit PNR / payment id) points at. Also
- * lists passenger-submitted messages waiting for a decision.
+ * Manual M-Pesa payment records (FINANCE/ADMIN). Passengers settle on their
+ * own — pasting the confirmation SMS confirms the payment instantly — so this
+ * console is an audit trail of every verified message, plus a manual tool for
+ * edge cases (paste an SMS yourself, dry-run it first, or correct a record).
  */
 export function MpesaVerifier() {
   const { t, locale } = useT();
@@ -39,9 +39,7 @@ export function MpesaVerifier() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await apiCall<Paginated<MpesaManualVerificationDto>>(
-        `${RECORDS}?page=1&status=PENDING`,
-      );
+      const result = await apiCall<Paginated<MpesaManualVerificationDto>>(`${RECORDS}?page=1`);
       setRecords(result);
       setError(null);
     } catch {

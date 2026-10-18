@@ -97,15 +97,15 @@ export class PaymentsController {
   @HttpCode(201)
   @ApiOperation({
     summary:
-      'Submit a pasted M-Pesa paybill confirmation (manual payment — staff verify it in the console)',
+      'Paste the M-Pesa confirmation message — the payment is verified and settled immediately',
   })
-  @ApiResponse({ status: 201, description: 'Verification record created (PENDING staff review)' })
+  @ApiResponse({ status: 201, description: 'Verification record created and payment marked paid' })
   async submitManual(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
     @Body() dto: PasteMessageDto,
     @Req() req: AuthedRequest,
-  ): Promise<MpesaManualVerificationDto> {
+  ): Promise<{ record: MpesaManualVerificationDto; payment: PaymentDto }> {
     return this.verifier.submit(this.actor(user, req), id, dto.message);
   }
 

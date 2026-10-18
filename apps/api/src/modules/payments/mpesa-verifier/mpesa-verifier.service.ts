@@ -53,10 +53,12 @@ function toDto(row: VerificationRow): MpesaManualVerificationDto {
 }
 
 /**
- * Manual M-Pesa paybill verification. Passengers pay the paybill configured
- * in the payment plan straight from their phones — no Daraja STK, no callback
- * — and staff confirm the money by pasting the confirmation SMS here. The
- * receipt number is the idempotency key: it can only ever confirm one payment.
+ * Manual M-Pesa paybill verification. Passengers pay the payment number
+ * configured in the payment plan straight from their phones — no Daraja STK,
+ * no callback — and paste the confirmation message while booking; the payment
+ * settles on the spot through the same idempotent confirm funnel. The receipt
+ * number is the uniqueness key: one SMS can never confirm two payments. Staff
+ * keep the verifier console as an audit view (and for correcting edge cases).
  */
 @Injectable()
 export class MpesaVerifierService {
@@ -245,14 +247,20 @@ export class MpesaVerifierService {
     return toDto(updated);
   }
 
-  // ── passenger: paste the message, wait for staff ─────────────────────────
+  // ── passenger: paste the message, payment settles on the spot ────────────
 
-  /** Passenger submits their confirmation SMS against their own payment. */
+  /**
+   * Passenger pastes their own confirmation SMS against their own payment:
+   * the message is parsed, checked against the amount owed, and the payment
+   * is confirmed immediately — same idempotent funnel as every other confirm
+   * path, no staff step in between. The receipt number stays the uniqueness
+   * key, so one SMS can never confirm two payments.
+   */
   async submit(
     actor: BookingActor,
     paymentId: string,
     message: string,
-  ): Promise<MpesaManualVerificationDto> {
+  ): Promise<{ record: MpesaManualVerificationDto; payment: PaymentDto }> {
     const parsed = parseMpesaSms(message);
     if (!parsed.valid) {
       throw new AppError(
@@ -264,8 +272,9 @@ export class MpesaVerifierService {
     if (payment.status === 'PAID') throw new AppError('CONFLICT', 'Payment already completed');
     assertAmount(payment, parsed.amountMinor);
 
+    let record: VerificationRow;
     try {
-      const record = await this.prisma.mpesaManualVerification.create({
+      record = await this.prisma.mpesaManualVerification.create({
         data: {
           receiptNumber: parsed.receiptNumber!,
           amountMinor: parsed.amountMinor!,
@@ -275,20 +284,24 @@ export class MpesaVerifierService {
           accountReference: parsed.accountReference,
           transactionAt: parsed.transactionAt ? new Date(parsed.transactionAt) : null,
           messageRaw: message.trim().slice(0, MAX_MESSAGE_CHARS),
-          status: 'PENDING',
+          status: 'CONFIRMED',
           paymentId: payment.id,
           bookingId: payment.bookingId,
           submittedById: actor.userId,
+          resolvedById: actor.userId,
+          resolvedAt: new Date(),
         },
         include: { booking: { select: { pnr: true } } },
       });
-      return toDto(record);
     } catch (err) {
       if (isReceiptTaken(err)) {
         throw new AppError('CONFLICT', 'This receipt has already been submitted');
       }
       throw err;
     }
+
+    const paid = await this.payments.applyManualPaid(actor, payment.id, parsed.receiptNumber!);
+    return { record: toDto(record), payment: paid };
   }
 
   /** The passenger's latest manual verification for one payment, if any. */

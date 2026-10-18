@@ -134,9 +134,19 @@ describe('payment plans (e2e): admin-configurable payment methods', () => {
         },
       });
     }
-    // Leave the shared database exactly as we found it (env defaults).
+    // Leave the shared database exactly as we found it. This spec shares the
+    // dev DB with the running site, so after wiping back to env defaults we
+    // restore the seeded paybill row (mirrors seed.ts's seedPaymentPlan) —
+    // otherwise every test run would erase the passenger pay panel's number.
     await prisma.paymentMethodConfig.deleteMany();
     await prisma.paymentPlanSettings.deleteMany();
+    await prisma.paymentMethodConfig.create({
+      data: {
+        provider: 'MPESA_STK',
+        enabled: true,
+        settings: { shortcode: '0182774255' },
+      },
+    });
     await prisma.user.deleteMany({ where: { email: { startsWith: 'plan+' } } });
     await app?.close();
   });

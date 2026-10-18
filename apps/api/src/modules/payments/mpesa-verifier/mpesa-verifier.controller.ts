@@ -77,10 +77,12 @@ export class ListVerificationsQueryDto {
 }
 
 /**
- * Manual M-Pesa paybill verification. Passengers pay the paybill configured
- * in the payment plan from their own phones and staff confirm the money by
- * pasting the confirmation SMS — no Daraja STK, no callbacks. The receipt
- * number is unique, so one SMS can never confirm two payments.
+ * Manual M-Pesa payment records (ADMIN/FINANCE back office). Passengers now
+ * settle on their own — pasting the confirmation SMS in the booking flow
+ * confirms the payment instantly — so this controller is the audit trail of
+ * every verified message plus a manual tool for edge cases (staff can paste
+ * an SMS, dry-run it, confirm or correct a record). The receipt number is
+ * unique, so one SMS can never confirm two payments.
  */
 @ApiBearerAuth()
 @ApiTags('admin')

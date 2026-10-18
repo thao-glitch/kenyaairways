@@ -867,4 +867,47 @@ describe('payments (e2e): STK, callbacks, C2B, refunds, reconciliation', () => {
     expect(Array.isArray(list.body)).toBe(true);
     expect(list.body.length).toBeGreaterThanOrEqual(1);
   });
+
+  it('settles the manual paybill flow on paste: record CONFIRMED, payment PAID, booking CONFIRMED', async () => {
+    const booking = await book(flightD);
+    const payment = await request(server())
+      .post('/api/v1/payments')
+      .set('Cookie', ownerCookie)
+      .send({ bookingId: booking.id, manual: true })
+      .expect(201);
+    expect(payment.body.manual).toBe(true);
+    expect(payment.body.status).toBe('REQUIRES_ACTION');
+
+    // Passenger pays the number by hand, then pastes the confirmation SMS —
+    // no staff step: everything lands in one call. Receipts are 9–10 chars
+    // mixing letters and digits (what the parser — and Safaricom — expects).
+    const receipt = `MAN${stamp.slice(-5).toUpperCase()}${receiptSeq++ % 10}`;
+    const amountMajor = booking.totalMinor / 100;
+    const sms =
+      `${receipt} confirmed. Ksh${amountMajor.toFixed(2)} sent to ACCOUNT 0182774255 ` +
+      `for account ${booking.pnr} on 18/10/26 at 3:45 PM. New M-PESA balance is Ksh9,000.00.`;
+
+    const pasted = await request(server())
+      .post(`/api/v1/payments/${payment.body.id}/mpesa-manual`)
+      .set('Cookie', ownerCookie)
+      .send({ message: sms })
+      .expect(201);
+    expect(pasted.body.record.status).toBe('CONFIRMED');
+    expect(pasted.body.record.receiptNumber).toBe(receipt);
+    expect(pasted.body.payment.status).toBe('PAID');
+
+    const fresh = await request(server())
+      .get(`/api/v1/bookings/${booking.id}`)
+      .set('Cookie', ownerCookie)
+      .expect(200);
+    expect(fresh.body.status).toBe('CONFIRMED');
+
+    // The same receipt can never confirm a second payment.
+    const replay = await request(server())
+      .post(`/api/v1/payments/${payment.body.id}/mpesa-manual`)
+      .set('Cookie', ownerCookie)
+      .send({ message: sms })
+      .expect(409);
+    expect(replay.body.error.code).toBe('CONFLICT');
+  });
 });

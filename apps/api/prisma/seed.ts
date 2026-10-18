@@ -1268,8 +1268,8 @@ async function seedUsers(): Promise<void> {
 /**
  * Paybill customers pay into BY HAND (no Daraja STK involved): the passenger
  * sends money to this number with their PNR as the account/reference, then
- * pastes the confirmation SMS into the verifier console where staff match it
- * to the booking. Shown in the payment plan and in the passenger pay panel.
+ * pastes the confirmation message while booking — it settles the payment on
+ * the spot. Shown in the payment plan and in the passenger pay panel.
  */
 const MPESA_PAYBILL = '0182774255';
 
