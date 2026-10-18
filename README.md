@@ -4,11 +4,12 @@ Real-time airline service platform for a Kenya-based licensed airline: search, b
 (M-Pesa Daraja + Stripe), issue PNRs, allocate seats, check in, and stream live status —
 built as a pnpm monorepo.
 
-| App / Package     | Stack                                                       |
-| ----------------- | ----------------------------------------------------------- |
-| `apps/web`        | Next.js (App Router) · TypeScript · Tailwind · shadcn/ui    |
-| `apps/api`        | NestJS · REST + OpenAPI · Socket.IO · Prisma · BullMQ       |
-| `packages/shared` | Money/phone/PNR/booking-state contracts shared by both apps |
+| App / Package     | Stack                                                                |
+| ----------------- | -------------------------------------------------------------------- |
+| `apps/web`        | Next.js (App Router) · TypeScript · Tailwind · shadcn/ui             |
+| `apps/mobile`     | Expo / React Native · NativeWind · Zustand · TanStack Query · SQLite |
+| `apps/api`        | NestJS · REST + OpenAPI · Socket.IO · Prisma · BullMQ                |
+| `packages/shared` | Money/phone/PNR/booking-state contracts shared by all apps           |
 
 **Default locale `en-KE`, secondary `sw-KE` · currency `KES` (integer minor units) ·
 timezone `Africa/Nairobi` (stored UTC, displayed airport-local) · phones E.164 / MSISDN `254…`**
@@ -17,18 +18,19 @@ timezone `Africa/Nairobi` (stored UTC, displayed airport-local) · phones E.164 
 
 ## Status — milestone tracker
 
-| #   | Milestone                                                           | Status  |
-| --- | ------------------------------------------------------------------- | ------- |
-| M1  | Foundation: monorepo, schema, seed, health, meta, airports, swagger | ✅ done |
-| M2  | Auth & access control (JWT, roles, MFA-ready OTP)                   | ✅ done |
-| M3  | Flight inventory, search, fare rules                                | ✅ done |
-| M4  | Booking lifecycle + seat holds                                      | ✅ done |
-| M5  | Payments: M-Pesa STK/C2B, Stripe, refunds, reconciliation           | ✅ done |
-| M6  | PNR, ticketing, real-time status (Socket.IO)                        | ✅ done |
-| M7  | Seat map + assignment, check-in, boarding pass                      | ✅ done |
-| M8  | Ops workspaces, KCAA manifest hooks, reporting                      | ✅ done |
-| M9  | Kenya DPA (consent/export/delete/retention), i18n, hardening        | ✅ done |
-| M10 | Load/concurrency tests, CI/CD, observability, docs                  | ✅ done |
+| #   | Milestone                                                                                                                       | Status  |
+| --- | ------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| M1  | Foundation: monorepo, schema, seed, health, meta, airports, swagger                                                             | ✅ done |
+| M2  | Auth & access control (JWT, roles, MFA-ready OTP)                                                                               | ✅ done |
+| M3  | Flight inventory, search, fare rules                                                                                            | ✅ done |
+| M4  | Booking lifecycle + seat holds                                                                                                  | ✅ done |
+| M5  | Payments: M-Pesa STK/C2B, Stripe, refunds, reconciliation                                                                       | ✅ done |
+| M6  | PNR, ticketing, real-time status (Socket.IO)                                                                                    | ✅ done |
+| M7  | Seat map + assignment, check-in, boarding pass                                                                                  | ✅ done |
+| M8  | Ops workspaces, KCAA manifest hooks, reporting                                                                                  | ✅ done |
+| M9  | Kenya DPA (consent/export/delete/retention), i18n, hardening                                                                    | ✅ done |
+| M10 | Load/concurrency tests, CI/CD, observability, docs                                                                              | ✅ done |
+| M11 | Mobile app (Expo): offline Ticket Vault, live map, seat preview, baggage, rebooking, manual M-Pesa verifier, site themes/photos | ✅ done |
 
 ---
 
