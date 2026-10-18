@@ -1,15 +1,21 @@
-import type { AirportDto, FlightSearchResultDto, FlightOptionDto } from '@flight13/shared';
+import type {
+  AirportDto,
+  FlightSearchResultDto,
+  FlightOptionDto,
+  SiteSettingsDto,
+} from '@flight13/shared';
 import { formatMoney } from '@flight13/shared';
 import Link from 'next/link';
-import { DestinationArt } from '@/components/art/destination-art';
-import { EmptyStateArt } from '@/components/art/empty-state-art';
 import { RouteArc } from '@/components/art/route-arc';
+import { SitePhoto } from '@/components/media/site-photo';
 import { SearchForm } from '@/components/search-form';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDurationShort } from '@/lib/format';
 import { apiGetOrNull } from '@/lib/api';
 import { getTranslator } from '@/lib/i18n';
+import { getSiteSettings } from '@/lib/site';
+import { destinationImage, siteImage } from '@/lib/site-images';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -30,7 +36,11 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
   const adults = first(sp.adults);
   const hasQuery = Boolean(origin && destination && date);
 
-  const [airports, results] = await Promise.all([
+  const [airports, results, site]: [
+    AirportDto[] | null,
+    FlightSearchResultDto | null,
+    SiteSettingsDto | null,
+  ] = await Promise.all([
     apiGetOrNull<AirportDto[]>('/api/v1/airports', { revalidate: 300 }),
     hasQuery
       ? apiGetOrNull<FlightSearchResultDto>(
@@ -40,6 +50,7 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
           { revalidate: 30 },
         )
       : Promise.resolve(null),
+    getSiteSettings(),
   ]);
 
   return (
@@ -64,8 +75,12 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
       )}
 
       {results && results.results.length === 0 && (
-        <div className="flex flex-col items-center gap-2 rounded-xl border px-4 py-8 text-center">
-          <EmptyStateArt variant="search" className="h-32 w-full max-w-xs" />
+        <div className="flex flex-col items-center gap-3 rounded-xl border px-4 py-8 text-center">
+          <SitePhoto
+            src={siteImage(site, 'notFound')}
+            alt=""
+            className="h-32 w-full max-w-xs rounded-lg"
+          />
           <p className="text-sm text-muted-foreground">{t('search.empty')}</p>
         </div>
       )}
@@ -80,8 +95,9 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
               >
                 <Card className="border-0 shadow-none">
                   <CardContent className="flex items-center gap-4 pt-6">
-                    <DestinationArt
-                      code={option.destination.code}
+                    <SitePhoto
+                      src={destinationImage(site, option.destination.code)}
+                      alt=""
                       className="hidden h-20 w-28 shrink-0 rounded-md border sm:block"
                     />
                     <div className="flex min-w-0 flex-1 flex-col gap-1">

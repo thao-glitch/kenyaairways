@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { AuthForm } from '@/components/auth/auth-form';
 import { getTranslator } from '@/lib/i18n';
+import { getSiteSettings } from '@/lib/site';
+import { siteImage } from '@/lib/site-images';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,5 +18,6 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RegisterPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
-  return <AuthForm mode="register" next={first(sp.next)} />;
+  const site = await getSiteSettings();
+  return <AuthForm mode="register" next={first(sp.next)} banner={siteImage(site, 'auth')} />;
 }

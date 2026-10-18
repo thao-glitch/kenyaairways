@@ -27,7 +27,13 @@ M-Pesa callback path), this document wins.
                                    limits)
 ```
 
-- **Monorepo**: pnpm workspaces — `apps/web`, `apps/api`, `packages/shared`.
+- **Monorepo**: pnpm workspaces — `apps/web`, `apps/mobile`, `apps/api`, `packages/shared`.
+- **`apps/mobile`** (Expo/React Native) is a first-party client of the same REST API: it
+  authenticates with bearer tokens (`X-Client: mobile` returns the token pair in the body —
+  native apps cannot persist httpOnly cookies), caches bookings and boarding passes in an
+  SQLite "Ticket Vault" for offline QR rendering, tracks flights live on a map
+  (`GET /flights/:id/position`), previews the cabin seat map, shows derived baggage
+  timelines (`GET /check-in/bookings/:id/baggage`) and supports one-tap smart rebooking.
 - **`packages/shared`** holds every cross-app contract: money math, phone/MSISDN, PNR
   checksum, the booking-state transition table, M-Pesa result codes, WS event catalog,
   and API DTO types. No app re-implements these.

@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiRequestError, apiCall } from '@/lib/api-client';
 import { PaymentPlans } from '@/components/staff/payment-plans';
+import { MpesaVerifier } from '@/components/staff/mpesa-verifier';
+import { SiteAppearance } from '@/components/staff/site-appearance';
 
 const statusVariant = (status: string): 'success' | 'warning' | 'destructive' => {
   if (status === 'ACTIVE') return 'success';
@@ -16,9 +18,9 @@ const statusVariant = (status: string): 'success' | 'warning' | 'destructive' =>
   return 'destructive';
 };
 
-type Tab = 'directory' | 'payments';
+type Tab = 'directory' | 'payments' | 'verify' | 'appearance';
 
-/** ADMIN console: user directory + the runtime "payment plans" tab. */
+/** ADMIN console: user directory, payment plans, the M-Pesa verifier and site appearance. */
 export function AdminConsole() {
   const { t } = useT();
   const [tab, setTab] = useState<Tab>('directory');
@@ -30,8 +32,8 @@ export function AdminConsole() {
         <p className="text-sm text-muted-foreground">{t('staff.admin.subtitle')}</p>
       </div>
 
-      <div className="flex gap-1 rounded-lg border p-1" role="tablist">
-        {(['directory', 'payments'] as Tab[]).map((key) => (
+      <div className="flex flex-wrap gap-1 rounded-lg border p-1" role="tablist">
+        {(['directory', 'payments', 'verify', 'appearance'] as Tab[]).map((key) => (
           <button
             key={key}
             type="button"
@@ -49,6 +51,8 @@ export function AdminConsole() {
 
       {tab === 'directory' && <UserDirectory />}
       {tab === 'payments' && <PaymentPlans />}
+      {tab === 'verify' && <MpesaVerifier />}
+      {tab === 'appearance' && <SiteAppearance />}
     </div>
   );
 }

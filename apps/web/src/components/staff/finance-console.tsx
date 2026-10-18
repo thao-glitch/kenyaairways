@@ -18,13 +18,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiRequestError, apiCall } from '@/lib/api-client';
+import { MpesaVerifier } from '@/components/staff/mpesa-verifier';
 
 const isoDay = (offset = 0): string =>
   new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
 
-type Tab = 'revenue' | 'load' | 'refund';
+type Tab = 'revenue' | 'load' | 'refund' | 'verify';
 
-/** FINANCE/ADMIN console: revenue & load reports plus OTP-gated refunds. */
+/** FINANCE/ADMIN console: revenue & load reports, OTP-gated refunds, M-Pesa verifier. */
 export function FinanceConsole() {
   const user = useStaffUser();
   const { t } = useT();
@@ -42,8 +43,8 @@ export function FinanceConsole() {
         <Badge variant="outline">{user.role}</Badge>
       </div>
 
-      <div className="flex gap-1 rounded-lg border p-1" role="tablist">
-        {(['revenue', 'load', 'refund'] as Tab[]).map((key) => (
+      <div className="flex flex-wrap gap-1 rounded-lg border p-1" role="tablist">
+        {(['revenue', 'load', 'refund', 'verify'] as Tab[]).map((key) => (
           <button
             key={key}
             type="button"
@@ -62,6 +63,7 @@ export function FinanceConsole() {
       {tab === 'revenue' && <RevenuePanel />}
       {tab === 'load' && <LoadPanel />}
       {tab === 'refund' && <RefundPanel user={user} />}
+      {tab === 'verify' && <MpesaVerifier />}
     </div>
   );
 }

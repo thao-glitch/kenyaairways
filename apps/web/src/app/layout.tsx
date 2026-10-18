@@ -4,6 +4,7 @@ import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { I18nProvider } from '@/components/i18n-provider';
 import { catalogs, getTranslator } from '@/lib/i18n';
+import { getSiteSettings } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getTranslator();
@@ -29,8 +30,9 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { t, locale } = await getTranslator();
+  const site = await getSiteSettings();
   return (
-    <html lang={locale}>
+    <html lang={locale} data-theme={site?.theme ?? 'sky'}>
       <body className="flex min-h-dvh flex-col">
         <a href="#main" className="skip-link">
           {t('a11y.skipToContent')}

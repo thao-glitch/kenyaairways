@@ -1,10 +1,11 @@
-import type { AirportDto, HealthDto, MetaDto } from '@flight13/shared';
+import type { AirportDto, HealthDto, MetaDto, SiteSettingsDto } from '@flight13/shared';
 import Link from 'next/link';
-import { DestinationArt } from '@/components/art/destination-art';
-import { HeroSky } from '@/components/art/hero-sky';
+import { SitePhoto } from '@/components/media/site-photo';
 import { SearchForm } from '@/components/search-form';
 import { apiGetOrNull } from '@/lib/api';
 import { getTranslator } from '@/lib/i18n';
+import { getSiteSettings } from '@/lib/site';
+import { destinationImage, siteImage } from '@/lib/site-images';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,20 +16,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
  */
 export default async function HomePage() {
   const { t } = await getTranslator();
-  const [meta, airports, health] = await Promise.all([
+  const [meta, airports, health, site]: [
+    MetaDto | null,
+    AirportDto[] | null,
+    HealthDto | null,
+    SiteSettingsDto | null,
+  ] = await Promise.all([
     apiGetOrNull<MetaDto>('/api/v1/meta', { revalidate: 60 }),
     apiGetOrNull<AirportDto[]>('/api/v1/airports', { revalidate: 300 }),
     apiGetOrNull<HealthDto>('/healthz', { revalidate: 30 }),
+    getSiteSettings(),
   ]);
 
   const operational = health?.status === 'ok';
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Hero — original dawn-plains artwork behind a live search form */}
+      {/* Hero — a real photograph of Kenya behind a live search form */}
       <section className="relative overflow-hidden rounded-xl border">
-        <HeroSky className="absolute inset-0 h-full w-full" />
-        <div className="relative bg-background/45 p-6 backdrop-blur-[2px] sm:p-10">
+        <SitePhoto
+          src={siteImage(site, 'hero')}
+          alt=""
+          eager
+          className="absolute inset-0 h-full w-full"
+        />
+        <div className="relative bg-background/60 p-6 backdrop-blur-[2px] sm:p-10">
           <div className="text-center">
             <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">
               {t('home.hero.title')}
@@ -123,7 +135,11 @@ export default async function HomePage() {
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {airports.map((airport) => (
               <li key={airport.code} className="overflow-hidden rounded-lg border bg-background">
-                <DestinationArt code={airport.code} className="h-16 w-full" />
+                <SitePhoto
+                  src={destinationImage(site, airport.code)}
+                  alt=""
+                  className="h-16 w-full"
+                />
                 <div className="p-3">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-base font-semibold">{airport.code}</span>

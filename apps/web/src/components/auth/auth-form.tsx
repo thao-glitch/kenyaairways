@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
-import { HeroSky } from '@/components/art/hero-sky';
+import { SitePhoto } from '@/components/media/site-photo';
 import { useT } from '@/components/i18n-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,16 @@ import { ApiRequestError } from '@/lib/api-client';
 import { login, register } from '@/lib/auth';
 
 /** Shared sign-in / sign-up form; cookies are set cross-origin by the API. */
-export function AuthForm({ mode, next }: { mode: 'login' | 'register'; next?: string }) {
+export function AuthForm({
+  mode,
+  next,
+  banner,
+}: {
+  mode: 'login' | 'register';
+  next?: string;
+  /** Real photograph for the banner (resolved server-side from site settings). */
+  banner: string;
+}) {
   const { t } = useT();
   const router = useRouter();
   const [identifier, setIdentifier] = useState('');
@@ -70,9 +79,9 @@ export function AuthForm({ mode, next }: { mode: 'login' | 'register'; next?: st
 
   return (
     <form onSubmit={(e) => void onSubmit(e)} className="mx-auto flex max-w-md flex-col gap-4">
-      {/* Brand art banner — the same dawn-plains scene as the home hero */}
+      {/* Brand banner — a real photograph from the site's appearance settings */}
       <div className="overflow-hidden rounded-xl border">
-        <HeroSky className="h-28 w-full" />
+        <SitePhoto src={banner} alt="" eager className="h-28 w-full" />
       </div>
       <div>
         <h1 className="text-xl font-semibold">

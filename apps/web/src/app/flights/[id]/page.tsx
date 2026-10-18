@@ -2,14 +2,16 @@ import type { FlightOptionDto } from '@flight13/shared';
 import { formatMoney } from '@flight13/shared';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { DestinationArt } from '@/components/art/destination-art';
 import { RouteArc } from '@/components/art/route-arc';
+import { SitePhoto } from '@/components/media/site-photo';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDurationShort } from '@/lib/format';
 import { apiGetOrNull } from '@/lib/api';
 import { getTranslator } from '@/lib/i18n';
+import { getSiteSettings } from '@/lib/site';
+import { destinationImage } from '@/lib/site-images';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,15 +21,23 @@ type Params = Promise<{ id: string }>;
 export default async function FlightDetailPage({ params }: { params: Params }) {
   const { id } = await params;
   const { t, locale } = await getTranslator();
-  const flight = await apiGetOrNull<FlightOptionDto>(`/api/v1/flights/${id}`);
+  const [flight, site] = await Promise.all([
+    apiGetOrNull<FlightOptionDto>(`/api/v1/flights/${id}`),
+    getSiteSettings(),
+  ]);
   if (!flight) notFound();
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Route banner — destination poster art behind the flight identity */}
+      {/* Route banner — a real photograph of the destination behind the flight identity */}
       <div className="overflow-hidden rounded-xl border">
         <div className="relative">
-          <DestinationArt code={flight.destination.code} className="h-36 w-full" />
+          <SitePhoto
+            src={destinationImage(site, flight.destination.code)}
+            alt=""
+            eager
+            className="h-36 w-full"
+          />
           <div className="absolute inset-0 flex flex-col justify-end gap-1 bg-gradient-to-t from-background/95 via-background/45 to-transparent p-4">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-semibold sm:text-2xl">{flight.flightNumber}</h1>

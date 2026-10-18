@@ -57,6 +57,115 @@
   --ring: 199 89% 48%;
 }
 
+/*
+ * Switchable themes (admin "appearance" console → SiteSettings.theme →
+ * data-theme on <html>). Every theme re-declares the full token set with
+ * WCAG AA contrast pairs; :root above is the "sky" fallback.
+ */
+[data-theme='savanna'] {
+  --background: 40 33% 97%;
+  --foreground: 30 40% 8%;
+  --card: 40 40% 100%;
+  --card-foreground: 30 40% 8%;
+  --popover: 40 40% 100%;
+  --popover-foreground: 30 40% 8%;
+  --primary: 24 94% 34%;
+  --primary-foreground: 40 33% 98%;
+  --secondary: 40 20% 92%;
+  --secondary-foreground: 30 40% 8%;
+  --muted: 40 20% 92%;
+  --muted-foreground: 30 12% 40%;
+  --accent: 90 38% 88%;
+  --accent-foreground: 100 30% 16%;
+  --destructive: 0 74% 46%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 130 45% 30%;
+  --success-foreground: 40 33% 98%;
+  --warning: 38 92% 40%;
+  --warning-foreground: 40 33% 98%;
+  --border: 40 20% 85%;
+  --input: 40 20% 85%;
+  --ring: 24 94% 34%;
+}
+
+[data-theme='ocean'] {
+  --background: 197 40% 97%;
+  --foreground: 200 60% 6%;
+  --card: 197 50% 100%;
+  --card-foreground: 200 60% 6%;
+  --popover: 197 50% 100%;
+  --popover-foreground: 200 60% 6%;
+  --primary: 192 84% 24%;
+  --primary-foreground: 197 40% 97%;
+  --secondary: 195 25% 91%;
+  --secondary-foreground: 200 60% 6%;
+  --muted: 195 25% 91%;
+  --muted-foreground: 200 14% 40%;
+  --accent: 178 42% 88%;
+  --accent-foreground: 186 66% 16%;
+  --destructive: 0 74% 48%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 158 55% 28%;
+  --success-foreground: 197 40% 97%;
+  --warning: 38 92% 40%;
+  --warning-foreground: 197 40% 97%;
+  --border: 196 24% 84%;
+  --input: 196 24% 84%;
+  --ring: 192 84% 24%;
+}
+
+[data-theme='forest'] {
+  --background: 100 25% 97%;
+  --foreground: 110 40% 7%;
+  --card: 100 30% 100%;
+  --card-foreground: 110 40% 7%;
+  --popover: 100 30% 100%;
+  --popover-foreground: 110 40% 7%;
+  --primary: 145 58% 24%;
+  --primary-foreground: 100 25% 97%;
+  --secondary: 105 18% 91%;
+  --secondary-foreground: 110 40% 7%;
+  --muted: 105 18% 91%;
+  --muted-foreground: 112 10% 40%;
+  --accent: 88 36% 88%;
+  --accent-foreground: 140 42% 15%;
+  --destructive: 0 74% 47%;
+  --destructive-foreground: 100 25% 97%;
+  --success: 145 58% 26%;
+  --success-foreground: 100 25% 97%;
+  --warning: 38 92% 40%;
+  --warning-foreground: 100 25% 97%;
+  --border: 104 16% 84%;
+  --input: 104 16% 84%;
+  --ring: 145 58% 24%;
+}
+
+[data-theme='midnight'] {
+  --background: 225 40% 8%;
+  --foreground: 210 25% 96%;
+  --card: 225 35% 11%;
+  --card-foreground: 210 25% 96%;
+  --popover: 225 35% 11%;
+  --popover-foreground: 210 25% 96%;
+  --primary: 199 85% 55%;
+  --primary-foreground: 225 40% 8%;
+  --secondary: 220 25% 18%;
+  --secondary-foreground: 210 25% 96%;
+  --muted: 220 25% 18%;
+  --muted-foreground: 215 15% 65%;
+  --accent: 199 40% 20%;
+  --accent-foreground: 199 80% 90%;
+  --destructive: 0 72% 58%;
+  --destructive-foreground: 225 40% 8%;
+  --success: 142 60% 48%;
+  --success-foreground: 225 40% 8%;
+  --warning: 38 92% 55%;
+  --warning-foreground: 225 40% 8%;
+  --border: 220 25% 18%;
+  --input: 220 25% 18%;
+  --ring: 199 85% 55%;
+}
+
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
