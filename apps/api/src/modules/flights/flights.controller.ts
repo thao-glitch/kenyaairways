@@ -1,10 +1,11 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import type {
   FareClassDetailDto,
   FareOptionDto,
   FlightOptionDto,
   FlightPositionDto,
+  FlightStatusBoardDto,
   FlightStatusDto,
   SeatMapDto,
 } from '@flight13/shared';
@@ -23,6 +24,31 @@ export class FlightsController {
   @ApiOkResponse({ description: 'Flights with fare options and full tax breakdown' })
   search(@Query() query: FlightSearchDto) {
     return this.flights.search(query);
+  }
+
+  @Get('calendar')
+  @ApiOperation({ summary: 'Whole-month fare calendar — cheapest total per day for a city pair' })
+  @ApiOkResponse({ description: 'Calendar days with lowest fares and the best date of the month' })
+  calendar(
+    @Query('origin') origin: string,
+    @Query('destination') destination: string,
+    @Query('month') month: string,
+  ) {
+    if (!origin || !destination || !month) {
+      throw new BadRequestException('origin, destination and month are required');
+    }
+    return this.flights.fareCalendar(origin, destination, month);
+  }
+
+  @Get('status-board')
+  @ApiOperation({ summary: 'Public flight status by flight number (+ optional date)' })
+  @ApiOkResponse({ description: 'Scheduled/estimated times, gate and delay for one flight' })
+  statusBoard(
+    @Query('flightNumber') flightNumber: string,
+    @Query('date') date?: string,
+  ): Promise<FlightStatusBoardDto> {
+    if (!flightNumber) throw new BadRequestException('flightNumber is required');
+    return this.flights.statusBoard(flightNumber, date);
   }
 
   @Get(':id')

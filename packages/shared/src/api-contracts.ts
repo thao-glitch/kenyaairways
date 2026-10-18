@@ -166,6 +166,18 @@ export interface FareOptionDto {
   pricing: PricingDto;
 }
 
+/**
+ * Fare-trend advice (Hopper/Kayak style): a plain-language verdict derived
+ * from how full the flight is and how close departure is. Heuristic, honest
+ * about being an estimate — never a guarantee.
+ */
+export interface PriceAdviceDto {
+  /** BOOK_NOW = fares on this route tend to climb from here; WAIT = still soft. */
+  verdict: 'BOOK_NOW' | 'WAIT' | 'FAIR';
+  /** 0–100: how strongly the heuristic points at the verdict. */
+  confidencePct: number;
+}
+
 export interface FlightOptionDto {
   flightId: string;
   flightNumber: string;
@@ -181,6 +193,61 @@ export interface FlightOptionDto {
   status: FlightStatus;
   aircraft: { code: string; name: string } | null;
   fareOptions: FareOptionDto[];
+  /** Estimated CO₂ per passenger in kg (great-circle × aircraft efficiency). */
+  co2KgPerPax?: number;
+  /** Fare-trend advice for this departure (omit when data is too thin). */
+  priceAdvice?: PriceAdviceDto;
+}
+
+/** One day of the whole-month fare calendar (Skyscanner style). */
+export interface FareCalendarDayDto {
+  date: string; // YYYY-MM-DD
+  /** Cheapest total for the day, or null when no flights operate. */
+  lowestTotalMinor: number | null;
+  flightCount: number;
+}
+
+export interface FareCalendarDto {
+  origin: string;
+  destination: string;
+  month: string; // YYYY-MM
+  currency: Currency;
+  days: FareCalendarDayDto[];
+  /** The cheapest date found in the month (null when the month is empty). */
+  bestDate: string | null;
+}
+
+/** Live flight status (Flighty style) for the public status board. */
+export interface FlightStatusBoardDto {
+  flightId: string;
+  flightNumber: string;
+  date: string;
+  status: FlightStatus;
+  origin: AirportRefDto;
+  destination: AirportRefDto;
+  scheduledDepLocal: string;
+  scheduledArrLocal: string;
+  estimatedDepLocal: string | null;
+  estimatedArrLocal: string | null;
+  gate: string | null;
+  terminal: string | null;
+  delayMinutes: number;
+  aircraft: { code: string; name: string } | null;
+}
+
+/** A passenger's fare watch (Skyscanner price-alert style). */
+export interface PriceAlertDto {
+  id: string;
+  originCode: string;
+  destinationCode: string;
+  cabin: CabinClass;
+  /** Optional target: alert fires when the route's lowest fare hits it. */
+  targetMinor: number | null;
+  /** Cheapest fare seen since the alert was created. */
+  lowestSeenMinor: number | null;
+  status: 'ACTIVE' | 'TRIGGERED' | 'CANCELLED';
+  createdAt: string;
+  triggeredAt: string | null;
 }
 
 export interface FlightSearchQueryDto {

@@ -272,6 +272,7 @@ model User {
   dataRequests     DataSubjectRequest[]
   refundsRequested Refund[]             @relation("RefundRequester")
   refundsApproved  Refund[]             @relation("RefundApprover")
+  priceAlerts      PriceAlert[]
 
   @@index([role, status])
 }
@@ -384,13 +385,15 @@ model Airport {
 }
 
 model AircraftType {
-  id           String   @id @default(cuid())
-  code         String   @unique // E190, B738
-  name         String
-  manufacturer String
-  rangeKm      Int?
-  cruiseKts    Int?
-  createdAt    DateTime @default(now())
+  id               String   @id @default(cuid())
+  code             String   @unique // E190, B738
+  name             String
+  manufacturer     String
+  rangeKm          Int?
+  cruiseKts        Int?
+  /** grams of CO₂ per passenger-km (ICAO-style efficiency factor). */
+  co2GramsPerPaxKm Int?
+  createdAt        DateTime @default(now())
 
   seatMap   SeatMap?
   aircraft  Aircraft[]
@@ -1092,6 +1095,36 @@ model Notification {
 
   @@index([userId, status, createdAt])
   @@index([channel, status])
+}
+
+enum PriceAlertStatus {
+  ACTIVE
+  TRIGGERED
+  CANCELLED
+}
+
+/**
+* Fare watch (Skyscanner price-alert style): a passenger tracks a route and
+* the daily fare-watch job notifies them when the cheapest fare drops to the
+* target (or simply falls). `lowestSeenMinor` powers the "seen from Ksh X"
+* line in the UI.
+*/
+model PriceAlert {
+  id              String           @id @default(cuid())
+  userId          String
+  originCode      String
+  destinationCode String
+  cabin           CabinClass       @default(ECONOMY)
+  targetMinor     Int? // notify when the route's lowest total falls to/below this
+  lowestSeenMinor Int? // cheapest total observed while watching
+  status          PriceAlertStatus @default(ACTIVE)
+  createdAt       DateTime         @default(now())
+  triggeredAt     DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+  @@index([status])
 }
 
 model AuditLog {

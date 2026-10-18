@@ -1,5 +1,6 @@
 import type {
   AirportDto,
+  FareCalendarDto,
   FlightSearchResultDto,
   FlightOptionDto,
   SiteSettingsDto,
@@ -9,6 +10,7 @@ import Link from 'next/link';
 import { RouteArc } from '@/components/art/route-arc';
 import { SitePhoto } from '@/components/media/site-photo';
 import { SearchForm } from '@/components/search-form';
+import { TrackFareButton } from '@/components/track-fare-button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDurationShort } from '@/lib/format';
@@ -26,6 +28,13 @@ function cheapest(option: FlightOptionDto): number {
   return Math.min(...option.fareOptions.map((f) => f.pricing.totalMinor));
 }
 
+/** `YYYY-MM` for the searched date (or the current month when undated). */
+function monthOf(date: string | undefined): string {
+  const now = new Date();
+  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) return date.slice(0, 7);
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
 /** Search results — server-rendered (public data, zero client JS beyond the form). */
 export default async function FlightsPage({ searchParams }: { searchParams: SearchParams }) {
   const { t, locale } = await getTranslator();
@@ -37,9 +46,10 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
   // No filters → the page lists every bookable flight; filters narrow it down.
   const hasFilters = Boolean(origin || destination || date);
 
-  const [airports, results, site]: [
+  const [airports, results, calendar, site]: [
     AirportDto[] | null,
     FlightSearchResultDto | null,
+    FareCalendarDto | null,
     SiteSettingsDto | null,
   ] = await Promise.all([
     apiGetOrNull<AirportDto[]>('/api/v1/airports', { revalidate: 300 }),
@@ -49,6 +59,14 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
         `&date=${encodeURIComponent(date ?? '')}&adults=${encodeURIComponent(adults ?? '1')}`,
       { revalidate: 30 },
     ),
+    origin && destination
+      ? apiGetOrNull<FareCalendarDto>(
+          `/api/v1/flights/calendar?origin=${encodeURIComponent(origin)}` +
+            `&destination=${encodeURIComponent(destination)}` +
+            `&month=${monthOf(date)}`,
+          { revalidate: 300 },
+        )
+      : Promise.resolve(null),
     getSiteSettings(),
   ]);
 
@@ -61,6 +79,53 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
           <SearchForm airports={airports ?? []} defaults={{ origin, destination, date, adults }} />
         </CardContent>
       </Card>
+
+      {/* Whole-month fare calendar (Skyscanner style) — links re-run the search. */}
+      {calendar && calendar.days.length > 0 && (
+        <section aria-labelledby="calendar-heading" className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="calendar-heading" className="text-lg font-semibold">
+              {t('calendar.title')}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {t('calendar.subtitle', {
+                origin: calendar.origin,
+                destination: calendar.destination,
+              })}
+            </p>
+          </div>
+          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7">
+            {calendar.days.map((day) => {
+              const isBest = calendar.bestDate === day.date;
+              const searchLink =
+                `/flights?origin=${encodeURIComponent(calendar.origin)}` +
+                `&destination=${encodeURIComponent(calendar.destination)}` +
+                `&date=${day.date}&adults=${encodeURIComponent(adults ?? '1')}`;
+              return (
+                <Link
+                  key={day.date}
+                  href={searchLink}
+                  className={`flex flex-col items-center rounded-lg border px-1.5 py-2 text-center transition-colors hover:border-primary/60 hover:bg-accent/50 ${
+                    isBest ? 'border-primary/70 bg-primary/5' : 'bg-background'
+                  } ${day.lowestTotalMinor === null ? 'pointer-events-none opacity-50' : ''}`}
+                >
+                  <span className="text-[11px] text-muted-foreground">{day.date.slice(8)}</span>
+                  <span className="text-xs font-semibold">
+                    {day.lowestTotalMinor === null
+                      ? t('calendar.noFlights')
+                      : formatMoney(day.lowestTotalMinor, calendar.currency, locale)}
+                  </span>
+                  {isBest && (
+                    <span className="text-[10px] font-medium text-primary">
+                      {t('calendar.best')}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {hasFilters && results === null && (
         <p
@@ -82,6 +147,13 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
         </div>
       )}
 
+      {results && results.results.length > 0 && origin && destination && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-muted-foreground">{t('alerts.body')}</p>
+          <TrackFareButton originCode={origin} destinationCode={destination} />
+        </div>
+      )}
+
       {results && results.results.length > 0 && (
         <ul className="flex flex-col gap-3">
           {results.results.map((option) => (
@@ -98,9 +170,23 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
                       className="hidden h-20 w-28 shrink-0 rounded-md border sm:block"
                     />
                     <div className="flex min-w-0 flex-1 flex-col gap-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold">{option.flightNumber}</span>
                         <Badge variant="outline">{t(`flight.status.${option.status}`)}</Badge>
+                        {option.co2KgPerPax !== undefined && (
+                          <Badge variant="secondary">
+                            {t('results.co2', { kg: option.co2KgPerPax })}
+                          </Badge>
+                        )}
+                        {option.priceAdvice && (
+                          <Badge
+                            variant={
+                              option.priceAdvice.verdict === 'BOOK_NOW' ? 'default' : 'outline'
+                            }
+                          >
+                            {t(`results.advice.${option.priceAdvice.verdict}`)}
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-sm font-medium">
                         <span>{option.origin.code}</span>

@@ -28,6 +28,18 @@ export async function SiteHeader() {
               {t('nav.flights')}
             </Link>
             <Link
+              href="/status"
+              className="rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              {t('nav.status')}
+            </Link>
+            <Link
+              href="/alerts"
+              className="hidden rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground sm:block"
+            >
+              {t('nav.alerts')}
+            </Link>
+            <Link
               href="/pnr"
               className="hidden rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground sm:block"
             >

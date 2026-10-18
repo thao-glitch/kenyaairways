@@ -2,16 +2,20 @@ import { Injectable } from '@nestjs/common';
 import {
   AppError,
   toLocalIso,
+  type FareCalendarDayDto,
+  type FareCalendarDto,
   type FareClassDetailDto,
   type FareOptionDto,
   type FlightOptionDto,
   type FlightPositionDto,
   type FlightSearchQueryDto,
   type FlightSearchResultDto,
+  type FlightStatusBoardDto,
   type FlightStatusDto,
   type SeatMapDto,
   type SeatMapSeatDto,
   type SeatMapStatus,
+  type PriceAdviceDto,
 } from '@flight13/shared';
 import type { Flight, Fare } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.module';
@@ -289,6 +293,162 @@ export class FlightsService {
     return { query, results, meta: { count: results.length, currency: 'KES' } };
   }
 
+  /**
+   * Whole-month fare calendar (Skyscanner style): the cheapest bookable
+   * total per calendar day for one city pair, plus the month's best date.
+   * Days with no operating flights return `lowestTotalMinor: null`.
+   */
+  async fareCalendar(
+    originCode: string,
+    destinationCode: string,
+    month: string,
+  ): Promise<FareCalendarDto> {
+    const origin = originCode.toUpperCase();
+    const destination = destinationCode.toUpperCase();
+    if (origin === destination) {
+      throw new AppError('BAD_REQUEST', 'Origin and destination must be different');
+    }
+    const match = /^(\d{4})-(\d{2})$/.exec(month);
+    if (!match) throw new AppError('BAD_REQUEST', 'month must be YYYY-MM');
+    const year = Number(match[1]);
+    const monthIdx = Number(match[2]) - 1;
+    if (monthIdx < 0 || monthIdx > 11) throw new AppError('BAD_REQUEST', 'month must be YYYY-MM');
+
+    const [airports] = await Promise.all([
+      this.prisma.airport.findMany({ where: { code: { in: [origin, destination] } } }),
+    ]);
+    if (!airports.some((a) => a.code === origin))
+      throw new AppError('BAD_REQUEST', `Unknown origin airport "${origin}"`);
+    if (!airports.some((a) => a.code === destination))
+      throw new AppError('BAD_REQUEST', `Unknown destination airport "${destination}"`);
+
+    const monthStart = new Date(Date.UTC(year, monthIdx, 1));
+    const monthEnd = new Date(Date.UTC(year, monthIdx + 1, 1));
+    // Past days are not bookable — never priced, never "best".
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const bookableFrom = monthStart > today ? monthStart : today;
+    const flights = await this.prisma.flight.findMany({
+      where: {
+        originCode: origin,
+        destinationCode: destination,
+        flightDate: { gte: bookableFrom, lt: monthEnd },
+        status: { not: 'CANCELLED' },
+        schedule: { saleStatus: 'OPEN' },
+      },
+      include: this.include(),
+      orderBy: { scheduledDepUtc: 'asc' },
+    });
+
+    const byDay = new Map<string, FareCalendarDayDto>();
+    const daysInMonth = new Date(Date.UTC(year, monthIdx + 1, 0)).getUTCDate();
+    for (let d = 1; d <= daysInMonth; d += 1) {
+      const date = `${year}-${String(monthIdx + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      byDay.set(date, { date, lowestTotalMinor: null, flightCount: 0 });
+    }
+
+    for (const flight of flights) {
+      const date = flight.flightDate.toISOString().slice(0, 10);
+      const day = byDay.get(date);
+      if (!day) continue;
+      day.flightCount += 1;
+      const option = await this.toOption(flight, 1, 'ECONOMY');
+      if (!option) continue;
+      for (const fare of option.fareOptions) {
+        const total = fare.pricing.totalMinor;
+        if (day.lowestTotalMinor === null || total < day.lowestTotalMinor) {
+          day.lowestTotalMinor = total;
+        }
+      }
+    }
+
+    const days = [...byDay.values()];
+    let bestDate: string | null = null;
+    let bestTotal: number | null = null;
+    for (const day of days) {
+      if (
+        day.lowestTotalMinor !== null &&
+        (bestTotal === null || day.lowestTotalMinor < bestTotal)
+      ) {
+        bestTotal = day.lowestTotalMinor;
+        bestDate = day.date;
+      }
+    }
+
+    return { origin, destination, month, currency: 'KES', days, bestDate };
+  }
+
+  /**
+   * Public status board (Flighty style): look a flight up by number + date
+   * without needing the internal id. Returns the next matching departure
+   * when no date is given.
+   */
+  async statusBoard(flightNumber: string, date?: string): Promise<FlightStatusBoardDto> {
+    const number = flightNumber.toUpperCase().trim();
+    if (!/^[A-Z0-9]{2,6}$/.test(number)) {
+      throw new AppError('BAD_REQUEST', 'flightNumber must be 2–6 letters/digits (e.g. F13208)');
+    }
+
+    let flightDate: Date | undefined;
+    if (date) {
+      flightDate = this.parseDateOnly(date);
+      if (Number.isNaN(flightDate.getTime())) {
+        throw new AppError('BAD_REQUEST', 'date must be a valid calendar date');
+      }
+    } else {
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+      flightDate = today;
+    }
+
+    const flight = await this.prisma.flight.findFirst({
+      where: {
+        flightNumber: number,
+        ...(date
+          ? { flightDate }
+          : {
+              scheduledDepUtc: {
+                gte: new Date(),
+                lte: new Date(Date.now() + MAX_LEAD_DAYS * 86_400_000),
+              },
+            }),
+      },
+      include: { origin: true, destination: true, aircraft: { include: { aircraftType: true } } },
+      orderBy: { scheduledDepUtc: 'asc' },
+    });
+    if (!flight) throw new AppError('NOT_FOUND', 'No flight found for that number/date');
+
+    const delay = flight.delayMinutes;
+    // Actual times win once recorded; otherwise schedule + known delay.
+    const estimated = (actual: Date | null, scheduled: Date): Date =>
+      actual ?? (delay ? new Date(scheduled.getTime() + delay * 60_000) : scheduled);
+
+    return {
+      flightId: flight.id,
+      flightNumber: flight.flightNumber,
+      date: flight.flightDate.toISOString().slice(0, 10),
+      status: flight.status,
+      origin: airportRef(flight.origin),
+      destination: airportRef(flight.destination),
+      scheduledDepLocal: toLocalIso(flight.scheduledDepUtc, flight.origin.timezone),
+      scheduledArrLocal: toLocalIso(flight.scheduledArrUtc, flight.destination.timezone),
+      estimatedDepLocal: toLocalIso(
+        estimated(flight.actualDepUtc, flight.scheduledDepUtc),
+        flight.origin.timezone,
+      ),
+      estimatedArrLocal: toLocalIso(
+        estimated(flight.actualArrUtc, flight.scheduledArrUtc),
+        flight.destination.timezone,
+      ),
+      gate: flight.gate,
+      terminal: null,
+      delayMinutes: delay,
+      aircraft: flight.aircraft
+        ? { code: flight.aircraft.aircraftType.code, name: flight.aircraft.aircraftType.name }
+        : null,
+    };
+  }
+
   async flightDetail(flightId: string): Promise<FlightOptionDto> {
     const flight = await this.prisma.flight.findUnique({
       where: { id: flightId },
@@ -349,7 +509,7 @@ export class FlightsService {
       origin: true,
       destination: true,
       aircraft: { include: { aircraftType: true } },
-      schedule: true,
+      schedule: { include: { aircraftType: true } },
       fares: {
         where: { saleStatus: 'OPEN', fareClass: { active: true } },
         include: { fareClass: true },
@@ -396,6 +556,28 @@ export class FlightsService {
     fareOptions.sort((a, b) => a.pricing.totalMinor - b.pricing.totalMinor);
     if (fareOptions.length === 0) return null;
 
+    // Google-Flights style CO₂ estimate: great-circle distance × the type's
+    // grams-per-pax-km factor (seeded per aircraft type). Business/seats mix
+    // is ignored — reported per passenger in grams, rounded to whole kg.
+    const distanceKm = haversineKm(
+      refs.origin.latitude,
+      refs.origin.longitude,
+      refs.destination.latitude,
+      refs.destination.longitude,
+    );
+    const gramsPerPaxKm =
+      refs.aircraft?.aircraftType.co2GramsPerPaxKm ??
+      refs.schedule.aircraftType.co2GramsPerPaxKm ??
+      90;
+    const co2KgPerPax = Math.max(1, Math.round((distanceKm * gramsPerPaxKm) / 1000));
+
+    // Kayak/Hopper style trend advice: how full the plane is × how soon it
+    // leaves. Purely a heuristic over local inventory — no external pricing.
+    const seatsTotal = refs.inventory.reduce((sum, i) => sum + i.seatsTotal, 0);
+    const seatsCommitted = refs.inventory.reduce((sum, i) => sum + i.seatsSold + i.seatsHeld, 0);
+    const daysOut = Math.max(0, (flight.scheduledDepUtc.getTime() - Date.now()) / 86_400_000);
+    const priceAdvice = priceAdviceFor(seatsTotal, seatsCommitted, daysOut);
+
     const f = flight;
     return {
       flightId: f.id,
@@ -416,6 +598,8 @@ export class FlightsService {
         ? { code: refs.aircraft.aircraftType.code, name: refs.aircraft.aircraftType.name }
         : null,
       fareOptions,
+      co2KgPerPax,
+      ...(priceAdvice ? { priceAdvice } : {}),
     };
   }
 
@@ -429,7 +613,14 @@ export class FlightsService {
 interface FlightWithRefs extends Flight {
   origin: FlightOrigin;
   destination: FlightOrigin;
-  aircraft: { registration: string; aircraftType: { code: string; name: string } } | null;
+  schedule: {
+    aircraftTypeId: string;
+    aircraftType: { code: string; co2GramsPerPaxKm: number | null };
+  };
+  aircraft: {
+    registration: string;
+    aircraftType: { code: string; name: string; co2GramsPerPaxKm: number | null };
+  } | null;
   fares: Array<Fare & { fareClass: FareClassRow }>;
   inventory: Array<{
     fareClassId: string;
@@ -446,6 +637,8 @@ interface FlightOrigin {
   city: string;
   country: string;
   timezone: string;
+  latitude: number;
+  longitude: number;
 }
 
 interface FareClassRow {
@@ -460,6 +653,39 @@ interface FareClassRow {
 
 function airportRef(a: FlightOrigin) {
   return { code: a.code, name: a.name, city: a.city, country: a.country, timezone: a.timezone };
+}
+
+/**
+ * Fare-trend heuristic (Kayak/Hopper style) over *local* inventory only —
+ * never an external pricing feed, and always shown with a confidence score:
+ * - Book now: plane filling fast or departure imminent (prices climb late).
+ * - Wait:     seats wide open far from departure (no pressure to buy).
+ * - Fair:     everything in between — book whenever it suits you.
+ */
+function priceAdviceFor(
+  seatsTotal: number,
+  seatsCommitted: number,
+  daysOut: number,
+): PriceAdviceDto | undefined {
+  if (seatsTotal <= 0) return undefined;
+  const fillRatio = seatsCommitted / seatsTotal;
+
+  // Confidence grows with both signals (fullness and imminence).
+  const fullnessScore = Math.min(1, Math.max(0, (fillRatio - 0.3) / 0.5));
+  const urgencyScore = daysOut <= 3 ? 1 : daysOut >= 21 ? 0 : (21 - daysOut) / 18;
+
+  if (fillRatio >= 0.65 || (daysOut <= 7 && fillRatio >= 0.45)) {
+    const confidencePct = Math.min(95, Math.round(55 + 40 * ((fullnessScore + urgencyScore) / 2)));
+    return { verdict: 'BOOK_NOW', confidencePct };
+  }
+  if (daysOut >= 21 && fillRatio < 0.35) {
+    const confidencePct = Math.min(
+      90,
+      Math.round(50 + 40 * (1 - fullnessScore) * (1 - urgencyScore)),
+    );
+    return { verdict: 'WAIT', confidencePct };
+  }
+  return { verdict: 'FAIR', confidencePct: 60 };
 }
 
 // ── great-circle position math (Phase 4 live tracking) ─────────────────────

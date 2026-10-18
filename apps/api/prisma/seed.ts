@@ -254,6 +254,285 @@ const AIRPORTS: SeedAirport[] = [
     region: 'INTERNATIONAL',
     domestic: false,
   },
+  // ── worldwide network: Europe ──
+  {
+    code: 'CDG',
+    icao: 'LFPG',
+    name: 'Charles de Gaulle Airport',
+    city: 'Paris',
+    country: 'France',
+    countryCode: 'FR',
+    timezone: 'Europe/Paris',
+    latitude: 49.0097,
+    longitude: 2.5479,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'AMS',
+    icao: 'EHAM',
+    name: 'Schiphol Airport',
+    city: 'Amsterdam',
+    country: 'Netherlands',
+    countryCode: 'NL',
+    timezone: 'Europe/Amsterdam',
+    latitude: 52.3105,
+    longitude: 4.7683,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'FRA',
+    icao: 'EDDF',
+    name: 'Frankfurt Airport',
+    city: 'Frankfurt',
+    country: 'Germany',
+    countryCode: 'DE',
+    timezone: 'Europe/Berlin',
+    latitude: 50.0379,
+    longitude: 8.5622,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'MAD',
+    icao: 'LEMD',
+    name: 'Adolfo Suárez Madrid–Barajas Airport',
+    city: 'Madrid',
+    country: 'Spain',
+    countryCode: 'ES',
+    timezone: 'Europe/Madrid',
+    latitude: 40.4719,
+    longitude: -3.5626,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'IST',
+    icao: 'LTFM',
+    name: 'Istanbul Airport',
+    city: 'Istanbul',
+    country: 'Türkiye',
+    countryCode: 'TR',
+    timezone: 'Europe/Istanbul',
+    latitude: 41.2753,
+    longitude: 28.7519,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  // ── worldwide network: Middle East ──
+  {
+    code: 'DOH',
+    icao: 'OTHH',
+    name: 'Hamad International Airport',
+    city: 'Doha',
+    country: 'Qatar',
+    countryCode: 'QA',
+    timezone: 'Asia/Qatar',
+    latitude: 25.2731,
+    longitude: 51.6081,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'RUH',
+    icao: 'OERK',
+    name: 'King Khalid International Airport',
+    city: 'Riyadh',
+    country: 'Saudi Arabia',
+    countryCode: 'SA',
+    timezone: 'Asia/Riyadh',
+    latitude: 24.9576,
+    longitude: 46.6988,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  // ── worldwide network: Asia ──
+  {
+    code: 'SIN',
+    icao: 'WSSL',
+    name: 'Changi Airport',
+    city: 'Singapore',
+    country: 'Singapore',
+    countryCode: 'SG',
+    timezone: 'Asia/Singapore',
+    latitude: 1.3644,
+    longitude: 103.9915,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'HKG',
+    icao: 'VHHH',
+    name: 'Hong Kong International Airport',
+    city: 'Hong Kong',
+    country: 'Hong Kong SAR',
+    countryCode: 'HK',
+    timezone: 'Asia/Hong_Kong',
+    latitude: 22.308,
+    longitude: 113.9185,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'NRT',
+    icao: 'RJAA',
+    name: 'Narita International Airport',
+    city: 'Tokyo',
+    country: 'Japan',
+    countryCode: 'JP',
+    timezone: 'Asia/Tokyo',
+    latitude: 35.772,
+    longitude: 140.3929,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'BOM',
+    icao: 'VABB',
+    name: 'Chhatrapati Shivaji Maharaj International Airport',
+    city: 'Mumbai',
+    country: 'India',
+    countryCode: 'IN',
+    timezone: 'Asia/Kolkata',
+    latitude: 19.0896,
+    longitude: 72.8656,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'DEL',
+    icao: 'VIDP',
+    name: 'Indira Gandhi International Airport',
+    city: 'Delhi',
+    country: 'India',
+    countryCode: 'IN',
+    timezone: 'Asia/Kolkata',
+    latitude: 28.5562,
+    longitude: 77.1,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  // ── worldwide network: Americas ──
+  {
+    code: 'JFK',
+    icao: 'KJFK',
+    name: 'John F. Kennedy International Airport',
+    city: 'New York',
+    country: 'United States',
+    countryCode: 'US',
+    timezone: 'America/New_York',
+    latitude: 40.6413,
+    longitude: -73.7781,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'YYZ',
+    icao: 'CYYZ',
+    name: 'Toronto Pearson International Airport',
+    city: 'Toronto',
+    country: 'Canada',
+    countryCode: 'CA',
+    timezone: 'America/Toronto',
+    latitude: 43.6777,
+    longitude: -79.6248,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'GRU',
+    icao: 'SBGR',
+    name: 'São Paulo–Guarulhos International Airport',
+    city: 'São Paulo',
+    country: 'Brazil',
+    countryCode: 'BR',
+    timezone: 'America/Sao_Paulo',
+    latitude: -23.4356,
+    longitude: -46.4731,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  // ── worldwide network: rest of Africa ──
+  {
+    code: 'LOS',
+    icao: 'DNMM',
+    name: 'Murtala Muhammed International Airport',
+    city: 'Lagos',
+    country: 'Nigeria',
+    countryCode: 'NG',
+    timezone: 'Africa/Lagos',
+    latitude: 6.5774,
+    longitude: 3.3212,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'CAI',
+    icao: 'HECA',
+    name: 'Cairo International Airport',
+    city: 'Cairo',
+    country: 'Egypt',
+    countryCode: 'EG',
+    timezone: 'Africa/Cairo',
+    latitude: 30.1219,
+    longitude: 31.4056,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'CPT',
+    icao: 'FACT',
+    name: 'Cape Town International Airport',
+    city: 'Cape Town',
+    country: 'South Africa',
+    countryCode: 'ZA',
+    timezone: 'Africa/Johannesburg',
+    latitude: -33.9649,
+    longitude: 18.6017,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'ADD',
+    icao: 'HAAB',
+    name: 'Addis Ababa Bole International Airport',
+    city: 'Addis Ababa',
+    country: 'Ethiopia',
+    countryCode: 'ET',
+    timezone: 'Africa/Addis_Ababa',
+    latitude: 8.9779,
+    longitude: 38.7993,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  // ── worldwide network: Oceania ──
+  {
+    code: 'SYD',
+    icao: 'YSSY',
+    name: 'Sydney Kingsford Smith Airport',
+    city: 'Sydney',
+    country: 'Australia',
+    countryCode: 'AU',
+    timezone: 'Australia/Sydney',
+    latitude: -33.9399,
+    longitude: 151.1753,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
+  {
+    code: 'MEL',
+    icao: 'YMML',
+    name: 'Melbourne Airport',
+    city: 'Melbourne',
+    country: 'Australia',
+    countryCode: 'AU',
+    timezone: 'Australia/Melbourne',
+    latitude: -37.669,
+    longitude: 144.841,
+    region: 'INTERNATIONAL',
+    domestic: false,
+  },
 ];
 
 // ───────────────────────────── fleet & seat maps ─────────────────────────────
@@ -331,6 +610,46 @@ function buildB738Seats(): SeatSpec[] {
   return seats;
 }
 
+function buildB789Seats(): SeatSpec[] {
+  const seats: SeatSpec[] = [];
+  // Business: 2-2 up front (rows 1–6)
+  for (let row = 1; row <= 6; row += 1) {
+    for (const letter of ['A', 'C', 'D', 'F']) {
+      seats.push({
+        label: `${row}${letter}`,
+        row,
+        letter,
+        cabin: 'BUSINESS',
+        zone: row <= 2 ? 'FRONT' : 'STANDARD',
+        extraFeeMinor: 0,
+      });
+    }
+  }
+  // Economy: 3-3-3 (rows 7–34)
+  for (let row = 7; row <= 34; row += 1) {
+    for (const letter of ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J']) {
+      const zone =
+        row <= 8
+          ? 'FRONT'
+          : row === 14 || row === 15
+            ? 'EXIT_ROW'
+            : row >= 33
+              ? 'REAR'
+              : 'STANDARD';
+      const fee = zone === 'FRONT' ? 200_000 : zone === 'EXIT_ROW' ? 300_000 : 0; // KES 2,000 / 3,000
+      seats.push({
+        label: `${row}${letter}`,
+        row,
+        letter,
+        cabin: 'ECONOMY',
+        zone,
+        extraFeeMinor: fee,
+      });
+    }
+  }
+  return seats;
+}
+
 const AIRCRAFT_TYPES = [
   {
     code: 'E190',
@@ -338,6 +657,7 @@ const AIRCRAFT_TYPES = [
     manufacturer: 'Embraer',
     rangeKm: 4500,
     cruiseKts: 470,
+    co2GramsPerPaxKm: 102, // regional jet — higher per-seat burn on short sectors
     buildSeats: buildE190Seats,
   },
   {
@@ -346,7 +666,17 @@ const AIRCRAFT_TYPES = [
     manufacturer: 'Boeing',
     rangeKm: 5700,
     cruiseKts: 460,
+    co2GramsPerPaxKm: 95, // narrowbody workhorse
     buildSeats: buildB738Seats,
+  },
+  {
+    code: 'B789',
+    name: 'Boeing 787-9 Dreamliner',
+    manufacturer: 'Boeing',
+    rangeKm: 14140,
+    cruiseKts: 490,
+    co2GramsPerPaxKm: 74, // composite widebody — lowest per-seat burn, long sectors
+    buildSeats: buildB789Seats,
   },
 ] as const;
 
@@ -356,6 +686,9 @@ const AIRCRAFT = [
   { registration: '5Y-KAC', type: 'E190' },
   { registration: '5Y-KBB', type: 'B738' },
   { registration: '5Y-KBC', type: 'B738' },
+  { registration: '5Y-KDA', type: 'B789' },
+  { registration: '5Y-KDB', type: 'B789' },
+  { registration: '5Y-KDC', type: 'B789' },
 ];
 
 // ───────────────────────────── fares ─────────────────────────────
@@ -893,6 +1226,90 @@ const SCHEDULES: ScheduleSpec[] = [
     routeType: 'INTERNATIONAL',
   },
 ];
+
+// ─────────────── worldwide network — intercontinental schedules ───────────────
+// Hub-and-spoke from NBO. Durations and fares are derived from the seeded
+// coordinates (great-circle distance) rather than hand-typed, so every new
+// route is self-consistent: block time = distance ÷ Dreamliner cruise + taxi,
+// fare ≈ KES 14/km — the same rate the hand-written DXB/LHR sectors use.
+
+const WORLD_AIRPORT_BY_CODE = new Map(AIRPORTS.map((a) => [a.code, a]));
+
+function haversineKm(a: SeedAirport, b: SeedAirport): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLon = toRad(b.longitude - a.longitude);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+
+function longHaul(
+  flightNumber: string,
+  originCode: string,
+  destinationCode: string,
+  departMin: number,
+): ScheduleSpec {
+  const origin = WORLD_AIRPORT_BY_CODE.get(originCode)!;
+  const destination = WORLD_AIRPORT_BY_CODE.get(destinationCode)!;
+  const km = haversineKm(origin, destination);
+  const cruiseKmh = 490 * 1.852; // B789 cruise in km/h
+  const taxiBuffer = km > 6000 ? 60 : 45;
+  const durationMin = Math.round((km / cruiseKmh) * 60) + taxiBuffer;
+  const baseFareMinor = Math.round((km * 1400) / 50_000) * 50_000; // ≈ KES 14/km
+  return {
+    flightNumber,
+    origin: originCode,
+    destination: destinationCode,
+    departMin: clock(departMin),
+    durationMin,
+    days: ALL_DAYS,
+    aircraft: 'B789',
+    baseFareMinor,
+    routeType: 'INTERNATIONAL',
+  };
+}
+
+/** [destination, NBO departure (min), home-base departure (min)] — local clock. */
+const WORLD_ROUTES: Array<[string, number, number]> = [
+  // Europe
+  ['CDG', clock(22 * 60), clock(10 * 60 + 30)],
+  ['AMS', clock(21 * 60), clock(9 * 60 + 30)],
+  ['FRA', clock(22 * 60 + 30), clock(10 * 60)],
+  ['MAD', clock(23 * 60), clock(11 * 60 + 30)],
+  ['IST', clock(18 * 60 + 30), clock(12 * 60)],
+  // Middle East
+  ['DOH', clock(8 * 60 + 30), clock(14 * 60 + 30)],
+  ['RUH', clock(9 * 60 + 30), clock(15 * 60)],
+  // Asia
+  ['SIN', clock(20 * 60 + 30), clock(9 * 60)],
+  ['HKG', clock(19 * 60 + 30), clock(9 * 60 + 30)],
+  ['NRT', clock(22 * 60), clock(10 * 60 + 30)],
+  ['BOM', clock(16 * 60), clock(11 * 60)],
+  ['DEL', clock(17 * 60), clock(12 * 60 + 30)],
+  // Americas
+  ['JFK', clock(8 * 60), clock(14 * 60)],
+  ['YYZ', clock(10 * 60), clock(15 * 60)],
+  ['GRU', clock(9 * 60), clock(13 * 60 + 30)],
+  // Africa
+  ['LOS', clock(7 * 60 + 30), clock(10 * 60 + 30)],
+  ['CAI', clock(8 * 60), clock(11 * 60 + 30)],
+  ['CPT', clock(7 * 60), clock(11 * 60 + 30)],
+  ['ADD', clock(9 * 60), clock(10 * 60)],
+  // Oceania
+  ['SYD', clock(10 * 60 + 30), clock(16 * 60)],
+  ['MEL', clock(11 * 60 + 30), clock(17 * 60)],
+];
+
+WORLD_ROUTES.forEach(([destination, outMin, homeMin], index) => {
+  const outbound = 13401 + index * 2;
+  const inbound = outbound + 1;
+  SCHEDULES.push(
+    longHaul(`F${outbound}`, 'NBO', destination, outMin),
+    longHaul(`F${inbound}`, destination, 'NBO', homeMin),
+  );
+});
 
 // ───────────────────────────── seed steps ─────────────────────────────
 async function seedAirports(): Promise<void> {

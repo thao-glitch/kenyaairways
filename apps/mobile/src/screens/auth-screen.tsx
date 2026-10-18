@@ -47,7 +47,7 @@ export function AuthScreen() {
       <View style={{ marginTop: spacing.xl, marginBottom: spacing.lg }}>
         <Text style={{ ...type.hero, color: colors.foreground }}>Flight13</Text>
         <Text style={{ ...type.body, color: colors.mutedForeground }}>
-          Flights across Kenya and beyond
+          Flights across the world
         </Text>
       </View>
       <Card>

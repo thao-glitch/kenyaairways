@@ -19,6 +19,7 @@ import { OpsModule } from './modules/ops/ops.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { PrivacyModule } from './modules/privacy/privacy.module';
 import { SiteModule } from './modules/site/site.module';
+import { PriceAlertsModule } from './modules/price-alerts/price-alerts.module';
 import { ObservabilityModule } from './observability/observability.module';
 import { JobsModule } from './jobs/jobs.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -57,6 +58,7 @@ function validationExceptionFactory(errors: ValidationError[]): AppError {
     ReportsModule,
     PrivacyModule,
     SiteModule,
+    PriceAlertsModule,
     ObservabilityModule,
     JobsModule,
   ],

@@ -25,7 +25,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Hero — a real photograph of Kenya behind a live search form */}
+      {/* Hero — a real photograph of our fleet behind a live search form */}
       <section className="relative overflow-hidden rounded-xl border">
         <SitePhoto
           src={siteImage(site, 'hero')}
