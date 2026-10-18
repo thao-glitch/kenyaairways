@@ -18,12 +18,12 @@ import { formatRemaining } from '@/lib/format';
 const ACTIVE_STATUSES: readonly string[] = ['REQUIRES_ACTION', 'PENDING'];
 
 /**
- * Two ways to pay:
- *  - STK push: `POST /payments` initiates the push, then we poll.
- *  - Manual paybill: `POST /payments {manual:true}` opens a payment that
- *    settles when staff verify the confirmation SMS the passenger pastes
- *    here (`POST /payments/:id/mpesa-manual`). The paybill number comes from
- *    the admin payment plan via the public site settings.
+ * Pay flow: clicking Pay opens the M-Pesa payment-number panel straight away
+ * (number + PNR + amount on screen — nothing is SMS'd), the passenger pays by
+ * hand and pastes the confirmation message here (`POST /payments/:id/
+ * mpesa-manual`); staff verify it in the verifier console and the booking
+ * confirms. STK push stays available as an opt-in secondary path. The paybill
+ * number comes from the admin payment plan via the public site settings.
  * Mock mode adds explicit result buttons so demos don't wait on a Daraja
  * callback that will never come.
  */
@@ -40,6 +40,7 @@ export function PaymentSection({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [site, setSite] = useState<SiteSettingsDto | null>(null);
+  const [showStk, setShowStk] = useState(false);
 
   // Manual paybill details (paybill number lives in the payment plan).
   const [verify, setVerify] = useState<MpesaManualVerificationDto | null>(null);
@@ -270,33 +271,40 @@ export function PaymentSection({
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          <form onSubmit={onStart} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <label className="flex flex-1 flex-col gap-1 text-sm font-medium">
-              {t('pay.phone')}
-              <Input
-                type="tel"
-                inputMode="tel"
-                value={msisdn}
-                onChange={(e) => setMsisdn(e.target.value)}
-                placeholder="+254712345678"
-              />
-              <span className="text-xs font-normal text-muted-foreground">
-                {t('pay.phone.hint')}
-              </span>
-            </label>
-            <Button type="submit" disabled={busy}>
-              {busy ? t('pay.working') : t('pay.cta')}
-            </Button>
-          </form>
-          {paybill && (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
-              <span className="text-xs text-muted-foreground">
-                {t('pay.manual.alt', { paybill })}
-              </span>
-              <Button size="sm" variant="outline" disabled={busy} onClick={onStartManual}>
-                {t('pay.manual.cta')}
+          {/* Primary: the payment-number flow — no phone entry needed; the
+              number, PNR and amount appear as soon as Pay is tapped. */}
+          <Button onClick={onStartManual} disabled={busy} className="w-full sm:w-auto">
+            {busy ? t('pay.working') : t('pay.cta')}
+          </Button>
+          <p className="text-xs text-muted-foreground">{t('pay.manual.intro')}</p>
+
+          {showStk ? (
+            <form onSubmit={onStart} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <label className="flex flex-1 flex-col gap-1 text-sm font-medium">
+                {t('pay.phone')}
+                <Input
+                  type="tel"
+                  inputMode="tel"
+                  value={msisdn}
+                  onChange={(e) => setMsisdn(e.target.value)}
+                  placeholder="+254712345678"
+                />
+                <span className="text-xs font-normal text-muted-foreground">
+                  {t('pay.phone.hint')}
+                </span>
+              </label>
+              <Button type="submit" variant="secondary" disabled={busy}>
+                {busy ? t('pay.working') : t('pay.stk.cta')}
               </Button>
-            </div>
+            </form>
+          ) : (
+            <button
+              type="button"
+              className="self-start text-xs text-muted-foreground underline underline-offset-2"
+              onClick={() => setShowStk(true)}
+            >
+              {t('pay.stk.alt')}
+            </button>
           )}
         </div>
       )}

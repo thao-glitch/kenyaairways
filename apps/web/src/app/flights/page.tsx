@@ -34,7 +34,8 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
   const destination = first(sp.destination);
   const date = first(sp.date);
   const adults = first(sp.adults);
-  const hasQuery = Boolean(origin && destination && date);
+  // No filters → the page lists every bookable flight; filters narrow it down.
+  const hasFilters = Boolean(origin || destination || date);
 
   const [airports, results, site]: [
     AirportDto[] | null,
@@ -42,14 +43,12 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
     SiteSettingsDto | null,
   ] = await Promise.all([
     apiGetOrNull<AirportDto[]>('/api/v1/airports', { revalidate: 300 }),
-    hasQuery
-      ? apiGetOrNull<FlightSearchResultDto>(
-          `/api/v1/flights/search?origin=${encodeURIComponent(origin ?? '')}` +
-            `&destination=${encodeURIComponent(destination ?? '')}` +
-            `&date=${encodeURIComponent(date ?? '')}&adults=${encodeURIComponent(adults ?? '1')}`,
-          { revalidate: 30 },
-        )
-      : Promise.resolve(null),
+    apiGetOrNull<FlightSearchResultDto>(
+      `/api/v1/flights/search?origin=${encodeURIComponent(origin ?? '')}` +
+        `&destination=${encodeURIComponent(destination ?? '')}` +
+        `&date=${encodeURIComponent(date ?? '')}&adults=${encodeURIComponent(adults ?? '1')}`,
+      { revalidate: 30 },
+    ),
     getSiteSettings(),
   ]);
 
@@ -63,9 +62,7 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
         </CardContent>
       </Card>
 
-      {!hasQuery && <p className="text-sm text-muted-foreground">{t('search.prompt')}</p>}
-
-      {hasQuery && results === null && (
+      {hasFilters && results === null && (
         <p
           className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
           role="alert"

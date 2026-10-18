@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { type AdminUserDto, type Paginated } from '@flight13/shared';
+import { type AdminUserDto, type HealthDto, type MetaDto, type Paginated } from '@flight13/shared';
 import { useT } from '@/components/i18n-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,9 +18,9 @@ const statusVariant = (status: string): 'success' | 'warning' | 'destructive' =>
   return 'destructive';
 };
 
-type Tab = 'directory' | 'payments' | 'verify' | 'appearance';
+type Tab = 'directory' | 'payments' | 'verify' | 'appearance' | 'status';
 
-/** ADMIN console: user directory, payment plans, the M-Pesa verifier and site appearance. */
+/** ADMIN console: user directory, payment plans, the M-Pesa verifier, site appearance and service status. */
 export function AdminConsole() {
   const { t } = useT();
   const [tab, setTab] = useState<Tab>('directory');
@@ -33,7 +33,7 @@ export function AdminConsole() {
       </div>
 
       <div className="flex flex-wrap gap-1 rounded-lg border p-1" role="tablist">
-        {(['directory', 'payments', 'verify', 'appearance'] as Tab[]).map((key) => (
+        {(['directory', 'payments', 'verify', 'appearance', 'status'] as Tab[]).map((key) => (
           <button
             key={key}
             type="button"
@@ -53,6 +53,118 @@ export function AdminConsole() {
       {tab === 'payments' && <PaymentPlans />}
       {tab === 'verify' && <MpesaVerifier />}
       {tab === 'appearance' && <SiteAppearance />}
+      {tab === 'status' && <ServiceStatus />}
+    </div>
+  );
+}
+
+/**
+ * Service status (`GET /healthz` + `GET /api/v1/meta`) — moved here from the
+ * public homepage; operational health is staff information.
+ */
+function ServiceStatus() {
+  const { t } = useT();
+  const [health, setHealth] = useState<HealthDto | null>(null);
+  const [meta, setMeta] = useState<MetaDto | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [h, m] = await Promise.all([
+        apiCall<HealthDto>('/healthz'),
+        apiCall<MetaDto>('/api/v1/meta'),
+      ]);
+      setHealth(h);
+      setMeta(m);
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t('error.network'));
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-3" aria-busy="true">
+        <Skeleton className="h-32 rounded-xl" />
+      </div>
+    );
+  }
+
+  const operational = health?.status === 'ok';
+
+  return (
+    <div className="flex flex-col gap-3">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <span
+              aria-hidden="true"
+              className={`inline-block h-2.5 w-2.5 rounded-full ${
+                operational ? 'bg-success' : 'bg-destructive'
+              }`}
+            />
+            {t('home.status.title')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          <dl className="space-y-1">
+            <div className="flex justify-between gap-2">
+              <dt>{t('home.status.api')}</dt>
+              <dd className={operational ? 'text-success' : 'text-destructive'}>
+                {operational
+                  ? `${t('home.status.operational')} · ${t('home.status.version', { version: health?.version ?? '—' })}`
+                  : t('home.status.unreachable')}
+              </dd>
+            </div>
+            {(health?.checks ?? []).map((check) => (
+              <div key={check.name} className="flex justify-between gap-2">
+                <dt>{check.name}</dt>
+                <dd className={check.status === 'up' ? 'text-success' : 'text-destructive'}>
+                  {check.status === 'up'
+                    ? `${t('home.status.operational')}${
+                        check.latencyMs !== undefined ? ` · ${check.latencyMs}ms` : ''
+                      }`
+                    : (check.detail ?? t('home.status.unreachable'))}
+                </dd>
+              </div>
+            ))}
+            {meta && (
+              <>
+                <div className="flex justify-between gap-2">
+                  <dt>M-Pesa</dt>
+                  <dd>{meta.features.mpesa.mode}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt>SMS</dt>
+                  <dd>{meta.features.smsProvider}</dd>
+                </div>
+              </>
+            )}
+          </dl>
+          <div className="mt-3">
+            <Button size="sm" variant="outline" onClick={() => void load()}>
+              {t('pay.manual.refresh')}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {error && (
+        <p
+          className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          role="alert"
+        >
+          {error}
+        </p>
+      )}
     </div>
   );
 }

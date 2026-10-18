@@ -1,4 +1,4 @@
-import type { AirportDto, HealthDto, MetaDto, SiteSettingsDto } from '@flight13/shared';
+import type { AirportDto, MetaDto, SiteSettingsDto } from '@flight13/shared';
 import Link from 'next/link';
 import { SitePhoto } from '@/components/media/site-photo';
 import { SearchForm } from '@/components/search-form';
@@ -16,19 +16,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
  */
 export default async function HomePage() {
   const { t } = await getTranslator();
-  const [meta, airports, health, site]: [
-    MetaDto | null,
-    AirportDto[] | null,
-    HealthDto | null,
-    SiteSettingsDto | null,
-  ] = await Promise.all([
-    apiGetOrNull<MetaDto>('/api/v1/meta', { revalidate: 60 }),
-    apiGetOrNull<AirportDto[]>('/api/v1/airports', { revalidate: 300 }),
-    apiGetOrNull<HealthDto>('/healthz', { revalidate: 30 }),
-    getSiteSettings(),
-  ]);
-
-  const operational = health?.status === 'ok';
+  const [meta, airports, site]: [MetaDto | null, AirportDto[] | null, SiteSettingsDto | null] =
+    await Promise.all([
+      apiGetOrNull<MetaDto>('/api/v1/meta', { revalidate: 60 }),
+      apiGetOrNull<AirportDto[]>('/api/v1/airports', { revalidate: 300 }),
+      getSiteSettings(),
+    ]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -62,64 +55,20 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Service status */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <span
-                aria-hidden="true"
-                className={`inline-block h-2.5 w-2.5 rounded-full ${
-                  operational ? 'bg-success' : 'bg-destructive'
-                }`}
-              />
-              {t('home.status.title')}
-            </CardTitle>
-            <CardDescription>
-              {operational
-                ? `${t('home.status.operational')} · ${t('home.status.version', { version: health?.version ?? '—' })}`
-                : t('home.status.unreachable')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            <dl className="space-y-1">
-              <div className="flex justify-between gap-2">
-                <dt>{t('home.status.api')}</dt>
-                <dd className={operational ? 'text-success' : 'text-destructive'}>
-                  {operational ? t('home.status.operational') : t('home.status.unreachable')}
-                </dd>
-              </div>
-              {meta && (
-                <>
-                  <div className="flex justify-between gap-2">
-                    <dt>M-Pesa</dt>
-                    <dd>{meta.features.mpesa.mode}</dd>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <dt>SMS</dt>
-                    <dd>{meta.features.smsProvider}</dd>
-                  </div>
-                </>
-              )}
-            </dl>
-          </CardContent>
-        </Card>
-
-        {/* Manage booking (flight search now lives in the hero) */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t('home.manage.title')}</CardTitle>
-            <CardDescription>{t('home.manage.body')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/pnr">
-              <Button variant="outline" className="w-full">
-                {t('nav.manage')}
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Manage booking */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t('home.manage.title')}</CardTitle>
+          <CardDescription>{t('home.manage.body')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href="/pnr">
+            <Button variant="outline" className="w-full sm:w-auto">
+              {t('nav.manage')}
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
 
       {/* Network */}
       <section aria-labelledby="network-heading">

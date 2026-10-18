@@ -23,20 +23,25 @@ export function SearchForm({
 }) {
   const { t } = useT();
   const router = useRouter();
-  const [origin, setOrigin] = useState(defaults?.origin ?? 'NBO');
-  const [destination, setDestination] = useState(defaults?.destination ?? 'MBA');
-  const [date, setDate] = useState(defaults?.date ?? todayIso());
+  const [origin, setOrigin] = useState(defaults?.origin ?? '');
+  const [destination, setDestination] = useState(defaults?.destination ?? '');
+  const [date, setDate] = useState(defaults?.date ?? '');
   const [adults, setAdults] = useState(defaults?.adults ?? '1');
   const [error, setError] = useState<string | null>(null);
 
   function onSubmit(event: FormEvent): void {
     event.preventDefault();
-    if (origin === destination) {
+    if (origin && destination && origin === destination) {
       setError(t('search.error.sameAirport'));
       return;
     }
     setError(null);
-    const params = new URLSearchParams({ origin, destination, date, adults });
+    // Every field is optional — empty ones are dropped so the results page
+    // shows every matching (or all) bookable flights.
+    const params = new URLSearchParams({ adults });
+    if (origin) params.set('origin', origin);
+    if (destination) params.set('destination', destination);
+    if (date) params.set('date', date);
     router.push(`/flights?${params.toString()}`);
   }
 
@@ -49,6 +54,7 @@ export function SearchForm({
           onChange={(e) => setOrigin(e.target.value)}
           className="h-11 rounded-md border border-input bg-background px-3 text-sm"
         >
+          <option value="">{t('search.any')}</option>
           {airports.map((a) => (
             <option key={a.code} value={a.code}>
               {a.code} — {a.city}
@@ -63,6 +69,7 @@ export function SearchForm({
           onChange={(e) => setDestination(e.target.value)}
           className="h-11 rounded-md border border-input bg-background px-3 text-sm"
         >
+          <option value="">{t('search.any')}</option>
           {airports.map((a) => (
             <option key={a.code} value={a.code}>
               {a.code} — {a.city}
@@ -74,7 +81,6 @@ export function SearchForm({
         {t('search.date')}
         <Input
           type="date"
-          required
           min={todayIso()}
           value={date}
           onChange={(e) => setDate(e.target.value)}

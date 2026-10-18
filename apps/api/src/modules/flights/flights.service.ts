@@ -225,44 +225,50 @@ export class FlightsService {
   }
 
   async search(dto: FlightSearchDto): Promise<FlightSearchResultDto> {
-    const originCode = dto.origin.toUpperCase();
-    const destinationCode = dto.destination.toUpperCase();
-    if (originCode === destinationCode) {
+    const originCode = dto.origin?.toUpperCase();
+    const destinationCode = dto.destination?.toUpperCase();
+    if (originCode && destinationCode && originCode === destinationCode) {
       throw new AppError('BAD_REQUEST', 'Origin and destination must be different');
     }
 
     const [origin, destination] = await Promise.all([
-      this.prisma.airport.findUnique({ where: { code: originCode } }),
-      this.prisma.airport.findUnique({ where: { code: destinationCode } }),
+      originCode ? this.prisma.airport.findUnique({ where: { code: originCode } }) : null,
+      destinationCode ? this.prisma.airport.findUnique({ where: { code: destinationCode } }) : null,
     ]);
-    if (!origin) throw new AppError('BAD_REQUEST', `Unknown origin airport "${originCode}"`);
-    if (!destination)
+    if (originCode && !origin)
+      throw new AppError('BAD_REQUEST', `Unknown origin airport "${originCode}"`);
+    if (destinationCode && !destination)
       throw new AppError('BAD_REQUEST', `Unknown destination airport "${destinationCode}"`);
 
-    const flightDate = this.parseDateOnly(dto.date);
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
-    if (Number.isNaN(flightDate.getTime())) {
-      throw new AppError('BAD_REQUEST', 'date must be a valid calendar date');
-    }
-    if (flightDate.getTime() < today.getTime()) {
-      throw new AppError('BAD_REQUEST', 'date must not be in the past');
-    }
-    if (flightDate.getTime() > today.getTime() + MAX_LEAD_DAYS * 86_400_000) {
-      throw new AppError('BAD_REQUEST', `search window is ${MAX_LEAD_DAYS} days`);
+    let flightDate: Date | undefined;
+    if (dto.date) {
+      flightDate = this.parseDateOnly(dto.date);
+      if (Number.isNaN(flightDate.getTime())) {
+        throw new AppError('BAD_REQUEST', 'date must be a valid calendar date');
+      }
+      if (flightDate.getTime() < today.getTime()) {
+        throw new AppError('BAD_REQUEST', 'date must not be in the past');
+      }
+      if (flightDate.getTime() > today.getTime() + MAX_LEAD_DAYS * 86_400_000) {
+        throw new AppError('BAD_REQUEST', `search window is ${MAX_LEAD_DAYS} days`);
+      }
     }
 
     const seatsNeeded = dto.adults + dto.children; // infants travel on laps
     const flights = await this.prisma.flight.findMany({
       where: {
-        originCode,
-        destinationCode,
-        flightDate,
+        ...(originCode ? { originCode } : {}),
+        ...(destinationCode ? { destinationCode } : {}),
+        // No date given → search the whole booking window (nearest first).
+        flightDate: flightDate ?? { gte: today },
         status: { not: 'CANCELLED' },
         schedule: { saleStatus: 'OPEN' },
       },
       include: this.include(),
       orderBy: { scheduledDepUtc: 'asc' },
+      take: dto.limit,
     });
 
     const results: FlightOptionDto[] = [];
@@ -272,9 +278,9 @@ export class FlightsService {
     }
 
     const query: FlightSearchQueryDto = {
-      origin: originCode,
-      destination: destinationCode,
-      date: dto.date,
+      origin: originCode ?? '',
+      destination: destinationCode ?? '',
+      date: dto.date ?? '',
       adults: dto.adults,
       children: dto.children,
       infants: dto.infants,

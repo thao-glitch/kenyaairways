@@ -1,20 +1,47 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { IsDateString, IsEnum, IsInt, IsOptional, Matches, Max, Min } from 'class-validator';
 import { CABIN_CLASSES, type CabinClass } from '@flight13/shared';
 
+/** Empty query params (`?origin=`) mean "no filter", not a validation error. */
+const emptyToUndefined = ({ value }: { value: unknown }): unknown =>
+  value === '' ? undefined : value;
+
 export class FlightSearchDto {
-  @ApiProperty({ description: 'Origin IATA code', example: 'NBO' })
+  @ApiPropertyOptional({
+    description: 'Origin IATA code (omit to search every origin)',
+    example: 'NBO',
+  })
+  @Transform(emptyToUndefined)
+  @IsOptional()
   @Matches(/^[A-Za-z]{3}$/, { message: 'origin must be a 3-letter IATA code' })
-  origin!: string;
+  origin?: string;
 
-  @ApiProperty({ description: 'Destination IATA code', example: 'MBA' })
+  @ApiPropertyOptional({
+    description: 'Destination IATA code (omit to search every destination)',
+    example: 'MBA',
+  })
+  @Transform(emptyToUndefined)
+  @IsOptional()
   @Matches(/^[A-Za-z]{3}$/, { message: 'destination must be a 3-letter IATA code' })
-  destination!: string;
+  destination?: string;
 
-  @ApiProperty({ description: 'Departure date (airport-local), YYYY-MM-DD', example: '2026-10-20' })
+  @ApiPropertyOptional({
+    description: 'Departure date (airport-local), YYYY-MM-DD — omit to search the whole window',
+    example: '2026-10-20',
+  })
+  @Transform(emptyToUndefined)
+  @IsOptional()
   @IsDateString({}, { message: 'date must be an ISO date (YYYY-MM-DD)' })
-  date!: string;
+  date?: string;
+
+  @ApiPropertyOptional({ default: 100, minimum: 1, maximum: 200 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(200)
+  limit: number = 100;
 
   @ApiProperty({ default: 1, minimum: 1, maximum: 9 })
   @Type(() => Number)
