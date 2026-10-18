@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiRequestError, apiCall } from '@/lib/api-client';
+import { API_URL } from '@/lib/config';
 import { PaymentPlans } from '@/components/staff/payment-plans';
 import { MpesaVerifier } from '@/components/staff/mpesa-verifier';
 import { SiteAppearance } from '@/components/staff/site-appearance';
@@ -73,11 +74,13 @@ function ServiceStatus() {
     setLoading(true);
     setError(null);
     try {
-      const [h, m] = await Promise.all([
-        apiCall<HealthDto>('/healthz'),
+      // Readiness carries the dependency checks; a 503 IS the payload when
+      // something is down, so read the body regardless of status code.
+      const [readyRes, m] = await Promise.all([
+        fetch(`${API_URL}/readyz`, { headers: { accept: 'application/json' } }),
         apiCall<MetaDto>('/api/v1/meta'),
       ]);
-      setHealth(h);
+      setHealth(await readyRes.json());
       setMeta(m);
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : t('error.network'));
