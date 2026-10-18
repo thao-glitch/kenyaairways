@@ -1264,6 +1264,45 @@ async function seedUsers(): Promise<void> {
   console.log(`✓ users (${USERS.length}, one per role) — login with SEED_USER_PASSWORD from .env`);
 }
 
+// ─────────────────── manual M-Pesa paybill + site settings ──────────────────
+/**
+ * Paybill customers pay into BY HAND (no Daraja STK involved): the passenger
+ * sends money to this number with their PNR as the account/reference, then
+ * pastes the confirmation SMS into the verifier console where staff match it
+ * to the booking. Shown in the payment plan and in the passenger pay panel.
+ */
+const MPESA_PAYBILL = '0182774255';
+
+/** Seed the paybill into the payment plan — never overwrites admin edits. */
+async function seedPaymentPlan(): Promise<void> {
+  const existing = await prisma.paymentMethodConfig.findUnique({
+    where: { provider: 'MPESA_STK' },
+  });
+  if (existing) {
+    console.log('• payment plan already configured — keeping admin overrides');
+    return;
+  }
+  await prisma.paymentMethodConfig.create({
+    data: {
+      provider: 'MPESA_STK',
+      enabled: true,
+      settings: { shortcode: MPESA_PAYBILL },
+    },
+  });
+  console.log(`✓ payment plan: M-Pesa paybill ${MPESA_PAYBILL} configured for MPESA_STK`);
+}
+
+/** Site appearance row (theme + admin-managed image URLs). Create-only. */
+async function seedSiteSettings(): Promise<void> {
+  const existing = await prisma.siteSettings.findUnique({ where: { id: true } });
+  if (existing) {
+    console.log('• site settings already seeded');
+    return;
+  }
+  await prisma.siteSettings.create({ data: { theme: 'sky' } });
+  console.log('✓ site settings (theme "sky", images fall back to web defaults)');
+}
+
 async function main(): Promise<void> {
   console.log('Seeding Flight13 …');
   await seedAirports();
@@ -1272,6 +1311,8 @@ async function main(): Promise<void> {
   await seedTaxRules();
   await seedSchedulesAndFlights();
   await seedUsers();
+  await seedPaymentPlan();
+  await seedSiteSettings();
   console.log('Seed complete.');
 }
 

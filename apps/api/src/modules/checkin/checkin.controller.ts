@@ -4,12 +4,14 @@ import { ArrayMaxSize, IsArray, IsNotEmpty, IsOptional, IsString } from 'class-v
 import {
   AppError,
   MAX_PAX_PER_BOOKING,
+  type BaggageDto,
   type BoardingPassDto,
   type CheckInResultDto,
 } from '@flight13/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthUser, AuthedRequest } from '../../common/auth-request';
 import { actorFromUser, type BookingActor } from '../bookings/bookings.service';
+import { BaggageService } from './baggage.service';
 import { CheckInService } from './checkin.service';
 
 class CheckInRequestDto {
@@ -37,7 +39,23 @@ function actorOf(user: AuthUser, req: AuthedRequest): BookingActor {
 @ApiTags('check-in')
 @Controller('check-in')
 export class CheckInController {
-  constructor(private readonly checkins: CheckInService) {}
+  constructor(
+    private readonly checkins: CheckInService,
+    private readonly baggage: BaggageService,
+  ) {}
+
+  @Get('bookings/:bookingId/baggage')
+  @ApiOperation({
+    summary:
+      'Baggage tracking timeline for a booking — stages derived from real check-in and flight status',
+  })
+  baggageTimeline(
+    @CurrentUser() user: AuthUser,
+    @Req() req: AuthedRequest,
+    @Param('bookingId') bookingId: string,
+  ): Promise<BaggageDto> {
+    return this.baggage.forBooking(actorOf(user, req), bookingId);
+  }
 
   @Post()
   @HttpCode(201)

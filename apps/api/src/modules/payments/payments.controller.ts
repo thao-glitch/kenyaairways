@@ -7,12 +7,14 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { PaymentDto, RefundDto } from '@flight13/shared';
+import type { PaymentDto, RefundDto, MpesaManualVerificationDto } from '@flight13/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import type { AuthedRequest, AuthUser } from '../../common/auth-request';
 import { actorFromUser, type BookingActor } from '../bookings/bookings.service';
 import { PaymentsService } from './payments.service';
+import { MpesaVerifierService } from './mpesa-verifier/mpesa-verifier.service';
+import { PasteMessageDto } from './mpesa-verifier/mpesa-verifier.controller';
 import {
   CreatePaymentDto,
   ListPaymentsQueryDto,
@@ -24,7 +26,10 @@ import {
 @ApiBearerAuth()
 @Controller('payments')
 export class PaymentsController {
-  constructor(private readonly payments: PaymentsService) {}
+  constructor(
+    private readonly payments: PaymentsService,
+    private readonly verifier: MpesaVerifierService,
+  ) {}
 
   @Post()
   @HttpCode(201)
@@ -86,6 +91,33 @@ export class PaymentsController {
     @Req() req: AuthedRequest,
   ): Promise<PaymentDto> {
     return this.payments.simulateStk(this.actor(user, req), id, dto.resultCode);
+  }
+
+  @Post(':id/mpesa-manual')
+  @HttpCode(201)
+  @ApiOperation({
+    summary:
+      'Submit a pasted M-Pesa paybill confirmation (manual payment — staff verify it in the console)',
+  })
+  @ApiResponse({ status: 201, description: 'Verification record created (PENDING staff review)' })
+  async submitManual(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: PasteMessageDto,
+    @Req() req: AuthedRequest,
+  ): Promise<MpesaManualVerificationDto> {
+    return this.verifier.submit(this.actor(user, req), id, dto.message);
+  }
+
+  @Get(':id/mpesa-manual')
+  @ApiOperation({ summary: 'Latest manual M-Pesa verification for a payment (owner or staff)' })
+  @ApiParam({ name: 'id' })
+  async manualStatus(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Req() req: AuthedRequest,
+  ): Promise<MpesaManualVerificationDto | null> {
+    return this.verifier.forPayment(this.actor(user, req), id);
   }
 
   @Post(':id/refund')

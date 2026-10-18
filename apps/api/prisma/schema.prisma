@@ -645,18 +645,19 @@ model Booking {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  user          User?              @relation(fields: [userId], references: [id])
-  segments      BookingSegment[]
-  passengers    BookingPassenger[]
-  payments      Payment[]
-  refunds       Refund[]
-  seatHolds     SeatHold[]
-  ancillaries   BookingAncillary[]
-  bags          Baggage[]
-  notifications Notification[]
-  tickets       Ticket[]
-  checkIns      CheckIn[]
-  c2bPayments   MpesaC2BPayment[]
+  user           User?                     @relation(fields: [userId], references: [id])
+  segments       BookingSegment[]
+  passengers     BookingPassenger[]
+  payments       Payment[]
+  refunds        Refund[]
+  seatHolds      SeatHold[]
+  ancillaries    BookingAncillary[]
+  bags           Baggage[]
+  notifications  Notification[]
+  tickets        Ticket[]
+  checkIns       CheckIn[]
+  c2bPayments    MpesaC2BPayment[]
+  manualPayments MpesaManualVerification[]
 
   @@index([userId, status, createdAt])
   @@index([status, holdExpiresAt])
@@ -827,9 +828,10 @@ model Payment {
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 
-  booking  Booking            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking  Booking                   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   mpesaTxs MpesaTransaction[]
   c2b      MpesaC2BPayment[]
+  manual   MpesaManualVerification[]
   refunds  Refund[]
 
   @@index([bookingId, status])
@@ -864,6 +866,57 @@ model PaymentPlanSettings {
   defaultProvider PaymentProviderType?
   updatedById     String?
   updatedAt       DateTime             @updatedAt
+}
+
+enum ManualVerifyStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+/// Manual M-Pesa paybill payment: the passenger pays the paybill configured
+/// in the payment plan (shortcode) from their phone, then staff verify the
+/// confirmation SMS by hand in the verifier console. The receipt number is
+/// unique so one SMS can never be used to confirm two payments, and the raw
+/// message is kept for audit.
+model MpesaManualVerification {
+  id               String             @id @default(cuid())
+  receiptNumber    String             @unique // e.g. SJH4LMOP32
+  amountMinor      Int
+  currency         String             @default("KES")
+  msisdn           String? // payer phone when the SMS carries it
+  paybill          String? // paybill/till number the money landed on
+  accountReference String? // what the payer typed as the account (usually the PNR)
+  transactionAt    DateTime? // Africa/Nairobi wall time from the SMS, as UTC
+  messageRaw       String
+  status           ManualVerifyStatus @default(PENDING)
+  paymentId        String?
+  bookingId        String?
+  submittedById    String? // passenger who pasted the message (self-submission)
+  resolvedById     String? // staff who confirmed/rejected
+  resolvedAt       DateTime?
+  rejectReason     String?
+  notes            String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([bookingId])
+}
+
+/// Singleton row: site appearance. The active theme plus admin-managed image
+/// URLs (real photographs served from any https origin). Unset keys fall
+/// back to the web app's built-in defaults.
+model SiteSettings {
+  id          Boolean  @id @default(true)
+  theme       String   @default("sky")
+  images      Json? // { hero, auth, notFound, destinations: { <airportCode>: url } }
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model MpesaTransaction {

@@ -1,8 +1,11 @@
 import { Body, Controller, Get, HttpCode, Post, Query, Req, Res } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 import type { OtpPurpose } from '@prisma/client';
 import type { Request, Response } from 'express';
-import type { SessionUserDto } from '@flight13/shared';
+import type { MobileSessionDto, SessionUserDto } from '@flight13/shared';
+import { getEnv } from '../../config/env';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthUser, AuthedRequest } from '../../common/auth-request';
@@ -13,6 +16,23 @@ import { LoginDto, OtpRequestDto, OtpVerifyDto, RegisterDto } from './dto/auth.d
 
 interface SessionResponse {
   user: SessionUserDto;
+  /** Present only for native clients (`X-Client: mobile`) — tokens in body. */
+  session?: MobileSessionDto;
+}
+
+/** Native apps cannot keep httpOnly cookies across restarts — body tokens. */
+export class MobileRefreshDto {
+  @ApiPropertyOptional({ description: 'Refresh token from the login/register body' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(4096)
+  refreshToken?: string;
+}
+
+/** True when the caller is the mobile app asking for body-borne tokens. */
+function wantsMobileSession(req: Request): boolean {
+  const client = req.headers['x-client'];
+  return client === 'mobile';
 }
 
 @Controller('auth')
@@ -36,7 +56,7 @@ export class AuthController {
   ): Promise<SessionResponse> {
     const { session, user } = await this.auth.register(dto, meta(req));
     this.tokens.setCookies(res, session);
-    return { user };
+    return { user, ...(wantsMobileSession(req) ? { session: mobileSession(session, user) } : {}) };
   }
 
   @Public()
@@ -53,7 +73,7 @@ export class AuthController {
   ): Promise<SessionResponse> {
     const { session, user } = await this.auth.login(dto, meta(req));
     this.tokens.setCookies(res, session);
-    return { user };
+    return { user, ...(wantsMobileSession(req) ? { session: mobileSession(session, user) } : {}) };
   }
 
   @Public()
@@ -63,20 +83,33 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Missing, expired or replayed refresh token' })
   async refresh(
     @Req() req: Request,
+    @Body() dto: MobileRefreshDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<{ rotated: true }> {
-    const raw = (req.cookies as Record<string, string> | undefined)?.[REFRESH_COOKIE];
-    const session = await this.auth.refresh(raw, meta(req as AuthedRequest));
-    this.tokens.setCookies(res, session);
-    return { rotated: true };
+  ): Promise<{ rotated: true; session?: MobileSessionDto }> {
+    // Mobile clients post the token (no cookie jar); browsers use the cookie.
+    const raw =
+      dto.refreshToken ?? (req.cookies as Record<string, string> | undefined)?.[REFRESH_COOKIE];
+    const issued = await this.auth.refresh(raw, meta(req as AuthedRequest));
+    this.tokens.setCookies(res, issued);
+    if (!wantsMobileSession(req)) return { rotated: true };
+    // The new access token names its subject — load that user for the body.
+    const claims = await this.tokens.verifyAccess(issued.accessToken);
+    const user = await this.auth.me(claims.sub);
+    return { rotated: true, session: mobileSession(issued, user) };
   }
 
   @Public()
   @Post('logout')
   @HttpCode(204)
   @ApiOperation({ summary: 'Revoke the refresh-token family and clear cookies' })
-  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
-    const raw = (req.cookies as Record<string, string> | undefined)?.[REFRESH_COOKIE];
+  async logout(
+    @Req() req: Request,
+    @Body() dto: MobileRefreshDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    // Mobile clients post the refresh token to revoke their own family.
+    const raw =
+      dto.refreshToken ?? (req.cookies as Record<string, string> | undefined)?.[REFRESH_COOKIE];
     await this.auth.logout(raw, meta(req as AuthedRequest));
     this.tokens.clearCookies(res);
   }
@@ -135,5 +168,18 @@ function meta(req: AuthedRequest): {
     ip: req.ip,
     userAgent: req.headers['user-agent'],
     requestId: typeof header === 'string' ? header : undefined,
+  };
+}
+
+/** Body-borne token pair for native clients (same JWTs the cookies carry). */
+function mobileSession(
+  session: { accessToken: string; refreshToken: string },
+  user: SessionUserDto,
+): MobileSessionDto {
+  return {
+    accessToken: session.accessToken,
+    refreshToken: session.refreshToken,
+    accessTokenExpiresInSec: getEnv().ACCESS_TOKEN_TTL,
+    user,
   };
 }

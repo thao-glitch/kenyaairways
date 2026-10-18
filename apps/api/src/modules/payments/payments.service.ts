@@ -144,6 +144,7 @@ function txStatusFor(
 }
 
 export function toPaymentDto(p: Payment): PaymentDto {
+  const meta = (p.metadata ?? null) as { flow?: string } | null;
   return {
     id: p.id,
     bookingId: p.bookingId,
@@ -158,6 +159,7 @@ export function toPaymentDto(p: Payment): PaymentDto {
     failureMessage: p.failureMessage,
     paidAt: p.paidAt?.toISOString() ?? null,
     expiresAt: p.expiresAt?.toISOString() ?? null,
+    manual: meta?.flow === 'manual-paybill',
     createdAt: p.createdAt.toISOString(),
   };
 }
@@ -270,8 +272,20 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         `Payment method ${active.type} is not accepting payments`,
       );
     }
-    const msisdn = this.resolveMsisdn(dto.msisdn, actor, booking, active.type, active.mode);
-    const isPush = active.type !== 'STRIPE';
+    // Manual paybill flow: the passenger pays the paybill themselves and
+    // pastes the confirmation SMS — nothing is pushed to the phone, and only
+    // M-Pesa methods (which settle by receipt) can be paid this way.
+    const manual = dto.manual === true;
+    if (manual && !(active.type === 'MPESA_STK' || active.type === 'MPESA_C2B')) {
+      throw new AppError(
+        'VALIDATION_ERROR',
+        `Manual paybill payment is only available for M-Pesa (current method: ${active.type})`,
+      );
+    }
+    const msisdn = manual
+      ? undefined // no push → no phone needed (the SMS carries the payer number)
+      : this.resolveMsisdn(dto.msisdn, actor, booking, active.type, active.mode);
+    const isPush = active.type !== 'STRIPE' && !manual;
     if (isPush && active.type === 'MPESA_STK' && active.mode === 'live' && !msisdn) {
       throw new AppError('VALIDATION_ERROR', 'A phone number is required for M-Pesa STK push');
     }
@@ -323,12 +337,26 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       throw err;
     }
 
-    await this.initiate(payment.id, booking, msisdn, actor, false, active);
+    if (manual) {
+      // No provider attempt: the passenger settles by paying the paybill and
+      // pasting the SMS. The row stays REQUIRES_ACTION until staff verify.
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          metadata: { flow: 'manual-paybill' },
+          failureCode: null,
+          failureMessage: null,
+        },
+      });
+    } else {
+      await this.initiate(payment.id, booking, msisdn, actor, false, active);
+    }
     const fresh = await this.prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
     await this.audit('payment.create', actor, fresh.id, 'SUCCESS', {
       pnr: booking.pnr,
       provider: fresh.provider,
       amountMinor: fresh.amountMinor,
+      ...(manual ? { flow: 'manual-paybill' } : {}),
     });
     await this.rt.paymentUpdated(fresh.id);
     return toPaymentDto(fresh);
@@ -667,6 +695,42 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       }
     }
     return 'paid';
+  }
+
+  // ── manual paybill verification ──────────────────────────────────────────
+
+  /**
+   * Confirm a payment from a hand-verified M-Pesa paybill SMS: the passenger
+   * paid the paybill from their phone (no Daraja callback will ever come),
+   * and staff verified the receipt by hand in the verifier console. Money
+   * lands in the same idempotent funnel as every other confirm path.
+   */
+  async applyManualPaid(
+    actor: BookingActor,
+    paymentId: string,
+    receipt: string,
+  ): Promise<PaymentDto> {
+    const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
+    if (!payment) throw new AppError('NOT_FOUND', 'Payment not found');
+    if (payment.status === 'PAID') throw new AppError('CONFLICT', 'Payment already completed');
+
+    const outcome = await this.prisma.$transaction((tx) =>
+      this.applyPaidLocked(tx, payment, receipt, 'manual-verify'),
+    );
+    if (outcome === 'unconfirmable') {
+      throw new AppError(
+        'INVALID_STATE_TRANSITION',
+        'Funds were received but the booking can no longer be confirmed — manual resolution required',
+      );
+    }
+    await this.audit('payment.paid', actor, payment.id, 'SUCCESS', {
+      source: 'manual-verify',
+      outcome,
+      receipt,
+    });
+    await this.rt.paymentUpdated(payment.id, { resultCode: 0, resultMessage: 'Manually verified' });
+    await this.rt.bookingUpdated(payment.bookingId);
+    return toPaymentDto(await this.prisma.payment.findUniqueOrThrow({ where: { id: payment.id } }));
   }
 
   // ── mock simulation (dev/demo/test helper) ───────────────────────────────

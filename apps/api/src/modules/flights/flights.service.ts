@@ -5,6 +5,7 @@ import {
   type FareClassDetailDto,
   type FareOptionDto,
   type FlightOptionDto,
+  type FlightPositionDto,
   type FlightSearchQueryDto,
   type FlightSearchResultDto,
   type FlightStatusDto,
@@ -59,6 +60,109 @@ export class FlightsService {
         source: ev.source,
         at: ev.createdAt.toISOString(),
       })),
+    };
+  }
+
+  /**
+   * `GET /flights/:id/position` — live aircraft position for the mobile map
+   * (Phase 4). Interpolates along the great-circle route between the two
+   * airports using real departure/arrival times. A `PROVIDER` source can be
+   * swapped in later (AviationStack / FlightAware adapter) — the shape is
+   * identical, so only this method changes.
+   */
+  async flightPosition(id: string): Promise<FlightPositionDto> {
+    const flight = await this.prisma.flight.findUnique({
+      where: { id },
+      include: { origin: true, destination: true },
+    });
+    if (!flight) throw new AppError('NOT_FOUND', 'Flight not found');
+
+    const dep = flight.actualDepUtc ?? flight.scheduledDepUtc;
+    const arr = flight.scheduledArrUtc;
+    const now = Date.now();
+    const total = arr.getTime() - dep.getTime();
+    const elapsed = now - dep.getTime();
+    const rawProgress = total > 0 ? elapsed / total : now >= arr.getTime() ? 1 : 0;
+    const progress = Math.min(1, Math.max(0, rawProgress));
+
+    const origin = {
+      code: flight.originCode,
+      latitude: flight.origin.latitude,
+      longitude: flight.origin.longitude,
+    };
+    const destination = {
+      code: flight.destinationCode,
+      latitude: flight.destination.latitude,
+      longitude: flight.destination.longitude,
+    };
+
+    let phase: FlightPositionDto['phase'];
+    if (flight.status === 'LANDED' || progress >= 1) phase = 'LANDED';
+    else if (
+      flight.status === 'BOARDING' ||
+      flight.status === 'DEPARTED' ||
+      flight.status === 'IN_AIR' ||
+      progress > 0
+    )
+      phase = 'ENROUTE';
+    else phase = 'SCHEDULED';
+
+    if (phase === 'SCHEDULED' || phase === 'LANDED') {
+      // On the ground: park at the active end of the route.
+      const point = phase === 'SCHEDULED' ? origin : destination;
+      return {
+        flightId: flight.id,
+        flightNumber: flight.flightNumber,
+        origin,
+        destination,
+        position: { latitude: point.latitude, longitude: point.longitude },
+        phase,
+        progress,
+        headingDeg: bearing(
+          origin.latitude,
+          origin.longitude,
+          destination.latitude,
+          destination.longitude,
+        ),
+        altitudeFt: 0,
+        groundSpeedKts: 0,
+        source: 'SCHEDULE',
+        updatedAt: new Date(now).toISOString(),
+      };
+    }
+
+    const point = interpolatePoint(
+      origin.latitude,
+      origin.longitude,
+      destination.latitude,
+      destination.longitude,
+      progress,
+    );
+    const legKm = haversineKm(
+      origin.latitude,
+      origin.longitude,
+      destination.latitude,
+      destination.longitude,
+    );
+    const blockHours = Math.max(total, 1) / 3_600_000;
+    return {
+      flightId: flight.id,
+      flightNumber: flight.flightNumber,
+      origin,
+      destination,
+      position: { latitude: point.latitude, longitude: point.longitude },
+      phase,
+      progress,
+      headingDeg: bearing(
+        point.latitude,
+        point.longitude,
+        destination.latitude,
+        destination.longitude,
+      ),
+      altitudeFt: Math.round(cruiseAltitudeFt(progress)),
+      groundSpeedKts: Math.round(legKm / 1.852 / blockHours),
+      source: 'SCHEDULE',
+      updatedAt: new Date(now).toISOString(),
     };
   }
 
@@ -350,4 +454,74 @@ interface FareClassRow {
 
 function airportRef(a: FlightOrigin) {
   return { code: a.code, name: a.name, city: a.city, country: a.country, timezone: a.timezone };
+}
+
+// ── great-circle position math (Phase 4 live tracking) ─────────────────────
+
+const rad = (deg: number): number => (deg * Math.PI) / 180;
+const deg = (r: number): number => (r * 180) / Math.PI;
+
+/**
+ * Slerp along the great-circle arc between two points at fraction `t`
+ * (0 = origin, 1 = destination). Converts to cartesian, blends, converts
+ * back — the numerically stable form of the arc interpolation.
+ */
+function interpolatePoint(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+  t: number,
+): { latitude: number; longitude: number } {
+  const φ1 = rad(lat1);
+  const λ1 = rad(lon1);
+  const φ2 = rad(lat2);
+  const λ2 = rad(lon2);
+  const d = centralAngle(φ1, λ1, φ2, λ2);
+  if (d === 0) return { latitude: lat1, longitude: lon1 };
+  const a = Math.sin((1 - t) * d) / Math.sin(d);
+  const b = Math.sin(t * d) / Math.sin(d);
+  const x = a * Math.cos(φ1) * Math.cos(λ1) + b * Math.cos(φ2) * Math.cos(λ2);
+  const y = a * Math.cos(φ1) * Math.sin(λ1) + b * Math.cos(φ2) * Math.sin(λ2);
+  const z = a * Math.sin(φ1) + b * Math.sin(φ2);
+  return {
+    latitude: deg(Math.atan2(z, Math.sqrt(x * x + y * y))),
+    longitude: deg(Math.atan2(y, x)),
+  };
+}
+
+/** Great-circle distance in kilometres (haversine). */
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const φ1 = rad(lat1);
+  const φ2 = rad(lat2);
+  const Δφ = rad(lat2 - lat1);
+  const Δλ = rad(lon2 - lon1);
+  const h = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+
+function centralAngle(φ1: number, λ1: number, φ2: number, λ2: number): number {
+  const Δφ = φ2 - φ1;
+  const Δλ = λ2 - λ1;
+  const h = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  return 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+/** Initial bearing from point A to point B (compass degrees, 0 = north). */
+function bearing(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const φ1 = rad(lat1);
+  const φ2 = rad(lat2);
+  const Δλ = rad(lon2 - lon1);
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  return (deg(Math.atan2(y, x)) + 360) % 360;
+}
+
+/** Simple climb/cruise/descent profile: 0 ft on ground, ~35,000 ft at cruise. */
+function cruiseAltitudeFt(progress: number): number {
+  const climb = 0.12;
+  const descent = 0.88;
+  if (progress <= climb) return (progress / climb) * 35_000;
+  if (progress >= descent) return ((1 - progress) / (1 - descent)) * 35_000;
+  return 35_000;
 }

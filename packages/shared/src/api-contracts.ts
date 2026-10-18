@@ -94,6 +94,20 @@ export interface SessionUserDto {
   phoneVerified: boolean;
 }
 
+/**
+ * Mobile-client session: native apps cannot rely on httpOnly cookies across
+ * app restarts, so `POST /auth/login|register|refresh` also returns bearer
+ * tokens in the body when the client sends `X-Client: mobile`. The same
+ * access token works against every endpoint via `Authorization: Bearer`.
+ */
+export interface MobileSessionDto {
+  accessToken: string;
+  /** Store in Keychain/Keystore; post it to /auth/refresh to rotate. */
+  refreshToken: string;
+  accessTokenExpiresInSec: number;
+  user: SessionUserDto;
+}
+
 /** ADMIN-only user directory row (never exposes password hashes or tokens). */
 export interface AdminUserDto {
   id: string;
@@ -284,6 +298,8 @@ export interface PaymentDto {
   failureMessage: string | null;
   paidAt: string | null;
   expiresAt: string | null;
+  /** True when the passenger settles by paying the paybill + pasting the SMS. */
+  manual: boolean;
   createdAt: string;
 }
 
@@ -383,6 +399,90 @@ export interface MpesaTxDto {
   createdAt: string;
 }
 
+// ── manual M-Pesa paybill verification ──────────────────────────────────────
+
+/**
+ * Fields extracted from a pasted M-Pesa confirmation SMS. `valid` is true
+ * when a receipt number and an amount were both found — everything else is
+ * best-effort (Safaricom wording varies by product and language).
+ */
+export interface MpesaParsedMessageDto {
+  receiptNumber: string | null;
+  /** Whole shillings-and-cents from the message, in minor units. */
+  amountMinor: number | null;
+  paybill: string | null;
+  accountReference: string | null;
+  msisdn: string | null;
+  /** Africa/Nairobi wall time from the message, as an ISO instant. */
+  transactionAt: string | null;
+  valid: boolean;
+}
+
+export type ManualVerifyStatus = 'PENDING' | 'CONFIRMED' | 'REJECTED';
+
+/** One manually-verified paybill payment (a MpesaManualVerification row). */
+export interface MpesaManualVerificationDto {
+  id: string;
+  receiptNumber: string;
+  amountMinor: number;
+  currency: Currency;
+  msisdn: string | null;
+  paybill: string | null;
+  accountReference: string | null;
+  transactionAt: string | null;
+  status: ManualVerifyStatus;
+  paymentId: string | null;
+  bookingId: string | null;
+  pnr: string | null;
+  submittedById: string | null;
+  resolvedById: string | null;
+  resolvedAt: string | null;
+  rejectReason: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+/** Staff verifier verdict on a pasted message, before/without committing it. */
+export interface MpesaVerifyCheckDto {
+  parsed: MpesaParsedMessageDto;
+  /** Human-readable problems that block verification (empty = looks good). */
+  issues: string[];
+  paymentId: string | null;
+  bookingId: string | null;
+  pnr: string | null;
+  amountExpectedMinor: number | null;
+  /** False when the receipt number was already used for another payment. */
+  receiptAvailable: boolean;
+}
+
+// ── site appearance (theme + real photographs) ──────────────────────────────
+
+/** Theme switchable from the admin appearance console. */
+export type SiteTheme = 'sky' | 'savanna' | 'ocean' | 'forest' | 'midnight';
+
+/**
+ * Admin-managed image URLs. Every key is optional — unset keys fall back to
+ * the web app's built-in defaults (real photographs, Wikimedia Commons).
+ */
+export interface SiteImagesDto {
+  /** Home page hero backdrop. */
+  hero?: string;
+  /** Sign-in / register banner. */
+  auth?: string;
+  /** 404 page photograph. */
+  notFound?: string;
+  /** Destination card photograph per airport code (NBO, MBA, …). */
+  destinations?: Record<string, string>;
+}
+
+/** Public site appearance + the M-Pesa paybill passengers pay into. */
+export interface SiteSettingsDto {
+  theme: SiteTheme;
+  images: SiteImagesDto;
+  /** Paybill number from the active payment plan (e.g. '0182774255'). */
+  mpesaPaybill: string | null;
+}
+
 // ── ticketing, PNR, flight status (M6) ──────────────────────────────────────
 
 /**
@@ -427,6 +527,62 @@ export interface FlightStatusEventDto {
   message: string | null;
   source: StatusSource;
   at: string;
+}
+
+/**
+ * `GET /flights/:id/position` — live aircraft position for the mobile map.
+ * Positions are interpolated along the great-circle route between the two
+ * airports using real departure/arrival times; `source` says whether an
+ * external provider (AviationStack/FlightAware adapter) supplied a fix or
+ * the schedule did.
+ */
+export interface FlightPositionDto {
+  flightId: string;
+  flightNumber: string;
+  origin: { code: string; latitude: number; longitude: number };
+  destination: { code: string; latitude: number; longitude: number };
+  /** Null while the aircraft is on the ground (scheduled or arrived). */
+  position: { latitude: number; longitude: number } | null;
+  phase: 'SCHEDULED' | 'ENROUTE' | 'LANDED';
+  /** 0..1 along the route (1 = arrived). */
+  progress: number;
+  headingDeg: number;
+  altitudeFt: number | null;
+  groundSpeedKts: number | null;
+  source: 'SCHEDULE' | 'PROVIDER';
+  updatedAt: string;
+}
+
+// ── baggage tracking (mobile) ───────────────────────────────────────────────
+
+export type BaggageStageCode =
+  'NOT_ACCEPTED' | 'ACCEPTED' | 'LOADED' | 'IN_TRANSIT' | 'LANDED' | 'ON_BELT';
+
+/** One step of a bag's journey, derived from real check-in/flight state. */
+export interface BaggageEventDto {
+  code: BaggageStageCode;
+  label: string;
+  at: string | null;
+  done: boolean;
+}
+
+/** One checked bag with its status timeline (derived, never invented). */
+export interface BaggageItemDto {
+  ticketNumber: string;
+  passengerName: string;
+  weightKg: number;
+  originCode: string;
+  destinationCode: string;
+  flightNumber: string;
+  events: BaggageEventDto[];
+  current: BaggageStageCode;
+}
+
+/** `GET /bookings/:id/baggage` — all bags on a booking + their journeys. */
+export interface BaggageDto {
+  bookingId: string;
+  pnr: string;
+  items: BaggageItemDto[];
 }
 
 /** `GET /flights/:id/status` — current status + recent timeline (public). */

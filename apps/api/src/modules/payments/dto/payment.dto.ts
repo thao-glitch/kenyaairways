@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Matches, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Matches, MaxLength, Min } from 'class-validator';
 
 export class CreatePaymentDto {
   @ApiProperty({ description: 'Booking to pay for (must be HELD or PENDING_PAYMENT)' })
@@ -24,6 +24,14 @@ export class CreatePaymentDto {
   @MaxLength(64)
   @Matches(/^[A-Za-z0-9._:-]+$/, { message: 'idempotencyKey must be URL-safe' })
   idempotencyKey?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Manual paybill flow: create the payment WITHOUT pushing anything to the phone. The passenger pays the paybill themselves and pastes the confirmation SMS for staff verification (M-Pesa methods only).',
+  })
+  @IsOptional()
+  @IsBoolean()
+  manual?: boolean;
 }
 
 export class SimulateStkDto {

@@ -4,6 +4,7 @@ import type {
   FareClassDetailDto,
   FareOptionDto,
   FlightOptionDto,
+  FlightPositionDto,
   FlightStatusDto,
   SeatMapDto,
 } from '@flight13/shared';
@@ -46,6 +47,16 @@ export class FlightsController {
   @ApiParam({ name: 'id' })
   status(@Param('id') id: string): Promise<FlightStatusDto> {
     return this.flights.flightStatus(id);
+  }
+
+  @Get(':id/position')
+  @ApiOperation({
+    summary:
+      'Live aircraft position for the mobile map — interpolated along the great-circle route from real departure/arrival times',
+  })
+  @ApiParam({ name: 'id' })
+  position(@Param('id') id: string): Promise<FlightPositionDto> {
+    return this.flights.flightPosition(id);
   }
 
   @Get(':id/seats')
