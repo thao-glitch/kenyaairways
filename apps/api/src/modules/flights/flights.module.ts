@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
-import { FareClassesController, FlightsController } from './flights.controller';
+import { FareClassesController, FleetController, FlightsController } from './flights.controller';
 import { FlightsService } from './flights.service';
 import { PricingModule } from '../pricing/pricing.module';
 
 /** Search, flight detail, fares and fare classes. */
 @Module({
   imports: [PricingModule],
-  controllers: [FlightsController, FareClassesController],
+  controllers: [FlightsController, FareClassesController, FleetController],
   providers: [FlightsService],
   exports: [FlightsService],
 })

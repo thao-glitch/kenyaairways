@@ -6,6 +6,7 @@ import {
   type FareCalendarDto,
   type FareClassDetailDto,
   type FareOptionDto,
+  type FleetDto,
   type FlightOptionDto,
   type FlightPositionDto,
   type FlightSearchQueryDto,
@@ -473,6 +474,50 @@ export class FlightsService {
     if (!flight) throw new AppError('NOT_FOUND', 'Flight not found');
     const option = await this.toOption(flight, seatsNeeded, cabin);
     return option?.fareOptions ?? [];
+  }
+
+  /**
+   * `GET /fleet` — every aircraft type with real specifications, its live
+   * seat/cabin counts (from the seat map, not hardcoded) and the aircraft
+   * registrations flying it. Public: powers the "Our Aircraft" experience
+   * page and the footer/mega-menu fleet links.
+   */
+  async fleet(): Promise<FleetDto> {
+    const types = await this.prisma.aircraftType.findMany({
+      orderBy: { code: 'asc' },
+      include: {
+        aircraft: { orderBy: { registration: 'asc' } },
+        seatMap: { include: { seats: true } },
+      },
+    });
+
+    const mapped = types.map((type) => {
+      const seats = (type.seatMap?.seats ?? []).filter((seat) => seat.active && !seat.blocked);
+      const byCabin = new Map<string, number>();
+      for (const seat of seats) byCabin.set(seat.cabin, (byCabin.get(seat.cabin) ?? 0) + 1);
+      return {
+        code: type.code,
+        name: type.name,
+        manufacturer: type.manufacturer,
+        rangeKm: type.rangeKm,
+        cruiseKts: type.cruiseKts,
+        co2GramsPerPaxKm: type.co2GramsPerPaxKm,
+        seats: seats.length,
+        cabins: [...byCabin.entries()].map(([cabin, count]) => ({
+          cabin: cabin as FleetDto['types'][number]['cabins'][number]['cabin'],
+          count,
+        })),
+        aircraft: type.aircraft.map((ac) => ({
+          registration: ac.registration,
+          status: ac.status,
+        })),
+      };
+    });
+
+    return {
+      types: mapped,
+      totalAircraft: mapped.reduce((sum, type) => sum + type.aircraft.length, 0),
+    };
   }
 
   async fareClasses(): Promise<FareClassDetailDto[]> {

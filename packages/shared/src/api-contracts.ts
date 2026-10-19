@@ -283,6 +283,35 @@ export interface FareClassDetailDto extends FareClassDto {
   rules: FareRuleDto[];
 }
 
+/**
+ * `GET /fleet` — the operator's fleet (public "Our Aircraft" page data):
+ * every aircraft type with real specs, seat/cabin counts and the
+ * registrations flying it.
+ */
+export interface FleetCabinSeatCountDto {
+  cabin: CabinClass;
+  count: number;
+}
+
+export interface FleetTypeDto {
+  code: string;
+  name: string;
+  manufacturer: string;
+  rangeKm: number | null;
+  cruiseKts: number | null;
+  /** grams of CO₂ per passenger-km (lower is greener). */
+  co2GramsPerPaxKm: number | null;
+  /** active, unblocked seats in the type's seat map. */
+  seats: number;
+  cabins: FleetCabinSeatCountDto[];
+  aircraft: { registration: string; status: string }[];
+}
+
+export interface FleetDto {
+  types: FleetTypeDto[];
+  totalAircraft: number;
+}
+
 // ── bookings (M4) ──────────────────────────────────────────────────────────
 
 export interface BookingBreakdownLineDto {

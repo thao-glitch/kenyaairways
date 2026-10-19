@@ -3,6 +3,7 @@ import { ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
 import type {
   FareClassDetailDto,
   FareOptionDto,
+  FleetDto,
   FlightOptionDto,
   FlightPositionDto,
   FlightStatusBoardDto,
@@ -105,5 +106,19 @@ export class FareClassesController {
   @ApiOkResponse({ type: Object })
   list(): Promise<FareClassDetailDto[]> {
     return this.flights.fareClasses();
+  }
+}
+
+@Public()
+@Controller('fleet')
+@ApiTags('flights')
+export class FleetController {
+  constructor(private readonly flights: FlightsService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Fleet overview: aircraft types, specs and registrations' })
+  @ApiOkResponse({ type: Object })
+  overview(): Promise<FleetDto> {
+    return this.flights.fleet();
   }
 }
