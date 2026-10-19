@@ -1,14 +1,15 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
-import type { BookingDto, FareOptionDto, FlightOptionDto, PassengerType } from '@flight13/shared';
+import { useMemo, useState, type FormEvent } from 'react';
+import type { BookingDto, FlightOptionDto, PassengerType } from '@flight13/shared';
 import { formatMoney, MAX_PAX_PER_BOOKING } from '@flight13/shared';
 import { useT } from '@/components/i18n-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ApiRequestError, apiCall } from '@/lib/api-client';
+import { tripTypeFrom } from '@/lib/trip';
 
 interface PassengerRow {
   type: PassengerType;
@@ -25,20 +26,59 @@ const newRows = (count: number): PassengerRow[] =>
 
 /**
  * Create-booking form → `POST /bookings` → redirect to the booking hub.
- * Unauthenticated visitors get bounced through `/login?next=…` (cookies are
- * set on the API origin by the time they come back).
+ * Handles one fare choice per segment (round trip / multi-city trips arrive
+ * as `flights` from the results page). Unauthenticated visitors get bounced
+ * through `/login?next=…` (cookies are set on the API origin by the time
+ * they come back).
  */
-export function BookForm({ flight, fare }: { flight: FlightOptionDto; fare: FareOptionDto }) {
+export function BookForm({
+  flights,
+  defaultFareCode,
+  trip,
+  defaultPax,
+  nextHref,
+}: {
+  flights: FlightOptionDto[];
+  defaultFareCode?: string;
+  trip?: string;
+  defaultPax?: number;
+  nextHref: string;
+}) {
   const { t, locale } = useT();
   const router = useRouter();
-  const [rows, setRows] = useState<PassengerRow[]>(() => newRows(1));
+  const [rows, setRows] = useState<PassengerRow[]>(() =>
+    newRows(Math.min(Math.max(defaultPax ?? 1, 1), MAX_PAX_PER_BOOKING)),
+  );
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // One fare family per segment; default to the requested code or the first.
+  const [fareCodes, setFareCodes] = useState<string[]>(() =>
+    flights.map((flight) => {
+      const wanted = flight.fareOptions.find((f) => f.fareClass.code === defaultFareCode);
+      return (wanted ?? flight.fareOptions[0])?.fareClass.code ?? '';
+    }),
+  );
 
-  const maxPax = Math.min(MAX_PAX_PER_BOOKING, Math.max(1, fare.seatsAvailable));
-  const estimate = fare.pricing.totalMinor * rows.length;
+  const selections = useMemo(
+    () =>
+      flights.map(
+        (flight, i) =>
+          flight.fareOptions.find((f) => f.fareClass.code === fareCodes[i]) ??
+          flight.fareOptions[0],
+      ),
+    [flights, fareCodes],
+  );
+
+  const maxPax = Math.min(
+    MAX_PAX_PER_BOOKING,
+    Math.max(1, Math.min(...selections.map((f) => f?.seatsAvailable ?? 1))),
+  );
+  const perPaxMinor = selections.reduce((sum, f) => sum + (f?.pricing.totalMinor ?? 0), 0);
+  const estimate = perPaxMinor * rows.length;
+  const currency = selections[0]?.pricing.currency ?? 'KES';
+  const multi = flights.length > 1;
 
   function update(index: number, patch: Partial<PassengerRow>): void {
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -52,9 +92,12 @@ export function BookForm({ flight, fare }: { flight: FlightOptionDto; fare: Fare
       const booking = await apiCall<BookingDto>('/api/v1/bookings', {
         method: 'POST',
         body: {
-          tripType: 'ONE_WAY',
+          tripType: tripTypeFrom(trip, flights.length),
           source: 'WEB',
-          segments: [{ flightId: flight.flightId, fareClassCode: fare.fareClass.code }],
+          segments: flights.map((flight, i) => ({
+            flightId: flight.flightId,
+            fareClassCode: fareCodes[i],
+          })),
           passengers: rows.map((row) => ({
             type: row.type,
             firstName: row.firstName.trim(),
@@ -68,8 +111,7 @@ export function BookForm({ flight, fare }: { flight: FlightOptionDto; fare: Fare
     } catch (err) {
       if (err instanceof ApiRequestError) {
         if (err.status === 401) {
-          const next = `/book?flightId=${flight.flightId}&fare=${fare.fareClass.code}`;
-          router.push(`/login?next=${encodeURIComponent(next)}`);
+          router.push(`/login?next=${encodeURIComponent(nextHref)}`);
           return;
         }
         setError(err.message);
@@ -82,6 +124,65 @@ export function BookForm({ flight, fare }: { flight: FlightOptionDto; fare: Fare
 
   return (
     <form onSubmit={(e) => void onSubmit(e)} className="flex flex-col gap-4">
+      {/* One fare choice per flight of the trip. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t('book.flights')}</CardTitle>
+          {multi && <p className="text-sm text-muted-foreground">{t('book.selectFare')}</p>}
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {flights.map((flight, index) => {
+            const selected = selections[index];
+            if (!selected) return null;
+            return (
+              <div key={flight.flightId} className="flex flex-col gap-3 rounded-md border p-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                  <span className="font-medium">
+                    {multi && (
+                      <span className="text-muted-foreground">
+                        {t('book.segment', { n: index + 1 })} ·{' '}
+                      </span>
+                    )}
+                    {flight.flightNumber} · {flight.origin.code} → {flight.destination.code} ·{' '}
+                    {flight.departLocal.replace('T', ' ').slice(0, 16)}
+                  </span>
+                  <span className="font-semibold">
+                    {formatMoney(selected.pricing.totalMinor, selected.pricing.currency, locale)}
+                  </span>
+                </div>
+                <label className="flex flex-col gap-1 text-sm font-medium sm:w-72">
+                  {t('flights.fares.title')}
+                  <select
+                    value={fareCodes[index] ?? ''}
+                    onChange={(e) =>
+                      setFareCodes((prev) =>
+                        prev.map((code, i) => (i === index ? e.target.value : code)),
+                      )
+                    }
+                    className="h-11 rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    {flight.fareOptions.map((f) => (
+                      <option key={f.fareClass.code} value={f.fareClass.code}>
+                        {f.fareClass.name} —{' '}
+                        {formatMoney(f.pricing.totalMinor, f.pricing.currency, locale)} ·{' '}
+                        {t('flights.seatsLeft', { count: f.seatsAvailable })}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  {t('flights.baggage', { kg: selected.fareClass.baggageKg })} ·{' '}
+                  {t('flights.carryOn', { kg: selected.fareClass.carryOnKg })} ·{' '}
+                  {selected.fareClass.refundable
+                    ? t('flights.refundable')
+                    : t('flights.nonRefundable')}
+                </p>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t('book.passengers')}</CardTitle>
@@ -182,13 +283,24 @@ export function BookForm({ flight, fare }: { flight: FlightOptionDto; fare: Fare
       </Card>
 
       <div className="flex flex-col gap-3 rounded-xl border p-4">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">
-            {fare.fareClass.name} × {rows.length}
-          </span>
-          <span className="text-lg font-semibold">
-            {formatMoney(estimate, fare.pricing.currency, locale)}
-          </span>
+        <div className="flex flex-col gap-1 text-sm">
+          {selections.map((f, i) =>
+            f ? (
+              <div key={flights[i].flightId} className="flex items-center justify-between gap-3">
+                <span className="truncate text-muted-foreground">
+                  {multi ? `${t('book.segment', { n: i + 1 })} · ` : ''}
+                  {f.fareClass.name} × {rows.length}
+                </span>
+                <span>
+                  {formatMoney(f.pricing.totalMinor * rows.length, f.pricing.currency, locale)}
+                </span>
+              </div>
+            ) : null,
+          )}
+          <div className="flex items-center justify-between border-t pt-1">
+            <span className="font-medium">{t('book.total')}</span>
+            <span className="text-lg font-semibold">{formatMoney(estimate, currency, locale)}</span>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">{t('book.priceNote')}</p>
         {error && (

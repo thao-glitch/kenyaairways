@@ -344,4 +344,74 @@ describe('bookings (e2e)', () => {
     expect(still.status).toBe('EXPIRED');
     expect(again).toBeGreaterThanOrEqual(0);
   });
+
+  it('creates a ROUND_TRIP booking across two flights with per-segment fares', async () => {
+    type Option = {
+      flightId: string;
+      fareOptions: Array<{ fareClass: { code: string }; pricing: { totalMinor: number } }>;
+    };
+    const totalOf = (o: Option, code: string) =>
+      o.fareOptions.find((f) => f.fareClass.code === code)!.pricing.totalMinor;
+
+    const outSearch = await request(app.getHttpServer())
+      .get('/api/v1/flights/search')
+      .query({ origin: 'NBO', destination: 'MBA', date: dateIn(4) })
+      .expect(200);
+    const out = outSearch.body.results.find((r: Option) => r.flightId === flightId) as
+      Option | undefined;
+    expect(out, 'outbound flight must still be searchable').toBeTruthy();
+
+    // The return leg on the first of a few candidate dates that has service.
+    const retSearches = await Promise.all(
+      [5, 6, 7].map((d) =>
+        request(app.getHttpServer())
+          .get('/api/v1/flights/search')
+          .query({ origin: 'MBA', destination: 'NBO', date: dateIn(d) })
+          .expect(200),
+      ),
+    );
+    const ret = retSearches.map((s) => s.body.results[0] as Option | undefined).find(Boolean);
+    expect(ret, 'seeded MBA→NBO return flight must exist within +5..+7 days').toBeTruthy();
+
+    expect(out!.fareOptions.some((f) => f.fareClass.code === 'SAVER')).toBe(true);
+    expect(ret!.fareOptions.some((f) => f.fareClass.code === 'FLEX')).toBe(true);
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/bookings')
+      .set('Cookie', ownerCookie)
+      .send({
+        tripType: 'ROUND_TRIP',
+        segments: [
+          { flightId, fareClassCode: 'SAVER' },
+          { flightId: ret!.flightId, fareClassCode: 'FLEX' },
+        ],
+        passengers: [
+          { type: 'ADULT', firstName: 'Robin', lastName: 'Njeri' },
+          { type: 'ADULT', firstName: 'Robin', lastName: 'Kamau' },
+        ],
+      })
+      .expect(201);
+
+    expect(res.body.status).toBe('HELD');
+    expect(res.body.segments).toHaveLength(2);
+    expect(res.body.segments.map((s: { flightId: string }) => s.flightId)).toEqual([
+      flightId,
+      ret!.flightId,
+    ]);
+    // Every passenger flies every segment: total = (seg fares) × (passengers).
+    expect(res.body.totalMinor).toBe((totalOf(out!, 'SAVER') + totalOf(ret!, 'FLEX')) * 2);
+    const sum = res.body.breakdown.reduce(
+      (acc: number, l: { amountMinor: number }) => acc + l.amountMinor,
+      0,
+    );
+    expect(sum).toBe(res.body.totalMinor);
+
+    // Cleanup: cancel (returns inventory on both flights) then delete.
+    await request(app.getHttpServer())
+      .post(`/api/v1/bookings/${res.body.id}/cancel`)
+      .set('Cookie', ownerCookie)
+      .send({ reason: 'e2e cleanup' })
+      .expect(200);
+    await prisma.booking.delete({ where: { id: res.body.id } });
+  });
 });
