@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { OpsConsole } from '@/components/staff/ops-console';
-import { RequireRole } from '@/components/staff/require-role';
+import { redirect } from 'next/navigation';
+import { ADMIN_URL } from '@/lib/config';
 import { getTranslator } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
@@ -10,11 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('staff.ops.title') };
 }
 
-/** Operations console (OPS/ADMIN): flight board, status control, KCAA manifest. */
+/** The operations console now lives in its own standalone app. */
 export default function OpsPage() {
-  return (
-    <RequireRole allow={['OPS', 'ADMIN']}>
-      <OpsConsole />
-    </RequireRole>
-  );
+  redirect(`${ADMIN_URL}/ops`);
 }

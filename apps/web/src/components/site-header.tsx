@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { BrandMark } from '@/components/art/brand-mark';
 import { getTranslator } from '@/lib/i18n';
+import { getSiteSettings } from '@/lib/site';
 import { setLocaleAction } from '@/app/actions';
 import { SessionNav } from '@/components/session-nav';
 
@@ -10,13 +11,16 @@ import { SessionNav } from '@/components/session-nav';
  */
 export async function SiteHeader() {
   const { t, locale } = await getTranslator();
+  // Live admin renames: brand follows site settings, catalog is the fallback.
+  const site = await getSiteSettings();
+  const name = site?.appName?.trim() || t('app.name');
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-3 px-4">
-        <Link href="/" className="flex items-center gap-2 font-semibold" aria-label={t('app.name')}>
+        <Link href="/" className="flex items-center gap-2 font-semibold" aria-label={name}>
           <BrandMark className="h-8 w-8" />
-          <span className="text-base">{t('app.name')}</span>
+          <span className="text-base">{name}</span>
         </Link>
 
         <div className="flex items-center gap-2">

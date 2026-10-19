@@ -1,0 +1,249 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens — shadcn/ui-compatible naming so components dropped in from
+ * the shadcn registry work unchanged. WCAG AA contrast pairs (M9 audit).
+ */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 224 71% 4%;
+  --card: 0 0% 100%;
+  --card-foreground: 224 71% 4%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 224 71% 4%;
+  --primary: 199 89% 34%; /* safaricom-adjacent sky blue */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 224 71% 4%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 46%;
+  --accent: 199 89% 95%;
+  --accent-foreground: 199 89% 24%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 71% 35%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 45%;
+  --warning-foreground: 0 0% 100%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 199 89% 34%;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 224 71% 4%;
+  --foreground: 210 20% 98%;
+  --card: 224 71% 6%;
+  --card-foreground: 210 20% 98%;
+  --popover: 224 71% 6%;
+  --popover-foreground: 210 20% 98%;
+  --primary: 199 89% 48%;
+  --primary-foreground: 224 71% 4%;
+  --secondary: 215 28% 17%;
+  --secondary-foreground: 210 20% 98%;
+  --muted: 215 28% 17%;
+  --muted-foreground: 218 11% 65%;
+  --accent: 199 89% 20%;
+  --accent-foreground: 199 89% 90%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 69% 42%;
+  --success-foreground: 224 71% 4%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 224 71% 4%;
+  --border: 215 28% 17%;
+  --input: 215 28% 17%;
+  --ring: 199 89% 48%;
+}
+
+/*
+ * Switchable themes (admin "appearance" console → SiteSettings.theme →
+ * data-theme on <html>). Every theme re-declares the full token set with
+ * WCAG AA contrast pairs; :root above is the "sky" fallback.
+ */
+[data-theme='savanna'] {
+  --background: 40 33% 97%;
+  --foreground: 30 40% 8%;
+  --card: 40 40% 100%;
+  --card-foreground: 30 40% 8%;
+  --popover: 40 40% 100%;
+  --popover-foreground: 30 40% 8%;
+  --primary: 24 94% 34%;
+  --primary-foreground: 40 33% 98%;
+  --secondary: 40 20% 92%;
+  --secondary-foreground: 30 40% 8%;
+  --muted: 40 20% 92%;
+  --muted-foreground: 30 12% 40%;
+  --accent: 90 38% 88%;
+  --accent-foreground: 100 30% 16%;
+  --destructive: 0 74% 46%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 130 45% 30%;
+  --success-foreground: 40 33% 98%;
+  --warning: 38 92% 40%;
+  --warning-foreground: 40 33% 98%;
+  --border: 40 20% 85%;
+  --input: 40 20% 85%;
+  --ring: 24 94% 34%;
+}
+
+[data-theme='ocean'] {
+  --background: 197 40% 97%;
+  --foreground: 200 60% 6%;
+  --card: 197 50% 100%;
+  --card-foreground: 200 60% 6%;
+  --popover: 197 50% 100%;
+  --popover-foreground: 200 60% 6%;
+  --primary: 192 84% 24%;
+  --primary-foreground: 197 40% 97%;
+  --secondary: 195 25% 91%;
+  --secondary-foreground: 200 60% 6%;
+  --muted: 195 25% 91%;
+  --muted-foreground: 200 14% 40%;
+  --accent: 178 42% 88%;
+  --accent-foreground: 186 66% 16%;
+  --destructive: 0 74% 48%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 158 55% 28%;
+  --success-foreground: 197 40% 97%;
+  --warning: 38 92% 40%;
+  --warning-foreground: 197 40% 97%;
+  --border: 196 24% 84%;
+  --input: 196 24% 84%;
+  --ring: 192 84% 24%;
+}
+
+[data-theme='forest'] {
+  --background: 100 25% 97%;
+  --foreground: 110 40% 7%;
+  --card: 100 30% 100%;
+  --card-foreground: 110 40% 7%;
+  --popover: 100 30% 100%;
+  --popover-foreground: 110 40% 7%;
+  --primary: 145 58% 24%;
+  --primary-foreground: 100 25% 97%;
+  --secondary: 105 18% 91%;
+  --secondary-foreground: 110 40% 7%;
+  --muted: 105 18% 91%;
+  --muted-foreground: 112 10% 40%;
+  --accent: 88 36% 88%;
+  --accent-foreground: 140 42% 15%;
+  --destructive: 0 74% 47%;
+  --destructive-foreground: 100 25% 97%;
+  --success: 145 58% 26%;
+  --success-foreground: 100 25% 97%;
+  --warning: 38 92% 40%;
+  --warning-foreground: 100 25% 97%;
+  --border: 104 16% 84%;
+  --input: 104 16% 84%;
+  --ring: 145 58% 24%;
+}
+
+[data-theme='midnight'] {
+  --background: 225 40% 8%;
+  --foreground: 210 25% 96%;
+  --card: 225 35% 11%;
+  --card-foreground: 210 25% 96%;
+  --popover: 225 35% 11%;
+  --popover-foreground: 210 25% 96%;
+  --primary: 199 85% 55%;
+  --primary-foreground: 225 40% 8%;
+  --secondary: 220 25% 18%;
+  --secondary-foreground: 210 25% 96%;
+  --muted: 220 25% 18%;
+  --muted-foreground: 215 15% 65%;
+  --accent: 199 40% 20%;
+  --accent-foreground: 199 80% 90%;
+  --destructive: 0 72% 58%;
+  --destructive-foreground: 225 40% 8%;
+  --success: 142 60% 48%;
+  --success-foreground: 225 40% 8%;
+  --warning: 38 92% 55%;
+  --warning-foreground: 225 40% 8%;
+  --border: 220 25% 18%;
+  --input: 220 25% 18%;
+  --ring: 199 85% 55%;
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    /* System stack: zero webfont bytes on slow Kenyan mobile networks */
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      sans-serif;
+    min-height: 100dvh;
+  }
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+    padding: 0.5rem 1rem;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+  .skip-link:focus {
+    left: 0.5rem;
+    top: 0.5rem;
+  }
+}

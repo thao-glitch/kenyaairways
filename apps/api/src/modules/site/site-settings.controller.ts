@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Patch, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsObject, IsOptional, IsString, IsIn } from 'class-validator';
+import { IsObject, IsOptional, IsString, IsIn, MaxLength } from 'class-validator';
 import type { SiteSettingsDto } from '@flight13/shared';
 import { Role } from '@prisma/client';
 import { Public } from '../../common/decorators/public.decorator';
@@ -12,6 +12,16 @@ import { actorFromUser, type BookingActor } from '../bookings/bookings.service';
 import { SITE_THEMES, SiteSettingsService } from './site-settings.service';
 
 export class UpdateSiteSettingsDto {
+  @ApiPropertyOptional({
+    description: 'Live app name — renders across every surface immediately',
+    example: 'Flight13',
+    maxLength: 40,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  appName?: string;
+
   @ApiPropertyOptional({ description: 'Active theme', enum: SITE_THEMES })
   @IsOptional()
   @IsString()
@@ -63,6 +73,7 @@ export class SiteSettingsController {
       typeof header === 'string' ? header : undefined,
     );
     return this.service.update(actor, {
+      appName: dto.appName,
       theme: dto.theme as SiteSettingsDto['theme'] | undefined,
       images: dto.images as SiteSettingsDto['images'] | undefined,
     });

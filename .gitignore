@@ -41,3 +41,6 @@ playwright/.cache/
 .tmp/
 tmp/
 next-env.d.ts
+
+# redis dump (redis-server runs from the repo root)
+dump.rdb

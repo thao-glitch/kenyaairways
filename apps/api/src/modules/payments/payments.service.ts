@@ -7,6 +7,7 @@ import {
   C2B_VALIDATION,
   describeMpesaResult,
   maskPhone,
+  PAYMENT_PROVIDER_TYPES,
   toMpesaMsisdn,
   type C2BPaymentDto,
   type PaymentDto,
@@ -737,6 +738,73 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     });
     await this.rt.paymentUpdated(payment.id, { resultCode: 0, resultMessage: 'Manually verified' });
     await this.rt.bookingUpdated(payment.bookingId);
+    return toPaymentDto(await this.prisma.payment.findUniqueOrThrow({ where: { id: payment.id } }));
+  }
+
+  /**
+   * Record money taken directly by staff (cash/card at the counter): creates
+   * the payment row and funnels it through the same idempotent settle path as
+   * every other confirm, so the booking flips to CONFIRMED and seats convert.
+   * Used by the admin/agent console when the customer pays in person.
+   */
+  async recordDirect(
+    actor: BookingActor,
+    bookingId: string,
+    dto: { provider: PaymentProviderType; amountMinor?: number; reference?: string },
+  ): Promise<PaymentDto> {
+    if (!PAYMENT_PROVIDER_TYPES.includes(dto.provider)) {
+      throw new AppError('VALIDATION_ERROR', `Unknown payment provider "${dto.provider}"`);
+    }
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!booking) throw new AppError('NOT_FOUND', 'Booking not found');
+    if (!['HELD', 'PENDING_PAYMENT'].includes(booking.status)) {
+      if (booking.status === 'CONFIRMED' || booking.status === 'CHECKED_IN') {
+        throw new AppError('CONFLICT', 'Booking is already paid');
+      }
+      throw new AppError(
+        'INVALID_STATE_TRANSITION',
+        `Booking ${booking.pnr} is ${booking.status} and cannot be paid`,
+      );
+    }
+    const amount = dto.amountMinor ?? booking.totalMinor;
+    if (!Number.isInteger(amount) || amount <= 0) {
+      throw new AppError('VALIDATION_ERROR', 'amountMinor must be a positive integer');
+    }
+    // HELD → PENDING_PAYMENT (guarded; same step payments.create performs —
+    // confirmPaid only accepts PENDING_PAYMENT → CONFIRMED).
+    if (booking.status === 'HELD') {
+      const stepped = await this.prisma.booking.updateMany({
+        where: { id: booking.id, status: 'HELD' },
+        data: { status: 'PENDING_PAYMENT' },
+      });
+      if (stepped.count === 0) {
+        const fresh = await this.prisma.booking.findUnique({ where: { id: booking.id } });
+        throw new AppError(
+          fresh?.status === 'PENDING_PAYMENT' ? 'CONFLICT' : 'INVALID_STATE_TRANSITION',
+          fresh?.status === 'PENDING_PAYMENT'
+            ? 'Payment already in progress'
+            : `Booking is ${fresh?.status ?? 'gone'}`,
+        );
+      }
+    }
+    const payment = await this.prisma.payment.create({
+      data: {
+        bookingId: booking.id,
+        provider: dto.provider,
+        status: 'PENDING',
+        amountMinor: amount,
+        currency: booking.currency,
+        idempotencyKey: `direct_${randomToken(16)}`,
+        metadata: {
+          source: 'counter',
+          reference: dto.reference?.trim() || null,
+          recordedBy: actor.userId,
+        },
+      },
+    });
+    const receipt =
+      dto.reference?.trim() || `${dto.provider}-${payment.id.slice(-8).toUpperCase()}`;
+    await this.applyManualPaid(actor, payment.id, receipt);
     return toPaymentDto(await this.prisma.payment.findUniqueOrThrow({ where: { id: payment.id } }));
   }
 

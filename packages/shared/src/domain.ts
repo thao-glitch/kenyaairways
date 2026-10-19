@@ -47,6 +47,7 @@ export const PAYMENT_PROVIDER_TYPES = [
   'STRIPE',
   'MOCK',
   'AIRTEL_MONEY',
+  'CASH',
 ] as const;
 export type PaymentProviderType = (typeof PAYMENT_PROVIDER_TYPES)[number];
 

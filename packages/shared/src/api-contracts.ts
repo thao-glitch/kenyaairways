@@ -540,14 +540,96 @@ export interface SiteImagesDto {
   notFound?: string;
   /** Destination card photograph per airport code (NBO, MBA, …). */
   destinations?: Record<string, string>;
+  /** Admin-managed section photographs: `explore`, `plan`, `place:cdg`, … */
+  [key: string]: string | Record<string, string> | undefined;
 }
 
 /** Public site appearance + the M-Pesa paybill passengers pay into. */
 export interface SiteSettingsDto {
+  /** Live app name — admin-editable, rendered across every surface. */
+  appName: string;
   theme: SiteTheme;
   images: SiteImagesDto;
   /** Paybill number from the active payment plan (e.g. '0182774255'). */
   mpesaPaybill: string | null;
+}
+
+// ── admin console: pricing + assistance ─────────────────────────────────────
+
+/** One fare row within an admin flight price listing. */
+export interface AdminFlightFareDto {
+  fareClassCode: string;
+  baseFareMinor: number;
+  currency: Currency;
+}
+
+/** `GET /admin/flights` — a flight with every publishable fare. */
+export interface AdminFlightPriceDto {
+  flightId: string;
+  flightNumber: string;
+  flightDate: string; // YYYY-MM-DD
+  originCode: string;
+  destinationCode: string;
+  status: FlightStatus;
+  departureLocal: string;
+  fares: AdminFlightFareDto[];
+}
+
+/** One class's new price within a single-flight edit (fare families kept). */
+export interface FlightPriceFarePatchDto {
+  fareClassCode: string;
+  baseFareMinor: number;
+}
+
+/** `PATCH /admin/flights/:id/fares` — edit each fare class of one flight. */
+export interface FlightPricePatchDto {
+  fares: FlightPriceFarePatchDto[];
+}
+
+/**
+ * `POST /admin/flights/bulk-prices` — nudge fares across a filter. Percent
+ * only (SET would flatten the fare family: saver = flex).
+ */
+export interface BulkPriceUpdateDto {
+  originCode?: string;
+  destinationCode?: string;
+  dateFrom?: string; // YYYY-MM-DD
+  dateTo?: string; // YYYY-MM-DD
+  operation: 'ADJUST_PERCENT';
+  /** Change in percent, e.g. -10 or 15. */
+  value: number;
+}
+
+/** Result of a bulk price change (how many flight fare rows moved). */
+export interface BulkPriceUpdateResultDto {
+  flightsUpdated: number;
+  faresUpdated: number;
+}
+
+/** `POST /admin/bookings/:id/pay` — record money taken directly by staff. */
+export interface RecordPaymentDto {
+  /** Usually 'CASH'; any configured provider is accepted for the record. */
+  provider: PaymentProviderType;
+  /** Defaults to the booking total when omitted. */
+  amountMinor?: number;
+  /** Receipt / drawer reference shown on the payment record. */
+  reference?: string;
+}
+
+/** `GET /admin/bookings` — staff directory row. */
+export interface AdminBookingSummaryDto {
+  id: string;
+  pnr: string;
+  status: BookingStatus;
+  totalMinor: number;
+  currency: Currency;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  passengerNames: string[];
+  route: string; // 'NBO → CDG'
+  flightNumbers: string[];
+  paid: boolean;
+  createdAt: string;
 }
 
 // ── ticketing, PNR, flight status (M6) ──────────────────────────────────────

@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ApiRequestError, apiCall } from '@/lib/api-client';
+import { AssistActions } from '@/components/admin/assist-actions';
 
 const isoDay = (offset = 1): string =>
   new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
@@ -378,6 +379,7 @@ export function AgentConsole() {
               <p className="text-sm text-muted-foreground">{t('staff.agent.created')}</p>
               <p className="font-mono text-lg tracking-widest">{booking.pnr}</p>
             </div>
+            <AssistActions bookingId={booking.id} status={booking.status} />
             <Link href={`/bookings/${booking.id}`}>
               <Button>{t('pnr.manage')}</Button>
             </Link>
@@ -428,9 +430,12 @@ export function AgentConsole() {
                 {t('booking.passengers', { count: lookup.booking.passengers.length })} ·{' '}
                 {formatMoney(lookup.booking.totalMinor, lookup.booking.currency, locale)}
               </p>
-              <Link href={`/bookings/${lookup.booking.id}`} className="mt-2 inline-block">
-                <Button size="sm">{t('pnr.manage')}</Button>
-              </Link>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <Link href={`/bookings/${lookup.booking.id}`}>
+                  <Button size="sm">{t('pnr.manage')}</Button>
+                </Link>
+                <AssistActions bookingId={lookup.booking.id} status={lookup.booking.status} />
+              </div>
             </div>
           )}
         </CardContent>

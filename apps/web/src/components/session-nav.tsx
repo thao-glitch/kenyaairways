@@ -6,13 +6,14 @@ import { useEffect, useState } from 'react';
 import type { Role, SessionUserDto } from '@flight13/shared';
 import { useT } from '@/components/i18n-provider';
 import { getSession, logout } from '@/lib/auth';
+import { ADMIN_URL } from '@/lib/config';
 
-/** Which staff consoles a role may open (mirrors the API's `@Roles` guards). */
+/** Which staff consoles a role may open (they live in the standalone admin app). */
 const CONSOLES: { href: string; labelKey: string; allow: readonly Role[] }[] = [
-  { href: '/ops', labelKey: 'nav.ops', allow: ['OPS', 'ADMIN'] },
-  { href: '/finance', labelKey: 'nav.finance', allow: ['FINANCE', 'ADMIN'] },
-  { href: '/agent', labelKey: 'nav.agent', allow: ['AGENT', 'ADMIN'] },
-  { href: '/admin', labelKey: 'nav.admin', allow: ['ADMIN'] },
+  { href: `${ADMIN_URL}/ops`, labelKey: 'nav.ops', allow: ['OPS', 'ADMIN'] },
+  { href: `${ADMIN_URL}/finance`, labelKey: 'nav.finance', allow: ['FINANCE', 'ADMIN'] },
+  { href: `${ADMIN_URL}/agent`, labelKey: 'nav.agent', allow: ['AGENT', 'ADMIN'] },
+  { href: `${ADMIN_URL}/admin`, labelKey: 'nav.admin', allow: ['ADMIN'] },
 ];
 
 /**

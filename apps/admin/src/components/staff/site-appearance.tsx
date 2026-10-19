@@ -10,7 +10,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ApiRequestError, apiCall } from '@/lib/api-client';
 import { DEFAULT_IMAGES } from '@/lib/site-images';
 
-const PATH = '/api/v1/admin/site-settings';
+/** Settings read back in full to everyone; writes are ADMIN-only + audited. */
+const GET_PATH = '/api/v1/site-settings';
+const PATCH_PATH = '/api/v1/admin/site-settings';
 
 const THEMES: SiteTheme[] = ['sky', 'savanna', 'ocean', 'forest', 'midnight'];
 
@@ -25,19 +27,30 @@ const SWATCH: Record<SiteTheme, [string, string]> = {
 
 type Draft = {
   theme: SiteTheme;
+  appName: string;
   hero: string;
   auth: string;
   notFound: string;
   destinations: Record<string, string>;
+  /** Every other image key in play: `explore`, `place:cdg`, `holiday-safari`, … */
+  extra: Record<string, string>;
 };
 
+const RESERVED_IMAGE_KEYS = new Set(['hero', 'auth', 'notFound', 'destinations']);
+
 function toDraft(site: SiteSettingsDto): Draft {
+  const extra: Record<string, string> = {};
+  for (const [key, value] of Object.entries(site.images)) {
+    if (!RESERVED_IMAGE_KEYS.has(key) && typeof value === 'string') extra[key] = value;
+  }
   return {
     theme: site.theme,
+    appName: site.appName ?? '',
     hero: site.images.hero ?? '',
     auth: site.images.auth ?? '',
     notFound: site.images.notFound ?? '',
     destinations: { ...(site.images.destinations ?? {}) },
+    extra,
   };
 }
 
@@ -46,12 +59,17 @@ function toImages(draft: Draft): SiteImagesDto {
   for (const [code, url] of Object.entries(draft.destinations)) {
     destinations[code.trim().toUpperCase()] = url.trim();
   }
-  return {
+  const images: SiteImagesDto = {
     hero: draft.hero.trim(),
     auth: draft.auth.trim(),
     notFound: draft.notFound.trim(),
     destinations,
   };
+  for (const [key, url] of Object.entries(draft.extra)) {
+    const k = key.trim();
+    if (k && !RESERVED_IMAGE_KEYS.has(k)) images[k] = url.trim();
+  }
+  return images;
 }
 
 /**
@@ -67,16 +85,18 @@ export function SiteAppearance() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [newKey, setNewKey] = useState('');
+  const [newUrl, setNewUrl] = useState('');
 
   const load = useCallback(async () => {
     try {
-      const result = await apiCall<SiteSettingsDto>(PATH);
+      const result = await apiCall<SiteSettingsDto>(GET_PATH);
       setSite(result);
       setDraft(toDraft(result));
-    } catch {
-      setSite(null);
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t('error.network'));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -88,9 +108,13 @@ export function SiteAppearance() {
     setError(null);
     setSaved(false);
     try {
-      const result = await apiCall<SiteSettingsDto>(PATH, {
+      const result = await apiCall<SiteSettingsDto>(PATCH_PATH, {
         method: 'PATCH',
-        body: { theme: draft.theme, images: toImages(draft) },
+        body: {
+          appName: draft.appName.trim(),
+          theme: draft.theme,
+          images: toImages(draft),
+        },
       });
       setSite(result);
       setDraft(toDraft(result));
@@ -103,7 +127,11 @@ export function SiteAppearance() {
   }
 
   if (!site || !draft) {
-    return <Skeleton className="h-40 w-full" />;
+    return error ? (
+      <p className="text-sm text-destructive">{error}</p>
+    ) : (
+      <Skeleton className="h-40 w-full" />
+    );
   }
 
   const destinationCodes = [
@@ -141,6 +169,28 @@ export function SiteAppearance() {
               </button>
             );
           })}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t('staff.appearance.name')}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t('staff.appearance.nameBody')}</p>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-end gap-3">
+          <label className="flex min-w-56 flex-1 flex-col gap-1 text-sm font-medium">
+            {t('staff.appearance.name')}
+            <Input
+              value={draft.appName}
+              maxLength={40}
+              onChange={(e) => setDraft({ ...draft, appName: e.target.value })}
+              placeholder="Flight13"
+            />
+          </label>
+          <Button disabled={busy} onClick={() => void onSave()}>
+            {busy ? t('staff.appearance.saving') : t('staff.appearance.save')}
+          </Button>
+          {saved && <span className="text-sm text-success">{t('staff.appearance.saved')}</span>}
         </CardContent>
       </Card>
 
@@ -187,9 +237,83 @@ export function SiteAppearance() {
             </div>
           </div>
 
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium">{t('staff.appearance.custom')}</span>
+            <p className="text-xs text-muted-foreground">{t('staff.appearance.customBody')}</p>
+            {Object.keys(draft.extra).length > 0 ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {Object.entries(draft.extra)
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([key, url]) => (
+                    <div key={key} className="flex items-center gap-1">
+                      <span className="w-28 shrink-0 truncate font-mono text-xs" title={key}>
+                        {key}
+                      </span>
+                      <Input
+                        className="h-8 text-xs"
+                        value={url}
+                        onChange={(e) =>
+                          setDraft({ ...draft, extra: { ...draft.extra, [key]: e.target.value } })
+                        }
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 px-2 text-xs"
+                        aria-label={`${t('staff.appearance.remove')} ${key}`}
+                        onClick={() => {
+                          const { [key]: _dropped, ...rest } = draft.extra;
+                          setDraft({ ...draft, extra: rest });
+                        }}
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+            ) : null}
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="flex flex-col gap-1 text-xs font-medium">
+                {t('staff.appearance.key')}
+                <Input
+                  className="h-8 w-40 text-xs"
+                  placeholder="explore"
+                  value={newKey}
+                  onChange={(e) => setNewKey(e.target.value)}
+                />
+              </label>
+              <label className="flex min-w-56 flex-1 flex-col gap-1 text-xs font-medium">
+                {t('staff.appearance.url')}
+                <Input
+                  className="h-8 text-xs"
+                  placeholder="https://…"
+                  value={newUrl}
+                  onChange={(e) => setNewUrl(e.target.value)}
+                />
+              </label>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8"
+                disabled={
+                  !/^[a-z][a-z0-9:-]{0,63}$/.test(newKey.trim()) ||
+                  !newUrl.trim().startsWith('https://')
+                }
+                onClick={() => {
+                  const k = newKey.trim();
+                  setDraft({ ...draft, extra: { ...draft.extra, [k]: newUrl.trim() } });
+                  setNewKey('');
+                  setNewUrl('');
+                }}
+              >
+                {t('staff.appearance.add')}
+              </Button>
+            </div>
+          </div>
+
           <div className="flex flex-wrap items-center gap-3">
             <Button disabled={busy} onClick={() => void onSave()}>
-              {busy ? t('staff.appearance.saving') : t('staff.plan.save')}
+              {busy ? t('staff.appearance.saving') : t('staff.appearance.save')}
             </Button>
             {saved && <span className="text-sm text-success">{t('staff.appearance.saved')}</span>}
             {error && (

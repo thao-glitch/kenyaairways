@@ -26,7 +26,7 @@
   "home.network.international": "Kimataifa",
   "home.manage.title": "Simamia safari yako",
   "home.manage.body": "Tafuta safari kwa marejeo, jiandikishe kupanda na pakua kadi za kupanda.",
-  "footer.rights": "© 2026 Flight13. Haki zote zimehifadhiwa.",
+  "footer.rights": "© 2026 {name}. Haki zote zimehifadhiwa.",
   "footer.licensed": "Imeidhinishwa na Mamlaka ya Usalama wa Anga ya Kenya (KCAA).",
   "footer.devNote": "Toleo la maendeleo — malipo, SMS na barua pepe hutumia hali ya mfano hadi hati halisi zitakapotolewa.",
   "error.network": "Hitilafu ya mtandao. Jaribu tena.",

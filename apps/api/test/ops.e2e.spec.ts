@@ -104,6 +104,19 @@ describe('ops workspace + KCAA manifest (e2e)', () => {
   });
 
   afterAll(async () => {
+    if (app && prisma) {
+      // The cancel test parks its flight in a terminal state on purpose; put
+      // the demo schedule back so later suites (and the live demo) don't find
+      // a permanently cancelled flight — and so the NEXT run finds a
+      // SCHEDULED flight to pick again instead of burning a new one.
+      if (statusFlightId) {
+        await prisma.flight.update({
+          where: { id: statusFlightId },
+          data: { status: 'SCHEDULED', gate: null, delayMinutes: 0 },
+        });
+      }
+      await prisma.flightStatusEvent.deleteMany({ where: { flightId: statusFlightId } });
+    }
     await app?.close();
   });
 

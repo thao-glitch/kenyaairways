@@ -8,13 +8,17 @@ import { getSiteSettings } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getTranslator();
+  // Live admin renames flow through site settings (short TTL, see lib/site);
+  // the catalog value is only the fallback before settings ever load.
+  const site = await getSiteSettings();
+  const name = site?.appName?.trim() || t('app.name');
   return {
     title: {
-      default: `${t('app.name')} — ${t('app.tagline')}`,
-      template: `%s · ${t('app.name')}`,
+      default: `${name} — ${t('app.tagline')}`,
+      template: `%s · ${name}`,
     },
     description: t('home.hero.subtitle'),
-    applicationName: t('app.name'),
+    applicationName: name,
     robots: { index: true, follow: true },
   };
 }

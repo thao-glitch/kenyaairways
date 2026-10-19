@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { FinanceConsole } from '@/components/staff/finance-console';
-import { RequireRole } from '@/components/staff/require-role';
+import { redirect } from 'next/navigation';
+import { ADMIN_URL } from '@/lib/config';
 import { getTranslator } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
@@ -10,11 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('staff.finance.title') };
 }
 
-/** Finance console (FINANCE/ADMIN): revenue, load factor and OTP-gated refunds. */
+/** The finance console now lives in its own standalone app. */
 export default function FinancePage() {
-  return (
-    <RequireRole allow={['FINANCE', 'ADMIN']}>
-      <FinanceConsole />
-    </RequireRole>
-  );
+  redirect(`${ADMIN_URL}/finance`);
 }

@@ -13,13 +13,18 @@ import { MethodConfigService } from '../payments/config/method-config.service';
 /** Themes the web app ships (must stay in sync with globals.css). */
 export const SITE_THEMES: SiteTheme[] = ['sky', 'savanna', 'ocean', 'forest', 'midnight'];
 
-const TOP_LEVEL_IMAGE_KEYS = ['hero', 'auth', 'notFound'] as const;
+/** Any flat image key: `hero`, `explore`, `place:nbo`, `holiday-safari`, … */
+/** Override keys: leading lowercase letter, then letters/digits/`-`/`:` (camelCase like `notFound` allowed). */
+const IMAGE_KEY_RE = /^[a-z][a-zA-Z0-9:-]{0,63}$/;
 const DESTINATION_CODE_RE = /^[A-Z0-9]{3}$/;
 const MAX_URL_CHARS = 512;
 const URL_RE = /^https:\/\/[^\s]+$/;
 const TTL_MS = 10_000;
+const MAX_NAME_CHARS = 40;
 
 export interface UpdateSiteSettingsInput {
+  /** Live app name rendered across every surface. */
+  appName?: string;
   theme?: SiteTheme;
   images?: SiteImagesDto;
 }
@@ -32,14 +37,15 @@ export interface UpdateSiteSettingsInput {
  */
 @Injectable()
 export class SiteSettingsService {
-  private cache: { at: number; theme: SiteTheme; images: SiteImagesDto } | null = null;
+  private cache: { at: number; appName: string; theme: SiteTheme; images: SiteImagesDto } | null =
+    null;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly methods: MethodConfigService,
   ) {}
 
-  /** Public payload: appearance + the paybill from the active payment plan. */
+  /** Public payload: name + appearance + the paybill from the active plan. */
   async get(): Promise<SiteSettingsDto> {
     const [appearance, paybill] = await Promise.all([this.read(), this.paybill()]);
     return { ...appearance, mpesaPaybill: paybill };
@@ -51,15 +57,23 @@ export class SiteSettingsService {
       throw new AppError('VALIDATION_ERROR', `Unknown theme "${input.theme}"`);
     }
     const images = input.images === undefined ? undefined : this.validateImages(input.images);
+    const appName = input.appName === undefined ? undefined : this.validateAppName(input.appName);
 
     const current = await this.read();
     const theme = input.theme ?? current.theme;
     const merged = images === undefined ? current.images : images;
+    const name = appName ?? current.appName;
 
     await this.prisma.siteSettings.upsert({
       where: { id: true },
-      update: { theme, images: merged as object, updatedById: actor.userId },
-      create: { id: true, theme, images: merged as object, updatedById: actor.userId },
+      update: { theme, appName: name, images: merged as object, updatedById: actor.userId },
+      create: {
+        id: true,
+        theme,
+        appName: name,
+        images: merged as object,
+        updatedById: actor.userId,
+      },
     });
     this.cache = null;
     try {
@@ -73,7 +87,7 @@ export class SiteSettingsService {
           outcome: 'SUCCESS',
           ip: actor.ip,
           requestId: actor.requestId,
-          metadata: maskDeep({ theme, images: merged }) as object,
+          metadata: maskDeep({ appName: name, theme, images: merged }) as object,
         },
       });
     } catch {
@@ -93,17 +107,34 @@ export class SiteSettingsService {
     }
   }
 
-  private async read(): Promise<{ theme: SiteTheme; images: SiteImagesDto }> {
+  private async read(): Promise<{ appName: string; theme: SiteTheme; images: SiteImagesDto }> {
     const now = Date.now();
     if (this.cache && now - this.cache.at < TTL_MS) {
-      return { theme: this.cache.theme, images: this.cache.images };
+      return { appName: this.cache.appName, theme: this.cache.theme, images: this.cache.images };
     }
     const row = await this.prisma.siteSettings.findUnique({ where: { id: true } });
     const theme =
       row && SITE_THEMES.includes(row.theme as SiteTheme) ? (row.theme as SiteTheme) : 'sky';
+    const appName = row?.appName?.trim() ? row.appName.trim() : 'Flight13';
     const images = sanitizeImages(row?.images);
-    this.cache = { at: now, theme, images };
-    return { theme, images };
+    this.cache = { at: now, appName, theme, images };
+    return { appName, theme, images };
+  }
+
+  /** The live app name: 1-40 printable characters, no control codes. */
+  private validateAppName(value: unknown): string {
+    if (typeof value !== 'string') {
+      throw new AppError('VALIDATION_ERROR', 'appName must be a string');
+    }
+    const trimmed = value.trim();
+    const hasControl = [...trimmed].some((ch) => ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127);
+    if (!trimmed || trimmed.length > MAX_NAME_CHARS || hasControl) {
+      throw new AppError(
+        'VALIDATION_ERROR',
+        `appName must be 1-${MAX_NAME_CHARS} characters without control codes`,
+      );
+    }
+    return trimmed;
   }
 
   /** Whitelist + shape-check every image URL; `''` clears an override. */
@@ -128,11 +159,11 @@ export class SiteSettingsService {
         if (Object.keys(destinations).length > 0) cleaned.destinations = destinations;
         continue;
       }
-      if (!TOP_LEVEL_IMAGE_KEYS.includes(key as (typeof TOP_LEVEL_IMAGE_KEYS)[number])) {
-        throw new AppError('VALIDATION_ERROR', `Unknown image key "${key}"`);
+      if (!IMAGE_KEY_RE.test(key)) {
+        throw new AppError('VALIDATION_ERROR', `Invalid image key "${key}"`);
       }
       const normalized = this.validateUrl(value, `images.${key}`);
-      if (normalized) cleaned[key as 'hero' | 'auth' | 'notFound'] = normalized;
+      if (normalized) (cleaned as Record<string, string>)[key] = normalized;
     }
     return cleaned;
   }
@@ -154,9 +185,11 @@ function sanitizeImages(raw: unknown): SiteImagesDto {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return {};
   const source = raw as Record<string, unknown>;
   const images: SiteImagesDto = {};
-  for (const key of TOP_LEVEL_IMAGE_KEYS) {
-    const value = source[key];
-    if (typeof value === 'string' && URL_RE.test(value)) images[key] = value;
+  for (const [key, value] of Object.entries(source)) {
+    if (key === 'destinations') continue;
+    if (IMAGE_KEY_RE.test(key) && typeof value === 'string' && URL_RE.test(value)) {
+      images[key] = value;
+    }
   }
   const destinations = source.destinations;
   if (typeof destinations === 'object' && destinations !== null && !Array.isArray(destinations)) {
