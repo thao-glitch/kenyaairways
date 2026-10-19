@@ -9,6 +9,7 @@ import { PrismaService } from '../../prisma/prisma.module';
 import { maskDeep } from '../../common/logger';
 import type { BookingActor } from '../bookings/bookings.service';
 import { MethodConfigService } from '../payments/config/method-config.service';
+import { MEDIA_FILE_RE, MEDIA_PATH_PREFIX, MediaService } from './media.service';
 
 /** Themes the web app ships (must stay in sync with globals.css). */
 export const SITE_THEMES: SiteTheme[] = ['sky', 'savanna', 'ocean', 'forest', 'midnight'];
@@ -21,6 +22,13 @@ const MAX_URL_CHARS = 512;
 const URL_RE = /^https:\/\/[^\s]+$/;
 const TTL_MS = 10_000;
 const MAX_NAME_CHARS = 40;
+
+/** Overrides may be an https URL or a path of an upload served by this API. */
+function isMediaPath(value: string): boolean {
+  return (
+    value.startsWith(MEDIA_PATH_PREFIX) && MEDIA_FILE_RE.test(value.slice(MEDIA_PATH_PREFIX.length))
+  );
+}
 
 export interface UpdateSiteSettingsInput {
   /** Live app name rendered across every surface. */
@@ -43,6 +51,7 @@ export class SiteSettingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly methods: MethodConfigService,
+    private readonly media: MediaService,
   ) {}
 
   /** Public payload: name + appearance + the paybill from the active plan. */
@@ -76,6 +85,9 @@ export class SiteSettingsService {
       },
     });
     this.cache = null;
+    // A replaced or cleared upload is no longer referenced anywhere — drop
+    // the file so the media store never accumulates orphans.
+    if (images !== undefined) await this.removeOrphanedUploads(current.images, images);
     try {
       await this.prisma.auditLog.create({
         data: {
@@ -170,13 +182,42 @@ export class SiteSettingsService {
 
   private validateUrl(value: unknown, field: string): string | null {
     if (value === '' || value === null) return null; // clear the override
-    if (typeof value !== 'string' || value.length > MAX_URL_CHARS || !URL_RE.test(value)) {
+    if (
+      typeof value !== 'string' ||
+      value.length > MAX_URL_CHARS ||
+      (!URL_RE.test(value) && !isMediaPath(value))
+    ) {
       throw new AppError(
         'VALIDATION_ERROR',
-        `${field} must be an https:// URL (max ${MAX_URL_CHARS} chars)`,
+        `${field} must be an https:// URL or an uploaded media path (max ${MAX_URL_CHARS} chars)`,
       );
     }
     return value;
+  }
+
+  /** Best-effort: delete uploads that were referenced before but no longer. */
+  private async removeOrphanedUploads(before: SiteImagesDto, after: SiteImagesDto): Promise<void> {
+    const was = new Set<string>();
+    const is = new Set<string>();
+    collectMediaPaths(before, was);
+    collectMediaPaths(after, is);
+    for (const url of was) {
+      if (!is.has(url)) await this.media.removeByUrl(url);
+    }
+  }
+}
+
+/** Every stored upload path inside an images object (flat + destinations). */
+function collectMediaPaths(images: SiteImagesDto, into: Set<string>): void {
+  for (const [key, value] of Object.entries(images)) {
+    if (key === 'destinations') continue;
+    if (typeof value === 'string' && isMediaPath(value)) into.add(value);
+  }
+  const destinations = images.destinations;
+  if (destinations) {
+    for (const url of Object.values(destinations)) {
+      if (isMediaPath(url)) into.add(url);
+    }
   }
 }
 
@@ -187,7 +228,11 @@ function sanitizeImages(raw: unknown): SiteImagesDto {
   const images: SiteImagesDto = {};
   for (const [key, value] of Object.entries(source)) {
     if (key === 'destinations') continue;
-    if (IMAGE_KEY_RE.test(key) && typeof value === 'string' && URL_RE.test(value)) {
+    if (
+      IMAGE_KEY_RE.test(key) &&
+      typeof value === 'string' &&
+      (URL_RE.test(value) || isMediaPath(value))
+    ) {
       images[key] = value;
     }
   }
@@ -195,7 +240,11 @@ function sanitizeImages(raw: unknown): SiteImagesDto {
   if (typeof destinations === 'object' && destinations !== null && !Array.isArray(destinations)) {
     const map: Record<string, string> = {};
     for (const [code, url] of Object.entries(destinations as Record<string, unknown>)) {
-      if (DESTINATION_CODE_RE.test(code) && typeof url === 'string' && URL_RE.test(url)) {
+      if (
+        DESTINATION_CODE_RE.test(code) &&
+        typeof url === 'string' &&
+        (URL_RE.test(url) || isMediaPath(url))
+      ) {
         map[code] = url;
       }
     }

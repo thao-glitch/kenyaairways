@@ -85,3 +85,47 @@ export async function apiCall<T>(path: string, options: ApiCallOptions = {}): Pr
 
   return (await res.json()) as T;
 }
+
+/**
+ * Multipart upload variant (appearance photographs). The browser sets the
+ * multipart boundary itself — never pass a content-type header here.
+ */
+export async function apiUpload<T>(path: string, file: File): Promise<T> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { accept: 'application/json' },
+    body: form,
+  });
+
+  if (res.status === 401 && (await silentRefresh())) {
+    const retry = new FormData();
+    retry.append('file', file);
+    const again = await fetch(`${API_URL}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { accept: 'application/json' },
+      body: retry,
+    });
+    return handleUploadResponse<T>(again);
+  }
+  return handleUploadResponse<T>(res);
+}
+
+async function handleUploadResponse<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    let code = 'HTTP_ERROR';
+    let message = `Upload failed with status ${res.status}`;
+    try {
+      const parsed = (await res.json()) as Partial<ApiErrorBody>;
+      if (parsed.error?.code) code = parsed.error.code;
+      if (parsed.error?.message) message = parsed.error.message;
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new ApiRequestError(res.status, code, message);
+  }
+  return (await res.json()) as T;
+}

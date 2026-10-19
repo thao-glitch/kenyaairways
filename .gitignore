@@ -44,3 +44,6 @@ next-env.d.ts
 
 # redis dump (redis-server runs from the repo root)
 dump.rdb
+
+# Appearance-console uploads (API media store)
+apps/api/uploads/

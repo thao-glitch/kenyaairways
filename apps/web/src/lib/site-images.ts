@@ -1,4 +1,5 @@
 import type { SiteImagesDto, SiteSettingsDto } from '@flight13/shared';
+import { API_URL } from './config';
 
 /**
  * Built-in photographs (real places, Wikimedia Commons — freely licensed).
@@ -46,12 +47,20 @@ export const DEFAULT_IMAGES: Required<Pick<SiteImagesDto, 'hero' | 'auth' | 'not
   },
 };
 
+/**
+ * Admin uploads are stored as API-relative paths (`/api/v1/media/…`) and
+ * must resolve against the API origin; https URLs pass through untouched.
+ */
+export function resolveImage(src: string): string {
+  return src.startsWith('/') ? `${API_URL}${src}` : src;
+}
+
 /** Hero / auth / 404 photograph, honoring admin overrides. */
 export function siteImage(
   settings: SiteSettingsDto | null | undefined,
   key: 'hero' | 'auth' | 'notFound',
 ): string {
-  return settings?.images?.[key] || DEFAULT_IMAGES[key];
+  return resolveImage(settings?.images?.[key] || DEFAULT_IMAGES[key]);
 }
 
 /**
@@ -63,9 +72,10 @@ export function destinationImage(
   code: string,
 ): string {
   const normalized = code.toUpperCase();
-  return (
+  return resolveImage(
     settings?.images?.destinations?.[normalized] ||
-    DEFAULT_IMAGES.destinations[normalized] ||
-    siteImage(settings, 'hero')
+      DEFAULT_IMAGES.destinations[normalized] ||
+      settings?.images?.hero ||
+      DEFAULT_IMAGES.hero,
   );
 }
