@@ -376,6 +376,8 @@ model Airport {
   timezone    String // Africa/Nairobi
   latitude    Float
   longitude   Float
+  /** Continent grouping for the worldwide network map. */
+  continent   String    @default("africa") // africa|europe|asia|north-america|south-america|oceania|antarctica
   region      RouteType @default(DOMESTIC)
   domestic    Boolean   @default(true)
 

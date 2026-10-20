@@ -78,6 +78,8 @@ export interface AirportDto {
   country: string;
   countryCode: string;
   timezone: string;
+  /** Continent grouping for the network map. */
+  continent: string;
   routeType: RouteType;
   domestic: boolean;
 }
@@ -554,7 +556,7 @@ export interface MpesaVerifyCheckDto {
 // ── site appearance (theme + real photographs) ──────────────────────────────
 
 /** Theme switchable from the admin appearance console. */
-export type SiteTheme = 'sky' | 'savanna' | 'ocean' | 'forest' | 'midnight';
+export type SiteTheme = 'sky' | 'savanna' | 'ocean' | 'forest' | 'midnight' | 'crimson';
 
 /**
  * Admin-managed image URLs. Every key is optional — unset keys fall back to

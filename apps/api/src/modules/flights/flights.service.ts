@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   AppError,
   toLocalIso,
@@ -28,6 +28,8 @@ const MAX_LEAD_DAYS = 330;
 
 @Injectable()
 export class FlightsService {
+  private readonly logger = new Logger(FlightsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly pricing: PricingService,
@@ -262,6 +264,23 @@ export class FlightsService {
     }
 
     const seatsNeeded = dto.adults + dto.children; // infants travel on laps
+
+    // "Fly anywhere, any day" — make sure this city pair exists for this
+    // date (or, without a date, across the next two weeks) before searching.
+    if (originCode && destinationCode) {
+      if (flightDate) {
+        await this.ensureRouteService(originCode, destinationCode, flightDate);
+      } else {
+        for (let i = 0; i < 14; i += 1) {
+          await this.ensureRouteService(
+            originCode,
+            destinationCode,
+            new Date(today.getTime() + i * 86_400_000),
+          );
+        }
+      }
+    }
+
     const flights = await this.prisma.flight.findMany({
       where: {
         ...(originCode ? { originCode } : {}),
@@ -329,6 +348,10 @@ export class FlightsService {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
     const bookableFrom = monthStart > today ? monthStart : today;
+    // Materialise the pair across the month so every day prices out.
+    for (let t = bookableFrom.getTime(); t < monthEnd.getTime(); t += 86_400_000) {
+      await this.ensureRouteService(origin, destination, new Date(t));
+    }
     const flights = await this.prisma.flight.findMany({
       where: {
         originCode: origin,
@@ -547,6 +570,167 @@ export class FlightsService {
         currency: rule.currency as FareClassDetailDto['rules'][number]['currency'],
       })),
     }));
+  }
+
+  /**
+   * On-demand timetable expansion: if a searched city pair/date has no
+   * service yet, materialise it — a deterministic permanent schedule plus
+   * that day's flight, fares and inventory — so every result is bookable.
+   * Failures are swallowed: the search still returns whatever is published.
+   */
+  async ensureRouteService(originCode: string, destinationCode: string, date: Date): Promise<void> {
+    try {
+      await this.createRouteService(originCode, destinationCode, date);
+    } catch (err) {
+      this.logger.warn(
+        `could not materialise ${originCode}->${destinationCode} ${date.toISOString().slice(0, 10)}: ${String(err)}`,
+      );
+    }
+  }
+
+  private async createRouteService(
+    originCode: string,
+    destinationCode: string,
+    date: Date,
+  ): Promise<void> {
+    const [origin, destination] = await Promise.all([
+      this.prisma.airport.findUnique({ where: { code: originCode } }),
+      this.prisma.airport.findUnique({ where: { code: destinationCode } }),
+    ]);
+    if (!origin || !destination) return;
+
+    const km = haversineKm(
+      origin.latitude,
+      origin.longitude,
+      destination.latitude,
+      destination.longitude,
+    );
+    const typeCode = km <= 1600 ? 'E190' : km <= 5400 ? 'B738' : 'B789';
+
+    // Deterministic number in the F9xxxx block (published timetable uses
+    // F13xxx); verify the slot belongs to this pair before reusing it.
+    const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 99_991, 7);
+    const base = 90_000 + ((hash(originCode) * 13 + hash(destinationCode)) % 9_000);
+    let flightNumber = `F${base}`;
+    let scheduleId = `sched_${flightNumber}`;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const existing = await this.prisma.flightSchedule.findUnique({ where: { id: scheduleId } });
+      if (
+        !existing ||
+        (existing.originCode === originCode && existing.destinationCode === destinationCode)
+      )
+        break;
+      flightNumber = `F${base + attempt + 1}`;
+      scheduleId = `sched_${flightNumber}`;
+    }
+
+    const type = await this.prisma.aircraftType.findUnique({
+      where: { code: typeCode },
+      include: { seatMap: { include: { seats: true } } },
+    });
+    if (!type) return;
+
+    const cruiseKmh = (typeCode === 'B789' ? 490 : typeCode === 'B738' ? 450 : 430) * 1.852;
+    const durationMin = Math.round((km / cruiseKmh) * 60) + (km > 6000 ? 60 : 45);
+    const departLocalMinutes =
+      7 * 60 + ((hash(originCode) * 7 + hash(destinationCode) * 11) % (13 * 60));
+    // ≈ KES 14/km long-haul economics, KES 22/km with a floor for short hops.
+    const baseFareMinor =
+      km <= 1600
+        ? Math.max(Math.round((km * 2200) / 50_000) * 50_000, 650_000)
+        : Math.round((km * 1400) / 50_000) * 50_000;
+    const routeType = origin.domestic && destination.domestic ? 'DOMESTIC' : 'INTERNATIONAL';
+
+    const y = date.getUTCFullYear();
+    const m = date.getUTCMonth() + 1;
+    const d = date.getUTCDate();
+    const flightDate = new Date(Date.UTC(y, m - 1, d));
+    const scheduledDepUtc = zonedToUtc(y, m, d, departLocalMinutes, origin.timezone);
+    const scheduledArrUtc = new Date(scheduledDepUtc.getTime() + durationMin * 60_000);
+
+    await this.prisma.flightSchedule.upsert({
+      where: { id: scheduleId },
+      update: {}, // already published — keep the original times
+      create: {
+        id: scheduleId,
+        flightNumber,
+        originCode,
+        destinationCode,
+        aircraftTypeId: type.id,
+        departLocalMinutes,
+        durationMinutes: durationMin,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        routeType,
+        effectiveFrom: new Date(Date.now() - 7 * 86_400_000),
+        baseFareMinor,
+        saleStatus: 'OPEN',
+      },
+    });
+
+    const aircraft = await this.prisma.aircraft.findFirst({
+      where: { aircraftTypeId: type.id, status: 'ACTIVE' },
+      orderBy: { registration: 'asc' },
+    });
+    const flight = await this.prisma.flight.upsert({
+      where: { scheduleId_flightDate: { scheduleId, flightDate } },
+      update: {},
+      create: {
+        scheduleId,
+        flightDate,
+        flightNumber,
+        originCode,
+        destinationCode,
+        routeType,
+        aircraftId: aircraft?.id ?? null,
+        scheduledDepUtc,
+        scheduledArrUtc,
+        boardingUtc: new Date(scheduledDepUtc.getTime() - 45 * 60_000),
+        status: 'SCHEDULED',
+        currency: 'KES',
+      },
+    });
+
+    // Fares + inventory, mirroring the seed's cabin allocation.
+    const fareClasses = await this.prisma.fareClass.findMany({ where: { active: true } });
+    const MULTIPLIER: Record<string, number> = {
+      SAVER: 1,
+      CLASSIC: 1.25,
+      FLEX: 1.6,
+      BUSINESS: 2.4,
+    };
+    const seats = type.seatMap?.seats.filter((s) => s.active) ?? [];
+    const economy = seats.filter((s) => s.cabin === 'ECONOMY').length;
+    const business = seats.filter((s) => s.cabin === 'BUSINESS').length;
+    const saver = Math.floor(economy * 0.45);
+    const classic = Math.floor(economy * 0.35);
+    const flex = economy - saver - classic;
+    for (const fc of fareClasses) {
+      if (fc.cabin === 'BUSINESS' ? business === 0 : economy === 0) continue;
+      const fareBase = Math.round((baseFareMinor * (MULTIPLIER[fc.code] ?? 1)) / 100) * 100;
+      await this.prisma.fare.upsert({
+        where: { flightId_fareClassId: { flightId: flight.id, fareClassId: fc.id } },
+        update: {},
+        create: {
+          flightId: flight.id,
+          fareClassId: fc.id,
+          baseFareMinor: fareBase,
+          saleStatus: 'OPEN',
+        },
+      });
+      const seatsTotal =
+        fc.cabin === 'BUSINESS'
+          ? business
+          : fc.code === 'SAVER'
+            ? saver
+            : fc.code === 'CLASSIC'
+              ? classic
+              : flex;
+      await this.prisma.inventory.upsert({
+        where: { flightId_fareClassId: { flightId: flight.id, fareClassId: fc.id } },
+        update: {},
+        create: { flightId: flight.id, fareClassId: fc.id, seatsTotal },
+      });
+    }
   }
 
   private include() {
@@ -775,6 +959,47 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
   const Δλ = rad(lon2 - lon1);
   const h = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
   return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+
+// ── wall-clock → UTC (on-demand schedule materialisation) ──────────────────
+
+function tzOffsetMs(ts: number, timeZone: string): number {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+  const map: Record<string, string> = {};
+  for (const part of dtf.formatToParts(new Date(ts))) {
+    if (part.type !== 'literal') map[part.type] = part.value;
+  }
+  const asUtc = Date.UTC(
+    Number(map.year),
+    Number(map.month) - 1,
+    Number(map.day),
+    Number(map.hour) % 24,
+    Number(map.minute),
+    Number(map.second),
+  );
+  return asUtc - ts;
+}
+
+/** Local wall-clock time in an IANA zone → absolute UTC instant. */
+function zonedToUtc(
+  year: number,
+  month: number,
+  day: number,
+  minutesFromMidnight: number,
+  timeZone: string,
+): Date {
+  const guess = Date.UTC(year, month - 1, day, 0, 0, 0) + minutesFromMidnight * 60_000;
+  const firstPass = guess - tzOffsetMs(guess, timeZone);
+  return new Date(guess - tzOffsetMs(firstPass, timeZone));
 }
 
 function centralAngle(φ1: number, λ1: number, φ2: number, λ2: number): number {

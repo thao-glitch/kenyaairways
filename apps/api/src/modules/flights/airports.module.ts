@@ -23,6 +23,7 @@ export class AirportsController {
       country: a.country,
       countryCode: a.countryCode,
       timezone: a.timezone,
+      continent: a.continent,
       routeType: a.region,
       domestic: a.domestic,
     }));
