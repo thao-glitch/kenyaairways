@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
+import { EdgeWidgets } from '@/components/edge-widgets';
 import { I18nProvider } from '@/components/i18n-provider';
+import { PwaRegister } from '@/components/pwa-register';
 import { catalogs, getTranslator } from '@/lib/i18n';
 import { getSiteSettings } from '@/lib/site';
 
@@ -46,8 +48,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
             {children}
           </main>
+          {/* Fixed-position furniture — inside the provider for useT(). */}
+          <EdgeWidgets />
         </I18nProvider>
         <SiteFooter />
+        <PwaRegister />
       </body>
     </html>
   );

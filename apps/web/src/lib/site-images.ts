@@ -1,15 +1,24 @@
-import type { SiteImagesDto, SiteSettingsDto } from '@flight13/shared';
+import type { SiteSettingsDto } from '@flight13/shared';
 import { API_URL } from './config';
 
 /**
  * Built-in photographs (real places, Wikimedia Commons — freely licensed).
+ * The files are bundled with the app under `public/photos/` so every
+ * background renders even offline or when Wikimedia rate-limits hotlinks.
  * These are defaults only: the admin appearance console overrides any key
- * with its own https URL, and unset keys keep falling back to these.
+ * with its own uploaded file or https URL, and unset keys keep falling back
+ * to these.
  *
  * Attribution (Commons files, CC-licensed — see docs/design/README.md):
  * hero       A clash of worlds - Nairobi skyline from the Nairobi National park.jpg
  * auth       Kenya Airways Flight.jpg
  * notFound   Hot Air Balloon Safari in Maasai Mara.jpg
+ * explore    Hot air ballon safari Maasai Mara National Reserve Kenya.jpg
+ * plan       Buffalo Nairobi Skyline Savannah Kenya May19 R1600769.jpg
+ * manage     Heathrow Airport Terminal 5.jpg
+ * experience Kenya Airways, 5Y-KZF, Boeing 787-8 Dreamliner (49596478088).jpg
+ * rewards    Lounge at BLR.JPG
+ * holidays   Diani Beach overlooking the Indian Ocean.jpg
  * Nairobi    Nairobi skyline P1000019.jpg
  * Wilson     Wilson Airport 02.jpg
  * Maasai Mara Maasai Mara savanna landscape, Kenya.jpg
@@ -23,44 +32,64 @@ import { API_URL } from './config';
  * Dubai      Dubai Skyline mit Burj Khalifa (18241030269).jpg
  * London     Heathrow Airport Terminal 5.jpg
  */
-const W = 'https://upload.wikimedia.org/wikipedia/commons/thumb';
+/** Photographs ship with the app under `public/photos/` (same key names). */
+const P = '/photos';
 
-export const DEFAULT_IMAGES: Required<Pick<SiteImagesDto, 'hero' | 'auth' | 'notFound'>> & {
+/** Section backdrops behind the Explore / Plan / Manage / Experience / Rewards pages. */
+export const SECTION_IMAGE_KEYS = [
+  'explore',
+  'plan',
+  'manage',
+  'experience',
+  'rewards',
+  'holidays',
+] as const;
+export type SectionImageKey = (typeof SECTION_IMAGE_KEYS)[number];
+
+export type SiteImageKey = 'hero' | 'auth' | 'notFound' | SectionImageKey;
+
+export const DEFAULT_IMAGES: Record<SiteImageKey, string> & {
   destinations: Record<string, string>;
 } = {
-  hero: `${W}/e/e9/A_clash_of_worlds_-_Nairobi_skyline_from_the_Nairobi_National_park.jpg/1920px-A_clash_of_worlds_-_Nairobi_skyline_from_the_Nairobi_National_park.jpg`,
-  auth: `${W}/a/ac/Kenya_Airways_Flight.jpg/1920px-Kenya_Airways_Flight.jpg`,
-  notFound: `${W}/4/41/Hot_Air_Balloon_Safari_in_Maasai_Mara.jpg/1920px-Hot_Air_Balloon_Safari_in_Maasai_Mara.jpg`,
+  hero: `${P}/hero.jpg`,
+  auth: `${P}/auth.jpg`,
+  notFound: `${P}/not-found.jpg`,
+  explore: `${P}/explore.jpg`,
+  plan: `${P}/plan.jpg`,
+  manage: `${P}/manage.jpg`,
+  experience: `${P}/experience.jpg`,
+  rewards: `${P}/rewards.jpg`,
+  holidays: `${P}/holidays.jpg`,
   destinations: {
-    NBO: `${W}/8/83/Nairobi_skyline_P1000019.jpg/1920px-Nairobi_skyline_P1000019.jpg`,
-    WIL: `${W}/6/6e/Wilson_Airport_02.jpg/1920px-Wilson_Airport_02.jpg`,
-    MBA: `${W}/e/ed/Maasai_Mara_savanna_landscape%2C_Kenya.jpg/1920px-Maasai_Mara_savanna_landscape%2C_Kenya.jpg`,
-    KIS: `${W}/1/18/Kisumu_City_view.jpg/1920px-Kisumu_City_view.jpg`,
-    EDL: `${W}/e/e0/Eldoret_Daima_towers_viewed_along_Uganda_Road_Near_Rupa_Mall.jpg/1920px-Eldoret_Daima_towers_viewed_along_Uganda_Road_Near_Rupa_Mall.jpg`,
-    MYD: `${W}/2/2d/Malindi_beach_Kenya.jpg/1920px-Malindi_beach_Kenya.jpg`,
-    LAU: `${W}/8/80/Lamu_old_town_street.jpg/1920px-Lamu_old_town_street.jpg`,
-    EBB: `${W}/7/7e/Entebbe_Aerial.jpg/1920px-Entebbe_Aerial.jpg`,
-    DAR: `${W}/b/bc/Dar_es_Salaam_City_Skyline.jpg/1920px-Dar_es_Salaam_City_Skyline.jpg`,
-    JNB: `${W}/9/95/Johannesburg_skyline_2017.jpg/1920px-Johannesburg_skyline_2017.jpg`,
-    DXB: `${W}/c/cc/Dubai_Skyline_mit_Burj_Khalifa_%2818241030269%29.jpg/1920px-Dubai_Skyline_mit_Burj_Khalifa_%2818241030269%29.jpg`,
-    LHR: `${W}/6/6d/Heathrow_Airport_Terminal_5.jpg/1920px-Heathrow_Airport_Terminal_5.jpg`,
+    NBO: `${P}/nbo.jpg`,
+    WIL: `${P}/wil.jpg`,
+    MBA: `${P}/mba.jpg`,
+    KIS: `${P}/kis.jpg`,
+    EDL: `${P}/edl.jpg`,
+    MYD: `${P}/myd.jpg`,
+    LAU: `${P}/lau.jpg`,
+    EBB: `${P}/ebb.jpg`,
+    DAR: `${P}/dar.jpg`,
+    JNB: `${P}/jnb.jpg`,
+    DXB: `${P}/dxb.jpg`,
+    LHR: `${P}/manage.jpg`,
   },
 };
 
 /**
  * Admin uploads are stored as API-relative paths (`/api/v1/media/…`) and
- * must resolve against the API origin; https URLs pass through untouched.
+ * must resolve against the API origin. Bundled defaults (`/photos/…`) are
+ * served by this app itself, and https URLs pass through untouched.
  */
 export function resolveImage(src: string): string {
-  return src.startsWith('/') ? `${API_URL}${src}` : src;
+  return src.startsWith('/api/') ? `${API_URL}${src}` : src;
 }
 
-/** Hero / auth / 404 photograph, honoring admin overrides. */
-export function siteImage(
-  settings: SiteSettingsDto | null | undefined,
-  key: 'hero' | 'auth' | 'notFound',
-): string {
-  return resolveImage(settings?.images?.[key] || DEFAULT_IMAGES[key]);
+/** Section / hero / auth / 404 photograph, honoring admin overrides. */
+export function siteImage(settings: SiteSettingsDto | null | undefined, key: SiteImageKey): string {
+  return resolveImage(
+    (settings?.images?.[key as string] as string | undefined) || DEFAULT_IMAGES[key],
+  );
 }
 
 /**

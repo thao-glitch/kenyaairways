@@ -52,16 +52,16 @@ export function SessionNav() {
 
   if (!user) {
     return (
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         <Link
           href="/login"
-          className="rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+          className="rounded-sm bg-foreground px-2.5 py-1.5 text-xs font-semibold text-background transition-opacity hover:opacity-80"
         >
           {t('nav.signIn')}
         </Link>
         <Link
           href="/register"
-          className="rounded bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          className="hidden rounded-sm bg-foreground px-2.5 py-1.5 text-xs font-semibold text-background transition-opacity hover:opacity-80 sm:inline-block"
         >
           {t('nav.register')}
         </Link>

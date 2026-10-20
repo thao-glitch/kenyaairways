@@ -166,7 +166,39 @@
   --ring: 199 85% 55%;
 }
 
+/*
+ * "Crimson" — the Kenya Airways house style (white / red / near-black).
+ * White on --primary measures 5.0:1 (WCAG AA for normal text); accents are
+ * pale red washes so red text never sits on white below 4.5:1.
+ */
+[data-theme='crimson'] {
+  --background: 0 0% 100%;
+  --foreground: 340 20% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 340 20% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 340 20% 8%;
+  --primary: 356 78% 48%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 340 12% 95%;
+  --secondary-foreground: 340 20% 8%;
+  --muted: 340 12% 95%;
+  --muted-foreground: 340 6% 42%;
+  --accent: 356 90% 95%;
+  --accent-foreground: 356 70% 25%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 71% 35%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 45%;
+  --warning-foreground: 0 0% 100%;
+  --border: 340 14% 89%;
+  --input: 340 14% 89%;
+  --ring: 356 78% 48%;
+}
+
 @theme inline {
+  --font-display: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
@@ -206,6 +238,9 @@
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+    /* Full-bleed editorial bands may extend a scrollbar-width past the
+       viewport edge — clip (not hidden) so sticky positioning survives. */
+    overflow-x: clip;
     /* System stack: zero webfont bytes on slow Kenyan mobile networks */
     font-family:
       ui-sans-serif,
@@ -233,6 +268,11 @@
 }
 
 @layer utilities {
+  /* Break out of the page container to the viewport edges (used by the hero,
+     promo banner and newsletter band). Requires body overflow-x: clip. */
+  .full-bleed {
+    margin-inline: calc((100% - 100vw) / 2);
+  }
   .skip-link {
     position: absolute;
     left: -9999px;

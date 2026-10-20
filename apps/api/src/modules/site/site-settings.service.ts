@@ -12,7 +12,14 @@ import { MethodConfigService } from '../payments/config/method-config.service';
 import { MEDIA_FILE_RE, MEDIA_PATH_PREFIX, MediaService } from './media.service';
 
 /** Themes the web app ships (must stay in sync with globals.css). */
-export const SITE_THEMES: SiteTheme[] = ['sky', 'savanna', 'ocean', 'forest', 'midnight'];
+export const SITE_THEMES: SiteTheme[] = [
+  'sky',
+  'savanna',
+  'ocean',
+  'forest',
+  'midnight',
+  'crimson',
+];
 
 /** Any flat image key: `hero`, `explore`, `place:nbo`, `holiday-safari`, … */
 /** Override keys: leading lowercase letter, then letters/digits/`-`/`:` (camelCase like `notFound` allowed). */
