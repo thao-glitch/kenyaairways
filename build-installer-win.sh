@@ -29,8 +29,13 @@ echo "▸ Packing committed source (git archive — excludes git-ignored files)"
 # excluded automatically. Tarring "." instead would leak real local secrets.
 rm -rf "$STAGE"; mkdir -p "$STAGE"
 git archive --format=tar HEAD | tar -x -C "$STAGE"
+# Windows cmd expects CRLF in .bat files; an LF-only batch can silently
+# break goto/label jumps. git archive packs the normalised (LF) blob, so
+# convert the .bat files to CRLF here, right before packing them into the
+# .exe. (Idempotent: strips any existing CR, then adds exactly one.)
+find "$STAGE" -name '*.bat' -exec sed -i -e 's/\r$//' -e 's/$/\r/' {} +
 COUNT=$(find "$STAGE" -type f | wc -l)
-echo "  ✓ payload: $COUNT files"
+echo "  ✓ payload: $COUNT files (.bat normalised to CRLF for cmd.exe)"
 
 echo "▸ Writing the NSIS installer script"
 cat > "$NSI" <<'NSIEOF'

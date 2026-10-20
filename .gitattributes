@@ -1,0 +1,5 @@
+# Windows batch files must use CRLF — cmd.exe can mis-parse goto/labels
+# in LF-only batches. Normalise on checkout so Windows (and the built
+# installer) always sees CRLF. (build-installer-win.sh also converts at
+# pack time, since git archive stores the normalised LF blob.)
+*.bat text eol=crlf
