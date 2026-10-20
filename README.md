@@ -14,26 +14,50 @@ materialises routes on demand).
 
 ---
 
-## Quick start (any Linux, macOS, Windows/WSL)
+## Quick start — one file installs everything
 
-Requirements: **Node 20+** and either Docker _or_ a local PostgreSQL + Redis.
+**Download** the repo (GitHub → green _Code_ → _Download ZIP_, or
+`git clone`), unzip it, and **double-click**:
+
+| System            | Double-click                                               |
+| ----------------- | ---------------------------------------------------------- |
+| **Windows**       | `INSTALL.bat`                                              |
+| **Linux / macOS** | `setup.sh` (file manager: right-click → _Run in Terminal_) |
+
+The installer takes it from there — no prerequisites needed:
+
+- installs **Node.js + pnpm** if missing (Windows silently via winget;
+  Linux/macOS via apt/brew)
+- installs the workspace and generates fresh secrets into `.env`
+  (never overwritten on later runs)
+- starts **PostgreSQL + Redis** — via Docker when present, otherwise it
+  installs and starts a local server itself
+- applies the database schema and **seeds the 114-airport worldwide
+  network** (first run ≈ 10 minutes)
+
+Then **double-click `START.bat`** (Windows) or **`start.sh`** — the whole
+platform comes up and your browser opens:
+
+- **http://localhost:3000** — user app
+- **http://localhost:3001** — admin (`admin@kenyaairways.example` / `Password123!`)
+- **http://localhost:4100/api/docs** — API Swagger
+
+Prefer terminals? `./setup.sh --dev` does install + start in one go.
+Already in VS Code? Terminal → _Run Task…_ → **start: all apps**.
+
+### Already installed? The same file upgrades you
+
+Download the new version (or `git pull`) and **run the same installer
+again** — it detects the existing installation and upgrades it **in
+place**: refreshes dependencies, pulls the latest code, pushes the schema
+forward and re-applies network updates. Every booking, user, setting and
+photo upload is preserved. From a ZIP (no git) it upgrades without
+pulling.
+
+### Docker alternative (stack in containers)
 
 ```bash
-git clone <this-repo> kenyaairways && cd kenyaairways
-./setup.sh        # installs deps, generates secrets, creates schema, seeds the world
-pnpm dev          # starts all three apps
-```
-
-Open **http://localhost:3000** (user), **:3001** (admin), **:4100/api/docs** (API).
-
-> On Ubuntu / Debian / Kali without Node yet:
-> `curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash - && sudo apt install -y nodejs`
-> then `sudo apt install -y redis-server` (or let setup.sh use Docker for the databases).
-
-### Docker (no local Node/DB needed beyond Docker itself)
-
-```bash
-./setup.sh                              # creates apps/api/.env with generated secrets
+./setup.sh                              # creates .env with generated secrets
 docker compose up -d --build            # db + redis + api + web + admin
 docker compose run --rm api pnpm db:seed   # first run only: seed the network
 ```
@@ -79,9 +103,10 @@ No separate mobile codebase is needed — this repo _is_ the mobile app.
 
 ## Configuration
 
-`./setup.sh` generates `apps/api/.env` with safe defaults and fresh secrets.
-The full annotated list of every variable is in
-[`apps/api/.env.example`](apps/api/.env.example). Highlights:
+The installer generates `.env` at the repo root with safe defaults and
+fresh secrets (the API reads the nearest `.env`; `apps/api/.env` is
+linked to it for the Prisma CLI). The full annotated list of every
+variable is in [`.env.example`](.env.example). Highlights:
 
 - `AIRLINE_NAME` — rebrand instantly (also live-editable in Admin → Appearance)
 - `DATABASE_URL`, `REDIS_URL`
@@ -95,14 +120,19 @@ in **Admin → Appearance** (images are replaced by file upload, never URLs).
 
 ## Upgrading
 
-```bash
-git pull
-./setup.sh                 # idempotent — refreshes deps, pushes schema, keeps data
-docker compose up -d --build   # if you run the containerised setup
-```
+Run **the same installer you ran the first time** — that is the whole
+upgrade flow:
 
-Your data survives: `prisma db push` is additive and the seeded network is
-upserted (demo flight/booking rows you created are kept).
+- **Windows**: download/unzip the new version over the old folder (or
+  `git pull` inside it) → double-click `INSTALL.bat`
+- **Linux / macOS**: `git pull && ./setup.sh` (or run `setup.sh` from a
+  fresh download in the same folder)
+- **Docker**: `git pull && docker compose up -d --build`
+
+Your data survives every upgrade: `prisma db push` is additive, the
+network seed is upserted, and `.env` (with your secrets) is never
+overwritten. Skip the git pull with `SKIP_PULL=1 ./setup.sh` when
+upgrading from a ZIP.
 
 ## Production hardening checklist
 
@@ -120,8 +150,10 @@ apps/web        Passenger app (Next.js App Router, EN+SW i18n, PWA)
 apps/admin      Staff app (Next.js, role-gated)
 apps/api        NestJS + Prisma REST API, OpenAPI, background jobs
 packages/shared Shared DTOs & contracts consumed by all three
-setup.sh        One-command bootstrap for any machine
-docker-compose.yml  Entire stack in containers
+INSTALL.bat / setup.sh   Double-click installer (Windows / Linux+macOS) — first install & upgrades
+START.bat / start.sh     Double-click launcher for the whole platform
+.vscode/tasks.json       “setup / start / seed” tasks inside VS Code
+docker-compose.yml       Entire stack in containers
 ```
 
 ## License

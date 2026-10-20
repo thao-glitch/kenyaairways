@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
 
 concurrency:
@@ -51,7 +51,7 @@ jobs:
       - name: Build shared package
         run: pnpm --filter @kenyaairways/shared build
       - name: Migrate
-        run: pnpm db:migrate
+        run: pnpm db:push
       - name: Seed
         run: pnpm db:seed
       - name: Lint
@@ -83,16 +83,16 @@ jobs:
         run: docker compose up -d --build --wait --wait-timeout 180
       - name: Stack is ready
         run: |
-          curl -fsS http://localhost:4000/healthz
-          curl -fsS http://localhost:4000/readyz
+          curl -fsS http://localhost:4100/healthz
+          curl -fsS http://localhost:4100/readyz
           curl -fsS http://localhost:3000 >/dev/null
-          curl -fsS "http://localhost:4000/api/v1/flights/search?origin=NBO&destination=MBA&date=$(date -d '+14 days' +%F)" | grep -q '"results":\[{' || { echo 'seed missing'; exit 1; }
+          curl -fsS "http://localhost:4100/api/v1/flights/search?origin=NBO&destination=MBA&date=$(date -d '+14 days' +%F)" | grep -q '"results":\[{' || { echo 'seed missing'; exit 1; }
       - name: Soak (30s, full book→pay→issue journey)
         run: pnpm soak
       - name: Playwright — search → book → pay → seat → check-in → pass
         run: |
           pnpm --filter @kenyaairways/web exec playwright install --with-deps chromium
-          WEB_URL=http://localhost:3000 API_URL=http://localhost:4000 pnpm --filter @kenyaairways/web test:e2e
+          WEB_URL=http://localhost:3000 API_URL=http://localhost:4100 pnpm --filter @kenyaairways/web test:e2e
       - name: Stack logs on failure
         if: failure()
         run: docker compose logs --no-color | tail -n 500

@@ -10,7 +10,7 @@
   },
   "scripts": {
     "bootstrap": "node scripts/bootstrap.mjs",
-    "dev": "pnpm -r --parallel --filter @kenyaairways/api --filter @kenyaairways/web dev",
+    "dev": "pnpm -r --parallel --filter @kenyaairways/api --filter @kenyaairways/web --filter @kenyaairways/admin dev",
     "build": "pnpm --filter @kenyaairways/shared build && pnpm -r --filter @kenyaairways/api --filter @kenyaairways/web build",
     "lint": "eslint . && pnpm -r lint",
     "lint:fix": "eslint . --fix && pnpm -r lint:fix",
@@ -19,6 +19,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:migrate": "pnpm --filter @kenyaairways/api db:migrate",
+    "db:push": "pnpm --filter @kenyaairways/api exec prisma db push --skip-generate",
     "db:deploy": "pnpm --filter @kenyaairways/api db:deploy",
     "db:seed": "pnpm --filter @kenyaairways/api db:seed",
     "db:reset": "pnpm --filter @kenyaairways/api db:reset",

@@ -5,7 +5,7 @@ import { defineConfig, devices } from '@playwright/test';
  * purpose: CI brings up docker compose (API + web + seed) and locally you
  * point this at your dev servers:
  *
- *   WEB_URL=http://localhost:3000 API_URL=http://localhost:4000 \
+ *   WEB_URL=http://localhost:3000 API_URL=http://localhost:4100 \
  *   pnpm --filter @kenyaairways/web exec playwright test
  *
  * CI installs Playwright's chromium. Locally, set PLAYWRIGHT_CHROMIUM_PATH

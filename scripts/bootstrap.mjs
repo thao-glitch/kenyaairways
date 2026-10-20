@@ -45,4 +45,4 @@ if (!existsSync(apiEnvPath)) {
   }
 }
 
-console.log('  next: pnpm install && pnpm db:migrate && pnpm db:seed');
+console.log('  next: pnpm install && pnpm db:push && pnpm db:seed');

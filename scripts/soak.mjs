@@ -14,7 +14,7 @@
  *   2  could not run at all (stack down, setup failed)
  *
  * Config (env):
- *   SOAK_API_URL         base URL of the API      (default http://localhost:4000)
+ *   SOAK_API_URL         base URL of the API      (default http://localhost:4100)
  *   SOAK_USERS           virtual users            (default 5)
  *   SOAK_DURATION_S      measured window, seconds (default 30)
  *   SOAK_MAX_ERROR_PCT   max failed journeys, %   (default 1)
@@ -22,7 +22,7 @@
  */
 import { randomInt } from 'node:crypto';
 
-const API = (process.env.SOAK_API_URL ?? 'http://localhost:4000').replace(/\/+$/, '');
+const API = (process.env.SOAK_API_URL ?? 'http://localhost:4100').replace(/\/+$/, '');
 const USERS = Number(process.env.SOAK_USERS ?? 5);
 const DURATION_S = Number(process.env.SOAK_DURATION_S ?? 30);
 const MAX_ERROR_PCT = Number(process.env.SOAK_MAX_ERROR_PCT ?? 1);

@@ -9,7 +9,7 @@ services:
     image: postgres:18-alpine
     environment:
       POSTGRES_USER: kenyaairways
-      POSTGRES_PASSWORD: kenyaairways
+      POSTGRES_PASSWORD: kenyaairways_dev
       POSTGRES_DB: kenyaairways
     volumes:
       - dbdata:/var/lib/postgresql/data
@@ -41,7 +41,7 @@ services:
     env_file: apps/api/.env
     environment:
       PORT: '4100'
-      DATABASE_URL: postgresql://kenyaairways:kenyaairways@db:5432/kenyaairways
+      DATABASE_URL: postgresql://kenyaairways:kenyaairways_dev@db:5432/kenyaairways
       REDIS_URL: redis://redis:6379
       API_PUBLIC_URL: http://localhost:4100
       NEXT_PUBLIC_API_URL: http://localhost:4100
