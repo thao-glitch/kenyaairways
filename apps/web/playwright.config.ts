@@ -6,7 +6,7 @@ import { defineConfig, devices } from '@playwright/test';
  * point this at your dev servers:
  *
  *   WEB_URL=http://localhost:3000 API_URL=http://localhost:4000 \
- *   pnpm --filter @flight13/web exec playwright test
+ *   pnpm --filter @kenyaairways/web exec playwright test
  *
  * CI installs Playwright's chromium. Locally, set PLAYWRIGHT_CHROMIUM_PATH
  * to reuse a system browser (e.g. /usr/bin/chromium) instead of downloading.

@@ -37,7 +37,7 @@ describe('auth (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const password = 'Sup3rSecretPass';
-  const email = `e2e+${stamp}@flight13.example`;
+  const email = `e2e+${stamp}@kenyaairways.example`;
   const phone = `+2547${digits8(1)}`;
   let sessionCookie = '';
 
@@ -111,7 +111,7 @@ describe('auth (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/auth/register')
       .send({
-        email: `e2e-terms+${stamp}@flight13.example`,
+        email: `e2e-terms+${stamp}@kenyaairways.example`,
         password,
         firstName: 'A',
         lastName: 'B',
@@ -130,7 +130,7 @@ describe('auth (e2e)', () => {
 
     const unknown = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ identifier: 'nobody@flight13.example', password: 'WrongPassword1' })
+      .send({ identifier: 'nobody@kenyaairways.example', password: 'WrongPassword1' })
       .expect(401);
     expect(unknown.body.error.message).toBe(res.body.error.message);
   });
@@ -197,7 +197,7 @@ describe('auth (e2e)', () => {
 
   it('locks the account after LOGIN_MAX_ATTEMPTS failures', async () => {
     const env = getEnv();
-    const lockEmail = `e2e-lock+${stamp}@flight13.example`;
+    const lockEmail = `e2e-lock+${stamp}@kenyaairways.example`;
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
       .send({ email: lockEmail, password, firstName: 'Lock', lastName: 'Test', acceptTerms: true })
@@ -296,7 +296,7 @@ describe('auth (e2e)', () => {
 
     const admin = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ identifier: 'admin@flight13.example', password: env.SEED_USER_PASSWORD })
+      .send({ identifier: 'admin@kenyaairways.example', password: env.SEED_USER_PASSWORD })
       .expect(200);
     expect(admin.body.user.role).toBe('ADMIN');
 

@@ -1,6 +1,6 @@
 import { Controller, Get, HttpCode, Injectable, Module, Res } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { HealthDto } from '@flight13/shared';
+import type { HealthDto } from '@kenyaairways/shared';
 import type { Response } from 'express';
 import { PrismaService } from '../../prisma/prisma.module';
 import { RedisService } from '../../redis/redis.module';

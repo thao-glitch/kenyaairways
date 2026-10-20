@@ -1,4 +1,4 @@
-# Flight13 API — NestJS + Prisma. Build the workspace, then run with a
+# Kenya Airways API — NestJS + Prisma. Build the workspace, then run with a
 # slim production stage; `prisma db push` runs at boot so the schema
 # always matches the image.
 FROM node:22-alpine AS build
@@ -7,12 +7,12 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/shared/package.json packages/shared/
 COPY apps/api/package.json apps/api/
-RUN pnpm install --frozen-lockfile --filter @flight13/api...
+RUN pnpm install --frozen-lockfile --filter @kenyaairways/api...
 COPY packages/shared packages/shared
 COPY apps/api apps/api
-RUN pnpm --filter @flight13/shared build \
- && pnpm --filter @flight13/api exec prisma generate \
- && pnpm --filter @flight13/api build
+RUN pnpm --filter @kenyaairways/shared build \
+ && pnpm --filter @kenyaairways/api exec prisma generate \
+ && pnpm --filter @kenyaairways/api build
 
 FROM node:22-alpine
 WORKDIR /repo

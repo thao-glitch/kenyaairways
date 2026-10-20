@@ -1,6 +1,6 @@
 import { Controller, Get, Module } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { MetaDto } from '@flight13/shared';
+import type { MetaDto } from '@kenyaairways/shared';
 import { getEnv } from '../../config/env';
 import { Public } from '../../common/decorators/public.decorator';
 

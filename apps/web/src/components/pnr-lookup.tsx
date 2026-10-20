@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
-import type { PnrLookupDto } from '@flight13/shared';
+import type { PnrLookupDto } from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

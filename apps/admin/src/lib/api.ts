@@ -1,4 +1,4 @@
-import type { ApiErrorBody } from '@flight13/shared';
+import type { ApiErrorBody } from '@kenyaairways/shared';
 import { API_URL } from './config';
 
 export class ApiRequestError extends Error {

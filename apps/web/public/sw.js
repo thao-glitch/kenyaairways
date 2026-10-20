@@ -4,7 +4,7 @@
  * refresh), pages are network-first with a cached fallback; API calls
  * are never intercepted. Bump CACHE to invalidate old entries.
  */
-const CACHE = 'flight13-v1';
+const CACHE = 'kenyaairways-v1';
 
 self.addEventListener('install', () => self.skipWaiting());
 

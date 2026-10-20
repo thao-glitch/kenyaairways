@@ -5,7 +5,7 @@ import {
   roomForUser,
   type RtEventName,
   type ServerToClientEvents,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { PrismaService } from '../prisma/prisma.module';
 import { RedisService } from '../redis/redis.module';
 import { createLogger, type Logger } from '../common/logger';

@@ -24,7 +24,7 @@ import {
   type DocType,
   type PassengerType,
   type TripType,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 
 const BOOKING_SOURCES = ['WEB', 'AGENT', 'ADMIN', 'API'] as const;
 const TRIP_TYPES = ['ONE_WAY', 'ROUND_TRIP', 'MULTI_CITY'] as const;

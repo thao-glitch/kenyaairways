@@ -9,7 +9,7 @@ import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useRoute, type RouteProp } from '@react-navigation/native';
 import { useSeatMap } from '@/lib/hooks';
 import { api, ApiError } from '@/lib/api';
-import type { SeatMapSeatDto } from '@flight13/shared';
+import type { SeatMapSeatDto } from '@kenyaairways/shared';
 import { Button, Card, Loading, Screen, Badge } from '@/components/ui';
 import { colors, radii, spacing, type } from '@/theme/tokens';
 import type { RootStackParamList } from '@/navigation/root-navigator';

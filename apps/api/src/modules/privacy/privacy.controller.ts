@@ -7,7 +7,7 @@ import {
   type ConsentDto,
   type SubjectRequestDto,
   type SubjectRequestResultDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthUser, AuthedRequest } from '../../common/auth-request';
 import { actorFromUser } from '../bookings/bookings.service';

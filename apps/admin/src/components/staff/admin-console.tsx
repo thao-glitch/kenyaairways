@@ -1,7 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { type AdminUserDto, type HealthDto, type MetaDto, type Paginated } from '@flight13/shared';
+import {
+  type AdminUserDto,
+  type HealthDto,
+  type MetaDto,
+  type Paginated,
+} from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

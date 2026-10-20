@@ -7,7 +7,7 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import type { AdminBookingSummaryDto, PaymentDto } from '@flight13/shared';
+import type { AdminBookingSummaryDto, PaymentDto } from '@kenyaairways/shared';
 import { Role } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';

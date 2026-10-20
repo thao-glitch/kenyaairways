@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { PaymentProviderType } from '@prisma/client';
-import { AppError, type PaymentPlanDto } from '@flight13/shared';
+import { AppError, type PaymentPlanDto } from '@kenyaairways/shared';
 import { getEnv } from '../../../config/env';
 import {
   encryptionKeyConfigured,

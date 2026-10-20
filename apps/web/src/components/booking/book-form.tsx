@@ -2,8 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, type FormEvent } from 'react';
-import type { BookingDto, FlightOptionDto, PassengerType } from '@flight13/shared';
-import { formatMoney, MAX_PAX_PER_BOOKING } from '@flight13/shared';
+import type { BookingDto, FlightOptionDto, PassengerType } from '@kenyaairways/shared';
+import { formatMoney, MAX_PAX_PER_BOOKING } from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

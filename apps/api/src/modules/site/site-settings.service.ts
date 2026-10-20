@@ -4,7 +4,7 @@ import {
   type SiteImagesDto,
   type SiteSettingsDto,
   type SiteTheme,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { PrismaService } from '../../prisma/prisma.module';
 import { maskDeep } from '../../common/logger';
 import type { BookingActor } from '../bookings/bookings.service';
@@ -134,7 +134,7 @@ export class SiteSettingsService {
     const row = await this.prisma.siteSettings.findUnique({ where: { id: true } });
     const theme =
       row && SITE_THEMES.includes(row.theme as SiteTheme) ? (row.theme as SiteTheme) : 'sky';
-    const appName = row?.appName?.trim() ? row.appName.trim() : 'Flight13';
+    const appName = row?.appName?.trim() ? row.appName.trim() : 'Kenya Airways';
     const images = sanitizeImages(row?.images);
     this.cache = { at: now, appName, theme, images };
     return { appName, theme, images };

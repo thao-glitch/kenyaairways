@@ -1,5 +1,5 @@
 /**
- * Flight13 mobile — root component.
+ * Kenya Airways mobile — root component.
  *
  * Providers, outermost → innermost:
  *   SafeAreaProvider  — notch/status-bar insets on every screen

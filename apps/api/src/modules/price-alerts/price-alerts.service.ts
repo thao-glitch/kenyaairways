@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { PriceAlertDto } from '@flight13/shared';
-import { AppError } from '@flight13/shared';
+import type { PriceAlertDto } from '@kenyaairways/shared';
+import { AppError } from '@kenyaairways/shared';
 import { PrismaService } from '../../prisma/prisma.module';
 import type { FlightSearchDto } from '../flights/dto/flight-search.dto';
 import { FlightsService } from '../flights/flights.service';

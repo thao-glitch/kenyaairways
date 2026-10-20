@@ -10,7 +10,7 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBooking, useFlight, useFlightSearch } from '@/lib/hooks';
 import { api, ApiError } from '@/lib/api';
-import type { BookingDto } from '@flight13/shared';
+import type { BookingDto } from '@kenyaairways/shared';
 import { Badge, Button, Card, EmptyState, Loading, Screen } from '@/components/ui';
 import { colors, spacing, type } from '@/theme/tokens';
 import type { RootStackParamList } from '@/navigation/root-navigator';

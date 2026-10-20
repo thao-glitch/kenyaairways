@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Req } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
-import type { PnrLookupDto, TicketIssueResultDto } from '@flight13/shared';
+import type { PnrLookupDto, TicketIssueResultDto } from '@kenyaairways/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthUser, AuthedRequest } from '../../common/auth-request';
 import { actorFromUser, BookingsService } from '../bookings/bookings.service';

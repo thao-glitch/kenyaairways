@@ -59,14 +59,14 @@ describe('reports (e2e)', () => {
 
     const login = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ identifier: 'finance@flight13.example', password: getEnv().SEED_USER_PASSWORD })
+      .send({ identifier: 'finance@kenyaairways.example', password: getEnv().SEED_USER_PASSWORD })
       .expect(200);
     financeCookie = cookieHeader(login);
 
     const register = await request(app.getHttpServer())
       .post('/api/v1/auth/register')
       .send({
-        email: `rep+${stamp}@flight13.example`,
+        email: `rep+${stamp}@kenyaairways.example`,
         phone: `+2547${digits8(50)}`,
         password: 'Sup3rSecretPass',
         firstName: 'Report',
@@ -91,7 +91,7 @@ describe('reports (e2e)', () => {
         tripType: 'ONE_WAY',
         segments: [{ flightId, fareClassCode: 'SAVER' }],
         passengers: [{ type: 'ADULT', firstName: 'Report', lastName: `Rider${stamp}` }],
-        contactEmail: `rep+${stamp}@flight13.example`,
+        contactEmail: `rep+${stamp}@kenyaairways.example`,
       })
       .expect(201);
     bookingTotalMinor = book.body.totalMinor as number;

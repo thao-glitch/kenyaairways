@@ -12,7 +12,7 @@ import {
   type C2BPaymentDto,
   type PaymentDto,
   type RefundDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import type { Booking, MpesaTxStatus, Payment, PaymentProviderType, Refund } from '@prisma/client';
 import type Stripe from 'stripe';
 import { getEnv } from '../../config/env';
@@ -429,7 +429,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         currency: booking.currency,
         msisdn,
         callbackUrl: `${env.API_PUBLIC_URL}/${GLOBAL_PREFIX}/payments/cb/${env.MPESA_CALLBACK_SECRET}/stk`,
-        description: 'Flight13',
+        description: 'Kenya Airways',
       });
       providerRef = result.providerRef;
       clientSecret = result.clientSecret ?? null;

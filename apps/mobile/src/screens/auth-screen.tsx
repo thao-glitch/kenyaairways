@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
 import { useSessionStore } from '@/store/session';
 import { api, ApiError } from '@/lib/api';
-import type { MobileSessionDto } from '@flight13/shared';
+import type { MobileSessionDto } from '@kenyaairways/shared';
 import { Button, Card, Screen } from '@/components/ui';
 import { colors, spacing, type } from '@/theme/tokens';
 
@@ -45,7 +45,7 @@ export function AuthScreen() {
   return (
     <Screen>
       <View style={{ marginTop: spacing.xl, marginBottom: spacing.lg }}>
-        <Text style={{ ...type.hero, color: colors.foreground }}>Flight13</Text>
+        <Text style={{ ...type.hero, color: colors.foreground }}>Kenya Airways</Text>
         <Text style={{ ...type.body, color: colors.mutedForeground }}>
           Flights across the world
         </Text>

@@ -66,7 +66,7 @@ describe('check-in + boarding passes (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/auth/register')
       .send({
-        email: `ci+${stamp}${suffix}@flight13.example`,
+        email: `ci+${stamp}${suffix}@kenyaairways.example`,
         phone: `+2547${digits8(80 + suffix)}`,
         password: 'Sup3rSecretPass',
         firstName: 'Ci',
@@ -90,7 +90,7 @@ describe('check-in + boarding passes (e2e)', () => {
         tripType: 'ONE_WAY',
         segments: [{ flightId, fareClassCode: 'SAVER' }],
         passengers: passengers.map((p) => ({ type: 'ADULT', ...p })),
-        contactEmail: `ci+${stamp}${suffix}@flight13.example`,
+        contactEmail: `ci+${stamp}${suffix}@kenyaairways.example`,
       })
       .expect(201);
     return { id: res.body.id as string, pnr: res.body.pnr as string };

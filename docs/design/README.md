@@ -1,7 +1,7 @@
-# Flight13 design concepts
+# Kenya Airways design concepts
 
 Original, hand-drawn SVG mockups for proposed next-level upgrades. The logo mark and route
-arcs in `apps/web/src/components/art/` are invented for Flight13; all photography is real,
+arcs in `apps/web/src/components/art/` are invented for Kenya Airways; all photography is real,
 freely-licensed imagery from Wikimedia Commons served through the site settings API (admins
 can override every image in the admin console → Appearance).
 

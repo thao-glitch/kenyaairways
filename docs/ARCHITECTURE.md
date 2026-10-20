@@ -1,4 +1,4 @@
-# Flight13 — Architecture
+# Kenya Airways — Architecture
 
 Companion to the [README](../README.md). Paths, contracts, and diagrams here are the
 source of truth for implementation; where an earlier design note disagrees (for example the
@@ -280,7 +280,7 @@ sequenceDiagram
     C->>A: POST /payments {bookingId}
     A->>A: create Payment intent (REQUIRES_ACTION), audit log
     A->>D: OAuth token (cached in Redis until expiry)
-    A->>D: STK Push<br/>Password=base64(Shortcode+Passkey+Timestamp)<br/>AccountReference=PNR(≤12), Desc="Flight13"
+    A->>D: STK Push<br/>Password=base64(Shortcode+Passkey+Timestamp)<br/>AccountReference=PNR(≤12), Desc="Kenya Airways"
     D-->>A: CheckoutRequestID
     A->>A: persist MpesaTransaction (PENDING)
     A-->>C: 201 Payment DTO (fast; providerRef = CheckoutRequestID)

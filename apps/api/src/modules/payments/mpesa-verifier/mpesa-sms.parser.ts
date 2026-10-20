@@ -1,4 +1,4 @@
-import type { MpesaParsedMessageDto } from '@flight13/shared';
+import type { MpesaParsedMessageDto } from '@kenyaairways/shared';
 
 /**
  * Best-effort extraction of the fields staff need from a pasted M-Pesa

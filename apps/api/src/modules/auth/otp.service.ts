@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { randomInt } from 'node:crypto';
 import type { OtpChannel, OtpPurpose } from '@prisma/client';
-import { AppError, DEFAULT_LOCALE, normalizeKenyanPhone } from '@flight13/shared';
+import { AppError, DEFAULT_LOCALE, normalizeKenyanPhone } from '@kenyaairways/shared';
 import { PrismaService } from '../../prisma/prisma.module';
 import { RedisService } from '../../redis/redis.module';
 import { getEnv } from '../../config/env';

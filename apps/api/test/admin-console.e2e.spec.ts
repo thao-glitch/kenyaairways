@@ -31,7 +31,7 @@ describe('admin console (e2e)', () => {
   let passengerCookie = '';
   let server: ReturnType<typeof request>;
 
-  const email = `e2e+adminconsole+${stamp}@flight13.example`;
+  const email = `e2e+adminconsole+${stamp}@kenyaairways.example`;
   const password = 'Sup3rSecretPass';
 
   beforeAll(async () => {
@@ -45,7 +45,7 @@ describe('admin console (e2e)', () => {
 
     const admin = await server
       .post('/api/v1/auth/login')
-      .send({ identifier: 'admin@flight13.example', password: getEnv().SEED_USER_PASSWORD })
+      .send({ identifier: 'admin@kenyaairways.example', password: getEnv().SEED_USER_PASSWORD })
       .expect(200);
     adminCookie = cookieHeader(admin).join('; ');
 
@@ -68,7 +68,7 @@ describe('admin console (e2e)', () => {
     await request(app.getHttpServer())
       .patch('/api/v1/admin/site-settings')
       .set('Cookie', adminCookie)
-      .send({ appName: 'Flight13', images: {} });
+      .send({ appName: 'Kenya Airways', images: {} });
     // Remove the walk-up booking without leaving inventory drift.
     const bookings = await prisma.booking.findMany({
       where: { contactEmail: { contains: `adminconsole+${stamp}` } },

@@ -9,7 +9,7 @@ import {
   type ManifestDispatchDto,
   type ManifestDto,
   type ManifestPassengerDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { PrismaService } from '../../prisma/prisma.module';
 import { RtEventsService } from '../../realtime/rt-events.service';
 import { createLogger, maskDeep, type Logger } from '../../common/logger';

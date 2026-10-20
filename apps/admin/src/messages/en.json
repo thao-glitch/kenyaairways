@@ -1,5 +1,5 @@
 {
-  "app.name": "Flight13",
+  "app.name": "Kenya Airways",
   "app.tagline": "Book flights around the world",
   "a11y.skipToContent": "Skip to content",
   "nav.home": "Home",
@@ -26,7 +26,7 @@
   "home.network.international": "International",
   "home.manage.title": "Manage your booking",
   "home.manage.body": "Look up a booking by reference, check in and download boarding passes.",
-  "footer.rights": "© 2026 Flight13. All rights reserved.",
+  "footer.rights": "© 2026 Kenya Airways. All rights reserved.",
   "footer.licensed": "Licensed by the Kenya Civil Aviation Authority (KCAA).",
   "error.network": "Network error — please try again.",
   "error.notFound.title": "Page not found",

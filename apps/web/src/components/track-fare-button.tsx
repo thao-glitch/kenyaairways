@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { PriceAlertDto } from '@flight13/shared';
+import type { PriceAlertDto } from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { Button } from '@/components/ui/button';
 import { ApiRequestError, apiCall } from '@/lib/api-client';

@@ -1,4 +1,4 @@
-import type { SiteSettingsDto } from '@flight13/shared';
+import type { SiteSettingsDto } from '@kenyaairways/shared';
 import { API_URL } from './config';
 
 /**

@@ -1,4 +1,4 @@
-# Flight13 admin app — Next.js standalone output (small runtime image).
+# Kenya Airways admin app — Next.js standalone output (small runtime image).
 # NEXT_PUBLIC_* values are inlined at build time: pass them as build args.
 FROM node:22-alpine AS build
 WORKDIR /repo
@@ -10,10 +10,10 @@ ENV API_PUBLIC_URL=$API_PUBLIC_URL NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/shared/package.json packages/shared/
 COPY apps/admin/package.json apps/admin/
-RUN pnpm install --frozen-lockfile --filter @flight13/admin...
+RUN pnpm install --frozen-lockfile --filter @kenyaairways/admin...
 COPY packages/shared packages/shared
 COPY apps/admin apps/admin
-RUN pnpm --filter @flight13/shared build && pnpm --filter @flight13/admin build
+RUN pnpm --filter @kenyaairways/shared build && pnpm --filter @kenyaairways/admin build
 
 FROM node:22-alpine
 WORKDIR /app

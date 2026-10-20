@@ -7,7 +7,7 @@
 import { ScrollView, Text, View } from 'react-native';
 import { useRoute, type RouteProp } from '@react-navigation/native';
 import { useBaggage } from '@/lib/hooks';
-import type { BaggageEventDto } from '@flight13/shared';
+import type { BaggageEventDto } from '@kenyaairways/shared';
 import { Card, EmptyState, Loading, Screen } from '@/components/ui';
 import { colors, spacing, type } from '@/theme/tokens';
 import type { RootStackParamList } from '@/navigation/root-navigator';

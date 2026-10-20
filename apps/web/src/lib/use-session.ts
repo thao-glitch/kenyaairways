@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { SessionUserDto } from '@flight13/shared';
+import type { SessionUserDto } from '@kenyaairways/shared';
 import { getSession } from './auth';
 
 /**

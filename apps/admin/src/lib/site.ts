@@ -1,5 +1,5 @@
 import 'server-only';
-import type { SiteSettingsDto } from '@flight13/shared';
+import type { SiteSettingsDto } from '@kenyaairways/shared';
 import { apiGetOrNull } from './api';
 
 /**

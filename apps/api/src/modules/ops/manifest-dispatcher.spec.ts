@@ -21,7 +21,7 @@ const payload: ManifestPayload = {
   destinationCode: 'MBA',
   departureUtc: '2026-10-10T04:00:00.000Z',
   gate: 'B2',
-  operator: 'Flight13 Air',
+  operator: 'Kenya Airways Air',
   generatedAt: '2026-10-09T10:00:00.000Z',
   passengers: [
     {
@@ -110,7 +110,7 @@ describe('HttpManifestDispatcher (fake endpoint)', () => {
 
     const body = JSON.parse(capture.body ?? '') as ManifestPayload;
     expect(body.flightNumber).toBe('F13101');
-    expect(body.operator).toBe('Flight13 Air');
+    expect(body.operator).toBe('Kenya Airways Air');
     expect(body.passengers).toHaveLength(1);
     expect(body.passengers[0]).toMatchObject({ pnr: 'ZU986Z', seatLabel: '1A' });
     // no stray secrets in the payload

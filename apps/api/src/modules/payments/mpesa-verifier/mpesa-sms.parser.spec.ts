@@ -16,7 +16,7 @@ describe('parseMpesaSms', () => {
 
   it('parses a buy-goods style confirmation', () => {
     const parsed = parseMpesaSms(
-      'SBJ8K2LMN4 confirmed. Ksh950.00 paid to FLIGHT13 AIRLINES till 0182774255. New M-PESA balance is Ksh1,200.00.',
+      'SBJ8K2LMN4 confirmed. Ksh950.00 paid to KENYA AIRWAYS till 0182774255. New M-PESA balance is Ksh1,200.00.',
     );
     expect(parsed.receiptNumber).toBe('SBJ8K2LMN4');
     expect(parsed.amountMinor).toBe(95_000);

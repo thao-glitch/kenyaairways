@@ -1,5 +1,5 @@
 {
-  "name": "@flight13/admin",
+  "name": "@kenyaairways/admin",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@flight13/shared": "workspace:*",
+    "@kenyaairways/shared": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.52.0",

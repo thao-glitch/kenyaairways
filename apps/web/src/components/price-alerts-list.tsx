@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import type { PriceAlertDto } from '@flight13/shared';
+import type { PriceAlertDto } from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

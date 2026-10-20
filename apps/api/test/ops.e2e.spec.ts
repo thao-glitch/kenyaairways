@@ -63,14 +63,14 @@ describe('ops workspace + KCAA manifest (e2e)', () => {
 
     const login = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ identifier: 'ops@flight13.example', password: getEnv().SEED_USER_PASSWORD })
+      .send({ identifier: 'ops@kenyaairways.example', password: getEnv().SEED_USER_PASSWORD })
       .expect(200);
     opsCookie = cookieHeader(login);
 
     const register = await request(app.getHttpServer())
       .post('/api/v1/auth/register')
       .send({
-        email: `ops+${stamp}@flight13.example`,
+        email: `ops+${stamp}@kenyaairways.example`,
         phone: `+2547${digits8(30)}`,
         password: 'Sup3rSecretPass',
         firstName: 'Ops',
@@ -248,7 +248,7 @@ describe('ops workspace + KCAA manifest (e2e)', () => {
         tripType: 'ONE_WAY',
         segments: [{ flightId: manifestFlightId, fareClassCode: 'SAVER' }],
         passengers: [{ type: 'ADULT', firstName: 'Manifest', lastName: `Pax${stamp}` }],
-        contactEmail: `ops+${stamp}@flight13.example`,
+        contactEmail: `ops+${stamp}@kenyaairways.example`,
       })
       .expect(201);
     const bookingId = book.body.id as string;

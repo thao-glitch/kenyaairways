@@ -9,7 +9,7 @@ import type {
   FlightStatusBoardDto,
   FlightStatusDto,
   SeatMapDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { Public } from '../../common/decorators/public.decorator';
 import { FlightsService } from './flights.service';
 import { FlightSearchDto } from './dto/flight-search.dto';

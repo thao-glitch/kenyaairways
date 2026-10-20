@@ -919,7 +919,7 @@ model MpesaManualVerification {
 model SiteSettings {
   id          Boolean  @id @default(true)
   theme       String   @default("sky")
-  appName     String   @default("Flight13") // live app name — admin-editable, applied everywhere
+  appName     String   @default("Kenya Airways") // live app name — admin-editable, applied everywhere
   images      Json? // { hero, auth, notFound, destinations: { <airportCode>: url } }
   updatedById String?
   createdAt   DateTime @default(now())

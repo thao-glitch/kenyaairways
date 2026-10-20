@@ -8,7 +8,7 @@
  */
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
-import type { MobileSessionDto, SessionUserDto } from '@flight13/shared';
+import type { MobileSessionDto, SessionUserDto } from '@kenyaairways/shared';
 
 const ACCESS_KEY = 'f13_access';
 const REFRESH_KEY = 'f13_refresh';

@@ -1,5 +1,5 @@
 {
-  "name": "@flight13/api",
+  "name": "@kenyaairways/api",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -27,7 +27,7 @@
     "prisma"
   ],
   "dependencies": {
-    "@flight13/shared": "workspace:*",
+    "@kenyaairways/shared": "workspace:*",
     "@nestjs/common": "^12.1.2",
     "@nestjs/core": "^12.1.2",
     "@nestjs/platform-express": "^12.1.2",

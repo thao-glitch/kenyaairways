@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "Flight13",
-    "slug": "flight13",
+    "name": "Kenya Airways",
+    "slug": "kenyaairways",
     "version": "0.1.0",
     "orientation": "portrait",
-    "scheme": "flight13",
+    "scheme": "kenyaairways",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "ke.co.flight13"
+      "bundleIdentifier": "ke.co.kenyaairways"
     },
     "android": {
-      "package": "ke.co.flight13",
+      "package": "ke.co.kenyaairways",
       "edgeToEdgeEnabled": true
     },
     "plugins": ["expo-secure-store", "expo-sqlite", "expo-constants", "expo-device"]

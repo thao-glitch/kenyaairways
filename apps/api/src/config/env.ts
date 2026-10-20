@@ -82,7 +82,7 @@ export const envSchema = z
     RATE_LIMIT_AUTH_MAX: z.coerce.number().int().positive().default(20),
 
     // ── airline & locale ───────────────────────────────────────────────
-    AIRLINE_NAME: zStr('Flight13'),
+    AIRLINE_NAME: zStr('Kenya Airways'),
     AIRLINE_IATA_CODE: z
       .string()
       .regex(/^[A-Z0-9]{2,3}$/, '2–3 alphanumeric characters, e.g. F13')
@@ -125,7 +125,7 @@ export const envSchema = z
 
     // ── notifications ──────────────────────────────────────────────────
     SMS_PROVIDER: z.enum(['mock', 'africastalking', 'twilio']).default('mock'),
-    SMS_FROM: zStr('Flight13'),
+    SMS_FROM: zStr('Kenya Airways'),
     AFRICASTALKING_API_KEY: zStr(),
     AFRICASTALKING_USERNAME: zStr(),
     AFRICASTALKING_SENDER_ID: zStr(),
@@ -134,14 +134,14 @@ export const envSchema = z
     TWILIO_FROM: zStr(),
 
     EMAIL_PROVIDER: z.enum(['mock', 'resend', 'sendgrid']).default('mock'),
-    EMAIL_FROM: zStr('bookings@flight13.example'),
+    EMAIL_FROM: zStr('bookings@kenyaairways.example'),
     RESEND_API_KEY: zStr(),
     SENDGRID_API_KEY: zStr(),
 
     PUSH_PROVIDER: z.enum(['mock', 'webpush']).default('mock'),
     VAPID_PUBLIC_KEY: zStr(),
     VAPID_PRIVATE_KEY: zStr(),
-    VAPID_SUBJECT: zStr('mailto:ops@flight13.example'),
+    VAPID_SUBJECT: zStr('mailto:ops@kenyaairways.example'),
 
     // ── flight data ────────────────────────────────────────────────────
     FLIGHT_DATA_PROVIDER: z.enum(['internal', 'external', 'mock']).default('internal'),
@@ -287,7 +287,7 @@ export function loadEnv(raw: Record<string, string | undefined>): LoadEnvResult 
 
 export function formatEnvErrors(errors: string[]): string {
   return [
-    '✗ Flight13 configuration is invalid — fix these .env values and restart:',
+    '✗ Kenya Airways configuration is invalid — fix these .env values and restart:',
     ...errors.map((e) => `  • ${e}`),
     '',
     '  Generate missing secrets with:  pnpm bootstrap',

@@ -17,7 +17,7 @@ import {
   type FlightStatusDto,
   type ManifestDispatchDto,
   type ManifestDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import type { AuthUser, AuthedRequest } from '../../common/auth-request';

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { createTranslator, type Locale, type Translator } from '@flight13/shared';
+import { createTranslator, type Locale, type Translator } from '@kenyaairways/shared';
 
 interface I18nValue {
   t: Translator;

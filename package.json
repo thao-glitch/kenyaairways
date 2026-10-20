@@ -1,8 +1,8 @@
 {
-  "name": "flight13",
+  "name": "kenyaairways",
   "private": true,
   "version": "0.1.0",
-  "description": "Flight13 — real-time airline service platform for a Kenya-based licensed airline",
+  "description": "Kenya Airways — real-time airline service platform for a Kenya-based licensed airline",
   "license": "UNLICENSED",
   "packageManager": "pnpm@10.34.6",
   "engines": {
@@ -10,22 +10,22 @@
   },
   "scripts": {
     "bootstrap": "node scripts/bootstrap.mjs",
-    "dev": "pnpm -r --parallel --filter @flight13/api --filter @flight13/web dev",
-    "build": "pnpm --filter @flight13/shared build && pnpm -r --filter @flight13/api --filter @flight13/web build",
+    "dev": "pnpm -r --parallel --filter @kenyaairways/api --filter @kenyaairways/web dev",
+    "build": "pnpm --filter @kenyaairways/shared build && pnpm -r --filter @kenyaairways/api --filter @kenyaairways/web build",
     "lint": "eslint . && pnpm -r lint",
     "lint:fix": "eslint . --fix && pnpm -r lint:fix",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:migrate": "pnpm --filter @flight13/api db:migrate",
-    "db:deploy": "pnpm --filter @flight13/api db:deploy",
-    "db:seed": "pnpm --filter @flight13/api db:seed",
-    "db:reset": "pnpm --filter @flight13/api db:reset",
-    "verify": "pnpm format:check && pnpm lint && pnpm --filter @flight13/shared build && pnpm typecheck && pnpm test",
+    "db:migrate": "pnpm --filter @kenyaairways/api db:migrate",
+    "db:deploy": "pnpm --filter @kenyaairways/api db:deploy",
+    "db:seed": "pnpm --filter @kenyaairways/api db:seed",
+    "db:reset": "pnpm --filter @kenyaairways/api db:reset",
+    "verify": "pnpm format:check && pnpm lint && pnpm --filter @kenyaairways/shared build && pnpm typecheck && pnpm test",
     "soak": "node scripts/soak.mjs",
     "prepare": "husky",
-    "postinstall": "pnpm --filter @flight13/api exec prisma generate"
+    "postinstall": "pnpm --filter @kenyaairways/api exec prisma generate"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs,cjs}": [

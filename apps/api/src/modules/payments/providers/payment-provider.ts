@@ -11,7 +11,7 @@ export interface ProviderInitiateInput {
   msisdn?: string;
   /** Full neutral callback URL — secret path embedded server-side only. */
   callbackUrl?: string;
-  /** Fixed Daraja TransactionDesc ("Flight13") / Stripe description. */
+  /** Fixed Daraja TransactionDesc ("Kenya Airways") / Stripe description. */
   description: string;
 }
 

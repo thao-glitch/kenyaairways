@@ -10,7 +10,7 @@ import { useRoute, type RouteProp } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
 import { getPass, type VaultPass } from '@/lib/vault';
 import { api } from '@/lib/api';
-import type { BoardingPassDto } from '@flight13/shared';
+import type { BoardingPassDto } from '@kenyaairways/shared';
 import { Screen } from '@/components/ui';
 import { colors, spacing, type } from '@/theme/tokens';
 import type { RootStackParamList } from '@/navigation/root-navigator';

@@ -8,7 +8,7 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBooking } from '@/lib/hooks';
 import { api, ApiError } from '@/lib/api';
-import type { CheckInResultDto } from '@flight13/shared';
+import type { CheckInResultDto } from '@kenyaairways/shared';
 import { Button, Card, Loading, Screen } from '@/components/ui';
 import { colors, spacing, type } from '@/theme/tokens';
 import type { RootStackParamList } from '@/navigation/root-navigator';

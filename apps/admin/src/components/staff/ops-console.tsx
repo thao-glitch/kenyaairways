@@ -7,7 +7,7 @@ import {
   type LoadFactorRowDto,
   type ManifestDispatchDto,
   type ManifestDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { useStaffUser } from '@/components/staff/require-role';
 import { Badge } from '@/components/ui/badge';

@@ -6,7 +6,7 @@ import {
   RT_NAMESPACE,
   type ClientToServerEvents,
   type ServerToClientEvents,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { API_URL } from './config';
 
 export type RtEventName = keyof ServerToClientEvents & string;

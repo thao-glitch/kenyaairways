@@ -4,7 +4,7 @@ import {
   toLocalIso,
   type AdminFlightPriceDto,
   type BulkPriceUpdateResultDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { PrismaService } from '../../prisma/prisma.module';

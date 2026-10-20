@@ -1,4 +1,4 @@
-import type { FareClassDetailDto, SiteSettingsDto } from '@flight13/shared';
+import type { FareClassDetailDto, SiteSettingsDto } from '@kenyaairways/shared';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import Link from 'next/link';

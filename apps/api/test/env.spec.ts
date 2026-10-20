@@ -7,7 +7,7 @@ const validEnv = (overrides: Record<string, string | undefined> = {}) => ({
   SESSION_COOKIE_SECRET: 'c'.repeat(32),
   ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
   MPESA_CALLBACK_SECRET: 'tok_abcdef1234567890',
-  DATABASE_URL: 'postgresql://user:pass@localhost:5432/flight13',
+  DATABASE_URL: 'postgresql://user:pass@localhost:5432/kenyaairways',
   REDIS_URL: 'redis://localhost:6379',
   SEED_USER_PASSWORD: 'Password123!',
   ...overrides,
@@ -74,7 +74,7 @@ describe('env validation', () => {
         MPESA_CONSUMER_SECRET: 's',
         MPESA_SHORTCODE: '123456',
         MPESA_PASSKEY: 'p',
-        MPESA_CALLBACK_BASE_URL: 'https://api.flight13.example',
+        MPESA_CALLBACK_BASE_URL: 'https://api.kenyaairways.example',
       }),
     );
     expect(result.ok).toBe(false);
@@ -94,7 +94,7 @@ describe('env validation', () => {
         MPESA_CONSUMER_SECRET: 's',
         MPESA_SHORTCODE: '174379',
         MPESA_PASSKEY: 'p',
-        MPESA_CALLBACK_BASE_URL: 'https://api.flight13.example',
+        MPESA_CALLBACK_BASE_URL: 'https://api.kenyaairways.example',
       }),
     );
     expect(result.ok).toBe(true);
@@ -149,7 +149,7 @@ describe('env validation', () => {
 
   it('formats errors as a readable startup report', () => {
     const report = formatEnvErrors(['DATABASE_URL: required']);
-    expect(report).toContain('✗ Flight13 configuration is invalid');
+    expect(report).toContain('✗ Kenya Airways configuration is invalid');
     expect(report).toContain('DATABASE_URL: required');
     expect(report).toContain('pnpm bootstrap');
   });

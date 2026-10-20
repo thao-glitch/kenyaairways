@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { PaymentMethodConfigDto, PaymentPlanDto } from '@flight13/shared';
+import type { PaymentMethodConfigDto, PaymentPlanDto } from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

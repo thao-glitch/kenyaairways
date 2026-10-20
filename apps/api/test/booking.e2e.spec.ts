@@ -57,7 +57,7 @@ describe('bookings (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send({
-          email: `bk+${stamp}${suffix}@flight13.example`,
+          email: `bk+${stamp}${suffix}@kenyaairways.example`,
           phone: `+2547${digits8(suffix)}`,
           password: 'Sup3rSecretPass',
           firstName: 'Book',

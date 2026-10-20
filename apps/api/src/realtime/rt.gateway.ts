@@ -13,7 +13,7 @@ import {
   type ClientToServerEvents,
   type RoomJoinPayload,
   type ServerToClientEvents,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { createLogger, type Logger } from '../common/logger';
 import { Public } from '../common/decorators/public.decorator';
 import { PrismaService } from '../prisma/prisma.module';

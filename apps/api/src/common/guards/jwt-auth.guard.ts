@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
-import { AppError } from '@flight13/shared';
+import { AppError } from '@kenyaairways/shared';
 import { PrismaService } from '../../prisma/prisma.module';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import type { AuthUser, AuthedRequest } from '../auth-request';

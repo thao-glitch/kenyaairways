@@ -1,4 +1,4 @@
-import type { TripType } from '@flight13/shared';
+import type { TripType } from '@kenyaairways/shared';
 
 export type TripKind = 'return' | 'oneway' | 'multicity';
 

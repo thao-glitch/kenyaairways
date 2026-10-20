@@ -14,7 +14,7 @@ import type {
   MpesaVerifyCheckDto,
   Paginated,
   PaymentDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { Role } from '@prisma/client';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';

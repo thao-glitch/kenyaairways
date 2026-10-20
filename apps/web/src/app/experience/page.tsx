@@ -1,4 +1,4 @@
-import type { FareClassDetailDto, FleetDto, SiteSettingsDto } from '@flight13/shared';
+import type { FareClassDetailDto, FleetDto, SiteSettingsDto } from '@kenyaairways/shared';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SectionShell, type SectionTab } from '@/components/section-shell';

@@ -1,6 +1,6 @@
 import { Inject, Injectable, type CanActivate, type ExecutionContext } from '@nestjs/common';
 import type { Request } from 'express';
-import { AppError } from '@flight13/shared';
+import { AppError } from '@kenyaairways/shared';
 import { MethodConfigService } from './config/method-config.service';
 
 /**

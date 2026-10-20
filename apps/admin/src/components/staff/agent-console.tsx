@@ -10,7 +10,7 @@ import {
   type FlightSearchResultDto,
   type PassengerType,
   type PnrLookupDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

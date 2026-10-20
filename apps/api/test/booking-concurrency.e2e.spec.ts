@@ -63,7 +63,7 @@ describe('booking concurrency (e2e)', () => {
     const reg = await request(app.getHttpServer())
       .post('/api/v1/auth/register')
       .send({
-        email: `cc+${stamp}@flight13.example`,
+        email: `cc+${stamp}@kenyaairways.example`,
         phone: `+2547${digits8(9)}`,
         password: 'Sup3rSecretPass',
         firstName: 'Concur',

@@ -9,7 +9,7 @@
 
   <!-- left page header -->
   <text x="48" y="84" font-size="15" font-weight="800" fill="#3E3A2E" letter-spacing="4">SAFARI PASSPORT</text>
-  <text x="48" y="102" font-size="10" fill="#8A7B5C" letter-spacing="1.5">FLIGHT13 · ROUTE STAMP COLLECTION</text>
+  <text x="48" y="102" font-size="10" fill="#8A7B5C" letter-spacing="1.5">KENYA AIRWAYS · ROUTE STAMP COLLECTION</text>
   <path d="M48 112 H292" stroke="#D8CDB2" stroke-dasharray="3 5"/>
 
   <!-- stamp: NBO circle (savannah) -->

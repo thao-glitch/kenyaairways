@@ -8,7 +8,7 @@
  * pass still renders with a working, high-contrast QR code.
  */
 import * as SQLite from 'expo-sqlite';
-import type { BoardingPassDto, BookingDto } from '@flight13/shared';
+import type { BoardingPassDto, BookingDto } from '@kenyaairways/shared';
 
 const DB_NAME = 'ticket_vault.db';
 

@@ -11,7 +11,7 @@ import {
   type BookingSegmentDto,
   type PricingDto,
   type TicketDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import type {
   Airport,
   Booking,

@@ -1,4 +1,4 @@
-import type { AirportDto, FleetDto } from '@flight13/shared';
+import type { AirportDto, FleetDto } from '@kenyaairways/shared';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SectionShell, type SectionTab } from '@/components/section-shell';

@@ -47,14 +47,14 @@ describe('media uploads (e2e)', () => {
 
     const admin = await server
       .post('/api/v1/auth/login')
-      .send({ identifier: 'admin@flight13.example', password: getEnv().SEED_USER_PASSWORD })
+      .send({ identifier: 'admin@kenyaairways.example', password: getEnv().SEED_USER_PASSWORD })
       .expect(200);
     adminCookie = cookieHeader(admin).join('; ');
 
     const user = await server
       .post('/api/v1/auth/register')
       .send({
-        email: `media+${stamp}@flight13.example`,
+        email: `media+${stamp}@kenyaairways.example`,
         password: 'Sup3rSecretPass',
         firstName: 'Media',
         lastName: `Tester${stamp}`,
@@ -70,7 +70,7 @@ describe('media uploads (e2e)', () => {
       await server
         .patch('/api/v1/admin/site-settings')
         .set('Cookie', adminCookie)
-        .send({ appName: 'Flight13', images: {} })
+        .send({ appName: 'Kenya Airways', images: {} })
         .expect(200);
     }
     for (const url of uploaded) await media.removeByUrl(url);
@@ -109,7 +109,7 @@ describe('media uploads (e2e)', () => {
     await server
       .patch('/api/v1/admin/site-settings')
       .set('Cookie', adminCookie)
-      .send({ appName: 'Flight13', theme: 'sky', images: { hero: up.body.url } })
+      .send({ appName: 'Kenya Airways', theme: 'sky', images: { hero: up.body.url } })
       .expect(200);
     const read = await server.get('/api/v1/site-settings').expect(200);
     expect(read.body.images.hero).toBe(up.body.url);
@@ -118,7 +118,7 @@ describe('media uploads (e2e)', () => {
     await server
       .patch('/api/v1/admin/site-settings')
       .set('Cookie', adminCookie)
-      .send({ appName: 'Flight13', images: { hero: '' } })
+      .send({ appName: 'Kenya Airways', images: { hero: '' } })
       .expect(200);
     const cleared = await server.get('/api/v1/site-settings').expect(200);
     expect(cleared.body.images.hero).toBeUndefined();

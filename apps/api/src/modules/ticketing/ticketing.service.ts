@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { randomInt } from 'node:crypto';
-import { AppError, type TicketIssueResultDto } from '@flight13/shared';
+import { AppError, type TicketIssueResultDto } from '@kenyaairways/shared';
 import { PrismaService } from '../../prisma/prisma.module';
 import { RtEventsService } from '../../realtime/rt-events.service';
 import { STAFF_ROLES, type BookingActor } from '../bookings/bookings.service';

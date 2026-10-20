@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { IsEnum, IsInt, IsOptional, Matches, Min } from 'class-validator';
-import type { PriceAlertDto } from '@flight13/shared';
-import { CABIN_CLASSES, type CabinClass } from '@flight13/shared';
+import type { PriceAlertDto } from '@kenyaairways/shared';
+import { CABIN_CLASSES, type CabinClass } from '@kenyaairways/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthUser } from '../../common/auth-request';
 import { PriceAlertsService } from './price-alerts.service';

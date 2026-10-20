@@ -1,5 +1,5 @@
 /**
- * Flight13 brand mark — an original hand-drawn SVG: a folded paper dart
+ * Kenya Airways brand mark — an original hand-drawn SVG: a folded paper dart
  * climbing out of a dawn sun, inside a rounded sky tile. Used in the header,
  * footer and boarding pass; the same geometry ships as `app/icon.svg`.
  * Purely presentational (no hooks) so server and client components can
@@ -21,7 +21,7 @@ export function BrandMark({
       className={className}
       role={decorative ? 'presentation' : 'img'}
       aria-hidden={decorative ? 'true' : undefined}
-      aria-label={decorative ? undefined : (title ?? 'Flight13')}
+      aria-label={decorative ? undefined : (title ?? 'Kenya Airways')}
       focusable="false"
     >
       <defs>

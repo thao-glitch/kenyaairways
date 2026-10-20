@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import type { PaymentProviderType } from '@prisma/client';
-import { AppError } from '@flight13/shared';
+import { AppError } from '@kenyaairways/shared';
 import { createLogger, type Logger } from '../../../common/logger';
 import type {
   PaymentProvider,

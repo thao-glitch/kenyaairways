@@ -58,7 +58,7 @@ async function probeCandidate(api: APIRequestContext): Promise<Candidate> {
 test.describe('passenger journey (e2e)', () => {
   test('search → book → pay → PNR → seat → check-in → boarding pass', async ({ page, request }) => {
     const stamp = Date.now();
-    const email = `e2e+${stamp}@flight13.example`;
+    const email = `e2e+${stamp}@kenyaairways.example`;
     const phone = `+2547${String(stamp % 1e8).padStart(8, '0')}`;
 
     // ── Register ──────────────────────────────────────────────────────────

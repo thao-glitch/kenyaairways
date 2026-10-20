@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import type { Role, SessionUserDto } from '@flight13/shared';
+import type { Role, SessionUserDto } from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { getSession, logout } from '@/lib/auth';
 import { ADMIN_URL } from '@/lib/config';

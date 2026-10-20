@@ -1,6 +1,6 @@
 import { Controller, Get, Module, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { AdminUserDto, Paginated } from '@flight13/shared';
+import type { AdminUserDto, Paginated } from '@kenyaairways/shared';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { PrismaService } from '../../prisma/prisma.module';

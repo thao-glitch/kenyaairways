@@ -33,7 +33,7 @@ export const PNR_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const MPESA_ACCOUNT_REFERENCE_MAX = 12;
 /** Daraja TransactionDesc is capped at 13 chars. */
 export const MPESA_TRANSACTION_DESC_MAX = 13;
-export const MPESA_TRANSACTION_DESC = 'Flight13';
+export const MPESA_TRANSACTION_DESC = 'Kenya Airways';
 
 export const MAX_PAX_PER_BOOKING = 9;
 export const INFANT_MAX_YEARS = 1;

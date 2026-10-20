@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { randomPnr } from '@flight13/shared';
+import { randomPnr } from '@kenyaairways/shared';
 import { getEnv } from '../src/config/env';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
@@ -52,7 +52,7 @@ describe('retention sweeps (e2e)', () => {
       data: {
         channel: 'INAPP',
         templateCode: 'test.stale',
-        recipient: 'stale@flight13.example',
+        recipient: 'stale@kenyaairways.example',
         subject: 'stale',
         body: 'stale body with PII',
         status: 'SENT',
@@ -94,7 +94,7 @@ describe('retention sweeps (e2e)', () => {
       data: {
         channel: 'INAPP',
         templateCode: 'test.fresh',
-        recipient: 'fresh@flight13.example',
+        recipient: 'fresh@kenyaairways.example',
         subject: 'fresh',
         body: 'fresh body',
         status: 'SENT',

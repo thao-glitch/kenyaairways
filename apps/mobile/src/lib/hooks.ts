@@ -1,5 +1,5 @@
 /**
- * React Query hooks wrapping the Flight13 API. Each hook handles its own
+ * React Query hooks wrapping the Kenya Airways API. Each hook handles its own
  * loading/error state so screens never juggle booleans by hand. Where data
  * can be cached offline (bookings, boarding passes) the hook also mirrors
  * into the SQLite vault so the Trips screen renders with zero network.
@@ -16,7 +16,7 @@ import type {
   FlightStatusDto,
   SeatMapDto,
   SessionUserDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { api } from '@/lib/api';
 import { saveBooking, savePass } from '@/lib/vault';
 

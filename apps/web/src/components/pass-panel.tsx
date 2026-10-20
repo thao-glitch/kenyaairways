@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { AirportDto, BoardingPassDto } from '@flight13/shared';
+import type { AirportDto, BoardingPassDto } from '@kenyaairways/shared';
 import { BrandMark } from '@/components/art/brand-mark';
 import { RouteArc } from '@/components/art/route-arc';
 import { useT } from '@/components/i18n-provider';

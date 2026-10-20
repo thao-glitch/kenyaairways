@@ -3,7 +3,7 @@ import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { type Response } from 'supertest';
-import { POLICY_VERSION } from '@flight13/shared';
+import { POLICY_VERSION } from '@kenyaairways/shared';
 import { getEnv } from '../src/config/env';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
@@ -49,7 +49,7 @@ describe('data subject rights (e2e)', () => {
   let frank: Subject;
 
   const register = async (suffix: number): Promise<Subject> => {
-    const email = `dsar+${stamp}${suffix}@flight13.example`;
+    const email = `dsar+${stamp}${suffix}@kenyaairways.example`;
     const phone = `+2547${digits8(60 + suffix)}`;
     const res = await request(app.getHttpServer())
       .post('/api/v1/auth/register')

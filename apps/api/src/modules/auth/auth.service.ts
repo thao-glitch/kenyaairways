@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
-import type { SessionUserDto } from '@flight13/shared';
-import { AppError, DEFAULT_LOCALE, normalizeKenyanPhone, POLICY_VERSION } from '@flight13/shared';
+import type { SessionUserDto } from '@kenyaairways/shared';
+import {
+  AppError,
+  DEFAULT_LOCALE,
+  normalizeKenyanPhone,
+  POLICY_VERSION,
+} from '@kenyaairways/shared';
 import type { User } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.module';
 import { RedisService } from '../../redis/redis.module';

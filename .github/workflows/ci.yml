@@ -17,12 +17,12 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: flight13
-          POSTGRES_PASSWORD: flight13_dev
-          POSTGRES_DB: flight13
+          POSTGRES_USER: kenyaairways
+          POSTGRES_PASSWORD: kenyaairways_dev
+          POSTGRES_DB: kenyaairways
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U flight13 -d flight13"
+          --health-cmd "pg_isready -U kenyaairways -d kenyaairways"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
@@ -35,7 +35,7 @@ jobs:
           --health-timeout 3s
           --health-retries 12
     env:
-      DATABASE_URL: postgresql://flight13:flight13_dev@localhost:5432/flight13
+      DATABASE_URL: postgresql://kenyaairways:kenyaairways_dev@localhost:5432/kenyaairways
       REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4
@@ -49,7 +49,7 @@ jobs:
       - name: Generate local secrets
         run: node scripts/bootstrap.mjs
       - name: Build shared package
-        run: pnpm --filter @flight13/shared build
+        run: pnpm --filter @kenyaairways/shared build
       - name: Migrate
         run: pnpm db:migrate
       - name: Seed
@@ -91,8 +91,8 @@ jobs:
         run: pnpm soak
       - name: Playwright — search → book → pay → seat → check-in → pass
         run: |
-          pnpm --filter @flight13/web exec playwright install --with-deps chromium
-          WEB_URL=http://localhost:3000 API_URL=http://localhost:4000 pnpm --filter @flight13/web test:e2e
+          pnpm --filter @kenyaairways/web exec playwright install --with-deps chromium
+          WEB_URL=http://localhost:3000 API_URL=http://localhost:4000 pnpm --filter @kenyaairways/web test:e2e
       - name: Stack logs on failure
         if: failure()
         run: docker compose logs --no-color | tail -n 500

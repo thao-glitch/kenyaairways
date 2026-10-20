@@ -2620,7 +2620,7 @@ interface SeedUser {
 
 const USERS: SeedUser[] = [
   {
-    email: 'passenger@flight13.example',
+    email: 'passenger@kenyaairways.example',
     phone: '+254712345678',
     firstName: 'Ani',
     lastName: 'Mwangi',
@@ -2634,7 +2634,7 @@ const USERS: SeedUser[] = [
     },
   },
   {
-    email: 'j.kamau@flight13.example',
+    email: 'j.kamau@kenyaairways.example',
     phone: '+254733111222',
     firstName: 'James',
     lastName: 'Kamau',
@@ -2648,28 +2648,28 @@ const USERS: SeedUser[] = [
     },
   },
   {
-    email: 'agent@flight13.example',
+    email: 'agent@kenyaairways.example',
     phone: '+254720000002',
     firstName: 'Wanjiru',
     lastName: 'Njoroge',
     role: 'AGENT',
   },
   {
-    email: 'ops@flight13.example',
+    email: 'ops@kenyaairways.example',
     phone: '+254720000003',
     firstName: 'Peter',
     lastName: 'Otieno',
     role: 'OPS',
   },
   {
-    email: 'finance@flight13.example',
+    email: 'finance@kenyaairways.example',
     phone: '+254720000004',
     firstName: 'Grace',
     lastName: 'Wambui',
     role: 'FINANCE',
   },
   {
-    email: 'admin@flight13.example',
+    email: 'admin@kenyaairways.example',
     phone: '+254720000005',
     firstName: 'Sys',
     lastName: 'Admin',
@@ -2767,7 +2767,7 @@ async function seedSiteSettings(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  console.log('Seeding Flight13 …');
+  console.log('Seeding Kenya Airways …');
   await seedAirports();
   await seedFleet();
   await seedFareClassesAndRules();

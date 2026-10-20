@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Req } from '@nestjs/common
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsIn, IsObject, IsOptional } from 'class-validator';
-import { AppError, type PaymentMethodConfigDto, type PaymentPlanDto } from '@flight13/shared';
+import { AppError, type PaymentMethodConfigDto, type PaymentPlanDto } from '@kenyaairways/shared';
 import { Role } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';

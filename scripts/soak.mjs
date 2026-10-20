@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Flight13 soak / load test (M10) — dependency-free Node ≥20.
+ * Kenya Airways soak / load test (M10) — dependency-free Node ≥20.
  *
  * Drives the full passenger journey concurrently against a running stack:
  *
@@ -256,7 +256,7 @@ async function main() {
   try {
     await Promise.all(
       Array.from({ length: USERS }, async (_, i) => {
-        const email = `soak+${stamp}-${i}@flight13.example`;
+        const email = `soak+${stamp}-${i}@kenyaairways.example`;
         const phone = `+2547${String(randomInt(1e8)).padStart(8, '0')}`;
         const user = { email, phone, cookie: null };
         await call(user, '/api/v1/auth/register', {

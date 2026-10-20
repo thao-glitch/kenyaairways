@@ -6,7 +6,7 @@ import {
   type ConsentPurpose,
   type SubjectRequestDto,
   type SubjectRequestResultDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { maskDeep } from '../../common/logger';
 import { PrismaService } from '../../prisma/prisma.module';
 import { RedisService } from '../../redis/redis.module';

@@ -134,7 +134,7 @@ describe('realtime + ticketing (e2e): /rt stream, PNR, e-ticket issuance', () =>
         tripType: 'ONE_WAY',
         segments: [{ flightId, fareClassCode: 'SAVER' }],
         passengers: [{ type: 'ADULT', firstName: 'Real', lastName: `Time${suffix}` }],
-        contactEmail: `rt+${stamp}${suffix}@flight13.example`,
+        contactEmail: `rt+${stamp}${suffix}@kenyaairways.example`,
       })
       .expect(201);
     return { id: res.body.id as string, pnr: res.body.pnr as string };
@@ -174,7 +174,7 @@ describe('realtime + ticketing (e2e): /rt stream, PNR, e-ticket issuance', () =>
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send({
-          email: `rt+${stamp}${suffix}@flight13.example`,
+          email: `rt+${stamp}${suffix}@kenyaairways.example`,
           phone: `+2547${digits8(70 + suffix)}`,
           password: 'Sup3rSecretPass',
           firstName: 'Real',
@@ -193,7 +193,7 @@ describe('realtime + ticketing (e2e): /rt stream, PNR, e-ticket issuance', () =>
 
     const ops = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ identifier: 'ops@flight13.example', password: getEnv().SEED_USER_PASSWORD })
+      .send({ identifier: 'ops@kenyaairways.example', password: getEnv().SEED_USER_PASSWORD })
       .expect(200);
     opsCookie = cookieHeader(ops);
     opsToken = accessTokenFrom(ops);

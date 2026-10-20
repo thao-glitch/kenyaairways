@@ -4,7 +4,7 @@ import {
   type BaggageDto,
   type BaggageEventDto,
   type BaggageStageCode,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { PrismaService } from '../../prisma/prisma.module';
 import { STAFF_ROLES, type BookingActor } from '../bookings/bookings.service';
 

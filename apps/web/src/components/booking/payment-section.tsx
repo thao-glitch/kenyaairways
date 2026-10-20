@@ -6,8 +6,8 @@ import type {
   MpesaManualVerificationDto,
   PaymentDto,
   SiteSettingsDto,
-} from '@flight13/shared';
-import { formatMoney } from '@flight13/shared';
+} from '@kenyaairways/shared';
+import { formatMoney } from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

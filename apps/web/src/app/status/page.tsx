@@ -1,4 +1,4 @@
-import type { FlightStatusBoardDto } from '@flight13/shared';
+import type { FlightStatusBoardDto } from '@kenyaairways/shared';
 import { RouteArc } from '@/components/art/route-arc';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

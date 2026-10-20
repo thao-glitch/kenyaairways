@@ -1,4 +1,4 @@
-import type { TicketDto } from '@flight13/shared';
+import type { TicketDto } from '@kenyaairways/shared';
 import type { Ticket } from '@prisma/client';
 
 type PassengerRef = { firstName: string; lastName: string } | null;

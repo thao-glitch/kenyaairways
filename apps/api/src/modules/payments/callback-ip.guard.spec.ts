@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { ExecutionContext } from '@nestjs/common';
-import { AppError } from '@flight13/shared';
+import { AppError } from '@kenyaairways/shared';
 import { CallbackIpGuard, clientIp } from './callback-ip.guard';
 
 function context(ip?: string, forwarded?: string): ExecutionContext {

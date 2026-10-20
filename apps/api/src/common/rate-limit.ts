@@ -1,4 +1,4 @@
-import { AppError } from '@flight13/shared';
+import { AppError } from '@kenyaairways/shared';
 import type { RedisService } from '../redis/redis.module';
 
 /**

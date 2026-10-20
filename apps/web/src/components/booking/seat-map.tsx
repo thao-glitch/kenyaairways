@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { Currency, SeatHoldDto, SeatMapDto, SeatMapSeatDto } from '@flight13/shared';
-import { formatMoney } from '@flight13/shared';
+import type { Currency, SeatHoldDto, SeatMapDto, SeatMapSeatDto } from '@kenyaairways/shared';
+import { formatMoney } from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { ApiRequestError, apiCall } from '@/lib/api-client';
 import { cn } from '@/lib/utils';

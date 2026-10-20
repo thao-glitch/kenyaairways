@@ -8,7 +8,7 @@ import {
 } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
-import type { BookingDto } from '@flight13/shared';
+import type { BookingDto } from '@kenyaairways/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthUser, AuthedRequest } from '../../common/auth-request';
 import { actorFromUser, BookingsService } from './bookings.service';

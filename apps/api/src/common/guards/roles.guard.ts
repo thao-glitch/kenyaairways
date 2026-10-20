@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Role } from '@prisma/client';
-import { AppError } from '@flight13/shared';
+import { AppError } from '@kenyaairways/shared';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import type { AuthedRequest } from '../auth-request';
 

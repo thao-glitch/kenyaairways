@@ -6,7 +6,7 @@ import {
   type BoardingPassDto,
   type CheckInDto,
   type CheckInResultDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { getEnv } from '../../config/env';
 import { randomToken } from '../../common/crypto';
 import { createLogger, maskDeep } from '../../common/logger';

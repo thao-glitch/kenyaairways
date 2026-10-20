@@ -1,4 +1,4 @@
-# Flight13 ✈ Kenya Airways
+# ✈ Kenya Airways
 
 A complete, self-contained airline booking platform: a passenger app, a staff
 admin app, and a production-grade API with PostgreSQL and Redis. The network
@@ -19,7 +19,7 @@ materialises routes on demand).
 Requirements: **Node 20+** and either Docker _or_ a local PostgreSQL + Redis.
 
 ```bash
-git clone <this-repo> flight13 && cd flight13
+git clone <this-repo> kenyaairways && cd kenyaairways
 ./setup.sh        # installs deps, generates secrets, creates schema, seeds the world
 pnpm dev          # starts all three apps
 ```
@@ -40,10 +40,10 @@ docker compose run --rm api pnpm db:seed   # first run only: seed the network
 
 ### Demo accounts
 
-| Role                                     | Login                                     |
-| ---------------------------------------- | ----------------------------------------- |
-| Admin                                    | `admin@flight13.example` / `Password123!` |
-| Agent, finance, ops, sysadmin, passenger | seeded — see `apps/api/prisma/seed.ts`    |
+| Role                                     | Login                                         |
+| ---------------------------------------- | --------------------------------------------- |
+| Admin                                    | `admin@kenyaairways.example` / `Password123!` |
+| Agent, finance, ops, sysadmin, passenger | seeded — see `apps/api/prisma/seed.ts`        |
 
 Demo payments use M-Pesa “Payment number **0182774255**” (manual-verification
 demo mode — the Daraja STK flow is intentionally untouched). Change
@@ -61,7 +61,7 @@ The user app is a **PWA** — browsers offer it as a real app:
 | **iPhone / iPad** (Safari)          | Share → **Add to Home Screen**                              |
 | **Windows** (Edge/Chrome)           | Address-bar **Install** button, or menu → Apps → Install    |
 | **macOS** (Safari/Chrome)           | File → Install / Save to Dock, or Add to Home Screen        |
-| **Linux** (Chrome/Firefox/Chromium) | Menu → **Install Flight13** / Save to Web Applications      |
+| **Linux** (Chrome/Firefox/Chromium) | Menu → **Install Kenya Airways** / Save to Web Applications |
 
 It launches full-screen with the airline icon, works offline for cached pages,
 and updates itself automatically whenever the server updates (just refresh).

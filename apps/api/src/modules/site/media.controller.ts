@@ -13,7 +13,7 @@ import { ApiBearerAuth, ApiConsumes, ApiOkResponse, ApiOperation, ApiTags } from
 import { createReadStream } from 'node:fs';
 import type { Response } from 'express';
 import { Role } from '@prisma/client';
-import { AppError } from '@flight13/shared';
+import { AppError } from '@kenyaairways/shared';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';

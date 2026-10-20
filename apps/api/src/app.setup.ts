@@ -43,7 +43,7 @@ export function configureApp(app: INestApplication, env: Env = getEnv()): INestA
   if (env.ENABLE_SWAGGER) {
     const config = new DocumentBuilder()
       .setTitle(`${env.AIRLINE_NAME} API`)
-      .setDescription('Flight13 airline service platform — REST + OpenAPI')
+      .setDescription('Kenya Airways airline service platform — REST + OpenAPI')
       .setVersion('0.1.0')
       .addBearerAuth()
       .build();

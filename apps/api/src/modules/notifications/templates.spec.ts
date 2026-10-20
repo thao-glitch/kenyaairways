@@ -49,7 +49,7 @@ describe('notification templates', () => {
       tickets: '0131234567890',
     });
     expect(issued.subject).toBe('Tickets issued for ZU986Z');
-    expect(issued.body).toBe('Your Flight13 ticket number(s): 0131234567890');
+    expect(issued.body).toBe('Your Kenya Airways ticket number(s): 0131234567890');
 
     const otp = renderNotification('otp.login', 'sw-KE', { code: '123456', minutes: 10 });
     expect(otp.body).toContain('123456');

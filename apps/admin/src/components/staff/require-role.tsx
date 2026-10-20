@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createContext, useContext, type ReactNode } from 'react';
-import type { Role, SessionUserDto } from '@flight13/shared';
+import type { Role, SessionUserDto } from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

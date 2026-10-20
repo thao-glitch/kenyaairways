@@ -1,4 +1,4 @@
-import { maskPhone } from '@flight13/shared';
+import { maskPhone } from '@kenyaairways/shared';
 import { getEnv } from '../config/env';
 
 /**

@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import type { PaymentProviderType } from '@prisma/client';
-import { AppError, describeMpesaResult, toMpesaMsisdn } from '@flight13/shared';
+import { AppError, describeMpesaResult, toMpesaMsisdn } from '@kenyaairways/shared';
 import { getEnv, type Env } from '../../../config/env';
 import { createLogger, type Logger } from '../../../common/logger';
 import type { RedisService } from '../../../redis/redis.module';
@@ -85,7 +85,7 @@ export interface StkPayloadInput {
 /**
  * STK push request body. Invariants the spec pins down:
  *  - AccountReference is the PNR, truncated to 12 chars
- *  - TransactionDesc is the literal "Flight13"
+ *  - TransactionDesc is the literal "Kenya Airways"
  *  - CallbackURL is the neutral path (no provider names in it)
  */
 export function buildStkPayload(input: StkPayloadInput): Record<string, unknown> {
@@ -100,7 +100,7 @@ export function buildStkPayload(input: StkPayloadInput): Record<string, unknown>
     PhoneNumber: input.msisdn,
     CallBackURL: input.callbackUrl,
     AccountReference: input.accountReference.slice(0, 12),
-    TransactionDesc: 'Flight13',
+    TransactionDesc: 'Kenya Airways',
   };
 }
 
@@ -260,7 +260,7 @@ export class MpesaProvider implements PaymentProvider {
       TransactionID: input.providerRef, // MpesaReceiptNumber
       Amount: amountMajor,
       Occasion: 'Booking refund',
-      Remarks: (input.reason ?? 'Flight13 booking refund').slice(0, 100),
+      Remarks: (input.reason ?? 'Kenya Airways booking refund').slice(0, 100),
     };
     const data = await this.post('/mpesa/refund/v1/process', payload);
     const accepted = String(data.ResponseCode ?? '') === '0';

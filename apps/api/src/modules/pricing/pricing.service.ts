@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { PricingDto, PricingLineDto } from '@flight13/shared';
+import type { PricingDto, PricingLineDto } from '@kenyaairways/shared';
 import type { RouteType, TaxFeeRule } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.module';
 import { createLogger } from '../../common/logger';

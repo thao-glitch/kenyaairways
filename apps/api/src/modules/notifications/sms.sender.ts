@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AppError } from '@flight13/shared';
+import { AppError } from '@kenyaairways/shared';
 import { getEnv } from '../../config/env';
 import { createLogger } from '../../common/logger';
 

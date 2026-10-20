@@ -47,7 +47,7 @@ importers:
 
   apps/admin:
     dependencies:
-      '@flight13/shared':
+      '@kenyaairways/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       class-variance-authority:
@@ -99,7 +99,7 @@ importers:
 
   apps/api:
     dependencies:
-      '@flight13/shared':
+      '@kenyaairways/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@nestjs/common':
@@ -220,7 +220,7 @@ importers:
 
   apps/mobile:
     dependencies:
-      '@flight13/shared':
+      '@kenyaairways/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@react-native-async-storage/async-storage':
@@ -302,7 +302,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@flight13/shared':
+      '@kenyaairways/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       class-variance-authority:

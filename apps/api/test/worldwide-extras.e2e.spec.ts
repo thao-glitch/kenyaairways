@@ -25,7 +25,7 @@ describe('worldwide extras (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let sessionCookie = '';
-  const email = `e2e+calendar+${stamp}@flight13.example`;
+  const email = `e2e+calendar+${stamp}@kenyaairways.example`;
   const password = 'Sup3rSecretPass';
   let searchFlight: Record<string, any>;
 

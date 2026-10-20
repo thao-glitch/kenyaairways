@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { IsDateString, IsEnum, IsInt, IsOptional, Matches, Max, Min } from 'class-validator';
-import { CABIN_CLASSES, type CabinClass } from '@flight13/shared';
+import { CABIN_CLASSES, type CabinClass } from '@kenyaairways/shared';
 
 /** Empty query params (`?origin=`) mean "no filter", not a validation error. */
 const emptyToUndefined = ({ value }: { value: unknown }): unknown =>

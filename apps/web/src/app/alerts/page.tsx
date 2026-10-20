@@ -1,7 +1,7 @@
 import { PriceAlertsList } from '@/components/price-alerts-list';
 import { getTranslator } from '@/lib/i18n';
 
-/** My price alerts (Flight13 price-alert feature — list is client-fetched). */
+/** My price alerts (Kenya Airways price-alert feature — list is client-fetched). */
 export default async function AlertsPage() {
   const { t } = await getTranslator();
   return (

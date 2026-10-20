@@ -1,5 +1,5 @@
 /**
- * API client for the Flight13 NestJS backend.
+ * API client for the Kenya Airways NestJS backend.
  *
  * - Attaches the bearer access token from the session store to every call.
  * - On a 401, performs ONE silent refresh (POST /auth/refresh with the

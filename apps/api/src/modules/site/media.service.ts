@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { mkdir, stat, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { AppError } from '@flight13/shared';
+import { AppError } from '@kenyaairways/shared';
 import { PrismaService } from '../../prisma/prisma.module';
 import { maskDeep } from '../../common/logger';
 import type { BookingActor } from '../bookings/bookings.service';

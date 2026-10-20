@@ -4,7 +4,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 import type { OtpPurpose } from '@prisma/client';
 import type { Request, Response } from 'express';
-import type { MobileSessionDto, SessionUserDto } from '@flight13/shared';
+import type { MobileSessionDto, SessionUserDto } from '@kenyaairways/shared';
 import { getEnv } from '../../config/env';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';

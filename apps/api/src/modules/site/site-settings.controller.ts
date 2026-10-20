@@ -2,7 +2,7 @@ import { Body, Controller, Get, Patch, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsObject, IsOptional, IsString, IsIn, MaxLength } from 'class-validator';
-import type { SiteSettingsDto } from '@flight13/shared';
+import type { SiteSettingsDto } from '@kenyaairways/shared';
 import { Role } from '@prisma/client';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -14,7 +14,7 @@ import { SITE_THEMES, SiteSettingsService } from './site-settings.service';
 export class UpdateSiteSettingsDto {
   @ApiPropertyOptional({
     description: 'Live app name — renders across every surface immediately',
-    example: 'Flight13',
+    example: 'Kenya Airways',
     maxLength: 40,
   })
   @IsOptional()

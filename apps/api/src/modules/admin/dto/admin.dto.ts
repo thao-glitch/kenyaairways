@@ -14,7 +14,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { PAYMENT_PROVIDER_TYPES, type PaymentProviderType } from '@flight13/shared';
+import { PAYMENT_PROVIDER_TYPES, type PaymentProviderType } from '@kenyaairways/shared';
 
 /** One fare class row inside a single-flight edit. */
 export class FlightPriceFarePatchDto {

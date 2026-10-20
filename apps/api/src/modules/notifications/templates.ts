@@ -20,12 +20,12 @@ type Rendered = { subject: string; body: string };
 
 const OTP: Record<Lang, Rendered> = {
   en: {
-    subject: 'Flight13 verification code',
-    body: 'Flight13: your verification code is {code}. Valid for {minutes} minute(s). Never share it.',
+    subject: 'Kenya Airways verification code',
+    body: 'Kenya Airways: your verification code is {code}. Valid for {minutes} minute(s). Never share it.',
   },
   sw: {
-    subject: 'Msimbo wa uthibitisho wa Flight13',
-    body: 'Flight13: msimbo wako wa uthibitisho ni {code}. Halali kwa dakika {minutes}. Usimpe mtu yeyote.',
+    subject: 'Msimbo wa uthibitisho wa Kenya Airways',
+    body: 'Kenya Airways: msimbo wako wa uthibitisho ni {code}. Halali kwa dakika {minutes}. Usimpe mtu yeyote.',
   },
 };
 
@@ -38,11 +38,11 @@ const TEMPLATES: Record<NotificationTemplateCode, Record<Lang, Rendered>> = {
   'ticket.issued': {
     en: {
       subject: 'Tickets issued for {pnr}',
-      body: 'Your Flight13 ticket number(s): {tickets}',
+      body: 'Your Kenya Airways ticket number(s): {tickets}',
     },
     sw: {
       subject: 'Tiketi zimetolewa kwa {pnr}',
-      body: 'Namba zako za tiketi za Flight13: {tickets}',
+      body: 'Namba zako za tiketi za Kenya Airways: {tickets}',
     },
   },
   'checkin.completed': {
@@ -85,7 +85,7 @@ export function renderNotification(
 ): Rendered {
   const template = TEMPLATES[code];
   const chosen = (template ? (template[templateLang(locale)] ?? template.en) : undefined) ?? {
-    subject: 'Flight13',
+    subject: 'Kenya Airways',
     body: '',
   };
   return {

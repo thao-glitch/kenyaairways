@@ -22,7 +22,7 @@ describe('Daraja STK helpers (pure)', () => {
     );
   });
 
-  it('pins the wire contract: PNR reference ≤12, TransactionDesc "Flight13"', () => {
+  it('pins the wire contract: PNR reference ≤12, TransactionDesc "Kenya Airways"', () => {
     const payload = buildStkPayload({
       shortcode: '174379',
       passkey: 'pass',
@@ -34,7 +34,7 @@ describe('Daraja STK helpers (pure)', () => {
     });
     expect(payload.AccountReference).toBe('QMXCJ2');
     expect(String(payload.AccountReference).length).toBeLessThanOrEqual(12);
-    expect(payload.TransactionDesc).toBe('Flight13');
+    expect(payload.TransactionDesc).toBe('Kenya Airways');
     expect(payload.Amount).toBe(10885);
     expect(payload.PhoneNumber).toBe('254712345678');
     expect(payload.PartyA).toBe('254712345678');

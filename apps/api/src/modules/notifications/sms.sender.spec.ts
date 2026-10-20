@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createServer, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { AppError } from '@flight13/shared';
+import { AppError } from '@kenyaairways/shared';
 import { __setEnvForTests, getEnv, type Env } from '../../config/env';
 import {
   AfricasTalkingSmsSender,
@@ -84,11 +84,11 @@ describe('sms senders (fake endpoints)', () => {
       __setEnvForTests({
         ...baseline,
         AFRICASTALKING_API_KEY: 'at-key-123',
-        AFRICASTALKING_USERNAME: 'flight13-dev',
-        AFRICASTALKING_SENDER_ID: 'FLIGHT13',
+        AFRICASTALKING_USERNAME: 'kenyaairways-dev',
+        AFRICASTALKING_SENDER_ID: 'KENYA',
       });
       const sender = new AfricasTalkingSmsSender(baseUrl);
-      const result = await sender.send(MSISDN, 'Flight13: your code is 123456');
+      const result = await sender.send(MSISDN, 'Kenya Airways: your code is 123456');
 
       expect(result.providerRef).toBe('AT_msg_1');
       expect(capture.method).toBe('POST');
@@ -97,10 +97,10 @@ describe('sms senders (fake endpoints)', () => {
       expect(capture.headers.apikey).toBe('at-key-123');
 
       const form = new URLSearchParams(capture.body ?? '');
-      expect(form.get('username')).toBe('flight13-dev');
+      expect(form.get('username')).toBe('kenyaairways-dev');
       expect(form.get('to')).toBe('254712345678'); // no leading plus
-      expect(form.get('from')).toBe('FLIGHT13');
-      expect(form.get('message')).toBe('Flight13: your code is 123456');
+      expect(form.get('from')).toBe('KENYA');
+      expect(form.get('message')).toBe('Kenya Airways: your code is 123456');
     });
 
     it('maps a non-2xx response onto SERVICE_UNAVAILABLE', async () => {

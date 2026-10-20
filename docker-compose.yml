@@ -1,4 +1,4 @@
-# Flight13 — full stack in containers.
+# Kenya Airways — full stack in containers.
 #   1) ./setup.sh            (creates apps/api/.env with generated secrets)
 #   2) docker compose up -d --build
 #   3) docker compose run --rm api pnpm db:seed
@@ -8,13 +8,13 @@ services:
   db:
     image: postgres:18-alpine
     environment:
-      POSTGRES_USER: flight13
-      POSTGRES_PASSWORD: flight13
-      POSTGRES_DB: flight13
+      POSTGRES_USER: kenyaairways
+      POSTGRES_PASSWORD: kenyaairways
+      POSTGRES_DB: kenyaairways
     volumes:
       - dbdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U flight13 -d flight13']
+      test: ['CMD-SHELL', 'pg_isready -U kenyaairways -d kenyaairways']
       interval: 5s
       timeout: 3s
       retries: 12
@@ -41,7 +41,7 @@ services:
     env_file: apps/api/.env
     environment:
       PORT: '4100'
-      DATABASE_URL: postgresql://flight13:flight13@db:5432/flight13
+      DATABASE_URL: postgresql://kenyaairways:kenyaairways@db:5432/kenyaairways
       REDIS_URL: redis://redis:6379
       API_PUBLIC_URL: http://localhost:4100
       NEXT_PUBLIC_API_URL: http://localhost:4100

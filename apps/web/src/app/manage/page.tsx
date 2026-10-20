@@ -1,4 +1,4 @@
-import type { SiteSettingsDto } from '@flight13/shared';
+import type { SiteSettingsDto } from '@kenyaairways/shared';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PnrLookup } from '@/components/pnr-lookup';

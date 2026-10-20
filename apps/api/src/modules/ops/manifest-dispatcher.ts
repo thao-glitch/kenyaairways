@@ -1,4 +1,4 @@
-import type { ManifestPassengerDto } from '@flight13/shared';
+import type { ManifestPassengerDto } from '@kenyaairways/shared';
 import { createLogger, type Logger } from '../../common/logger';
 
 /** Exactly what leaves the building — no PII beyond the manifest itself. */

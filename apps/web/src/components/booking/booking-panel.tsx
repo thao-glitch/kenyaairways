@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { BookingDto, PnrLookupDto, TicketDto } from '@flight13/shared';
-import { formatMoney } from '@flight13/shared';
+import type { BookingDto, PnrLookupDto, TicketDto } from '@kenyaairways/shared';
+import { formatMoney } from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

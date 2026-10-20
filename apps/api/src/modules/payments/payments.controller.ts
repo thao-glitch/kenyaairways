@@ -7,7 +7,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { PaymentDto, RefundDto, MpesaManualVerificationDto } from '@flight13/shared';
+import type { PaymentDto, RefundDto, MpesaManualVerificationDto } from '@kenyaairways/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import type { AuthedRequest, AuthUser } from '../../common/auth-request';

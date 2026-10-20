@@ -1,4 +1,4 @@
-import type { SessionUserDto } from '@flight13/shared';
+import type { SessionUserDto } from '@kenyaairways/shared';
 import { ApiRequestError, apiCall } from './api-client';
 
 /** Current session from the httpOnly cookies, or null when signed out. */

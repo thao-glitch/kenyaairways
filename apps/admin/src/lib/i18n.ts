@@ -1,6 +1,11 @@
 import 'server-only';
 import { cookies, headers } from 'next/headers';
-import { createTranslator, resolveLocale, type Locale, type Translator } from '@flight13/shared';
+import {
+  createTranslator,
+  resolveLocale,
+  type Locale,
+  type Translator,
+} from '@kenyaairways/shared';
 import en from '@/messages/en.json';
 import sw from '@/messages/sw.json';
 

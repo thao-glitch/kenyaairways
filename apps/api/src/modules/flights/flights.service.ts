@@ -17,7 +17,7 @@ import {
   type SeatMapSeatDto,
   type SeatMapStatus,
   type PriceAdviceDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import type { Flight, Fare } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.module';
 import { PricingService } from '../pricing/pricing.service';

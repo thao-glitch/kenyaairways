@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Flight13 — one-command bootstrap.
+# Kenya Airways — one-command bootstrap.
 #   ./setup.sh            prepare everything (deps, env, database, seed)
 #   ./setup.sh --dev      …then start all three apps in dev mode
 # Works on Ubuntu, Debian, Kali, macOS, WSL and any Linux with Node 20+.
@@ -10,7 +10,7 @@ bold() { printf '\033[1m%s\033[0m\n' "$*"; }
 fail() { printf '\033[31m✗ %s\033[0m\n' "$*"; exit 1; }
 step() { printf '\n\033[36m▸ %s\033[0m\n' "$*"; }
 
-bold "Flight13 setup"
+bold "Kenya Airways setup"
 
 # ── 1. toolchain ────────────────────────────────────────────────────────
 step "Checking toolchain (Node 20+, pnpm)"
@@ -48,7 +48,7 @@ JWT_REFRESH_SECRET=$(HEX)
 SESSION_COOKIE_SECRET=$(HEX)
 ENCRYPTION_KEY=$(B64)
 MPESA_CALLBACK_SECRET=$(TOKEN)
-DATABASE_URL=postgresql://flight13:flight13@localhost:5432/flight13
+DATABASE_URL=postgresql://kenyaairways:kenyaairways@localhost:5432/kenyaairways
 REDIS_URL=redis://localhost:6379
 AIRLINE_NAME=Kenya Airways
 AIRLINE_IATA_CODE=F13
@@ -66,15 +66,15 @@ if ! pg_isready -q 2>/dev/null; then
     docker compose up -d db redis >/dev/null 2>&1 || fail "could not start db containers — check: docker compose up db redis"
     sleep 5
   else
-    fail "PostgreSQL is not reachable. Start one, e.g.:\n    docker compose up -d db redis\n  or install postgresql and create role/db 'flight13' with password 'flight13'."
+    fail "PostgreSQL is not reachable. Start one, e.g.:\n    docker compose up -d db redis\n  or install postgresql and create role/db 'kenyaairways' with password 'kenyaairways'."
   fi
 fi
 redis-cli -p 6379 ping >/dev/null 2>&1 || { command -v redis-server >/dev/null 2>&1 && redis-server --daemonize yes --port 6379 && echo "  started local redis" || echo "  ⚠ redis not reachable — start it (redis-server --daemonize yes) or via docker"; }
 
 # ── 5. schema + demo data ──────────────────────────────────────────────
 step "Creating schema and seeding the worldwide network (first run ≈10 min)"
-pnpm --filter @flight13/api exec prisma db push --skip-generate
-pnpm --filter @flight13/api db:seed
+pnpm --filter @kenyaairways/api exec prisma db push --skip-generate
+pnpm --filter @kenyaairways/api db:seed
 
 # ── 6. done ────────────────────────────────────────────────────────────
 bold "✓ Setup complete"
@@ -85,7 +85,7 @@ cat <<'EOF'
                           docker compose run --rm api pnpm db:seed   (first time only)
 
   User app   → http://localhost:3000
-  Admin      → http://localhost:3001   (admin@flight13.example / Password123!)
+  Admin      → http://localhost:3001   (admin@kenyaairways.example / Password123!)
   API        → http://localhost:4100/api/v1   (Swagger at /api/docs)
 
   Installing to a phone or desktop: open the user app in a browser and

@@ -5,7 +5,7 @@ import {
   formatMoney,
   type AdminFlightPriceDto,
   type BulkPriceUpdateResultDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

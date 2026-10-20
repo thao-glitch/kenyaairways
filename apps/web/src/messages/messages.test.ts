@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createTranslator } from '@flight13/shared';
+import { createTranslator } from '@kenyaairways/shared';
 import en from './en.json';
 import sw from './sw.json';
 

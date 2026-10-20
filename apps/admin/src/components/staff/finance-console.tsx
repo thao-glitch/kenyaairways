@@ -9,7 +9,7 @@ import {
   type RefundDto,
   type RevenueReportDto,
   type SessionUserDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { useStaffUser } from '@/components/staff/require-role';
 import { Badge } from '@/components/ui/badge';

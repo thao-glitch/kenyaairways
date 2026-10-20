@@ -6,7 +6,7 @@ import { PrismaService } from '../../prisma/prisma.module';
 import { RedisService } from '../../redis/redis.module';
 import { getEnv } from '../../config/env';
 import { randomToken, sha256 } from '../../common/crypto';
-import { AppError } from '@flight13/shared';
+import { AppError } from '@kenyaairways/shared';
 
 /** Cookie names — httpOnly, so page JavaScript can never read either token. */
 export const ACCESS_COOKIE = 'f13_at';

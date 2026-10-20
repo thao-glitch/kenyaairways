@@ -1,8 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { MpesaManualVerificationDto, MpesaVerifyCheckDto, Paginated } from '@flight13/shared';
-import { formatMoney } from '@flight13/shared';
+import type {
+  MpesaManualVerificationDto,
+  MpesaVerifyCheckDto,
+  Paginated,
+} from '@kenyaairways/shared';
+import { formatMoney } from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

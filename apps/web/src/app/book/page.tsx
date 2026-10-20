@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import type { FlightOptionDto } from '@flight13/shared';
+import type { FlightOptionDto } from '@kenyaairways/shared';
 import { notFound, redirect } from 'next/navigation';
 import { BookForm } from '@/components/booking/book-form';
 import { apiGetOrNull } from '@/lib/api';

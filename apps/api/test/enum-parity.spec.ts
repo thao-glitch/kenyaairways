@@ -52,7 +52,7 @@ import {
   TICKET_STATUSES,
   TRIP_TYPES,
   USER_STATUSES,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 
 /**
  * The shared package mirrors Prisma enums as string unions so the web app can

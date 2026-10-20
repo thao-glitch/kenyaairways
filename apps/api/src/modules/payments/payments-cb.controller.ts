@@ -3,7 +3,7 @@ import { Controller, HttpCode, Param, Post, Req, UseGuards } from '@nestjs/commo
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import Stripe from 'stripe';
-import { AppError, C2B_VALIDATION } from '@flight13/shared';
+import { AppError, C2B_VALIDATION } from '@kenyaairways/shared';
 import { Public } from '../../common/decorators/public.decorator';
 import { getEnv } from '../../config/env';
 import { createLogger } from '../../common/logger';

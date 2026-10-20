@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useId, useState } from 'react';
-import type { SiteImagesDto, SiteSettingsDto, SiteTheme } from '@flight13/shared';
+import type { SiteImagesDto, SiteSettingsDto, SiteTheme } from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -303,7 +303,7 @@ export function SiteAppearance() {
               value={draft.appName}
               maxLength={40}
               onChange={(e) => setDraft({ ...draft, appName: e.target.value })}
-              placeholder="Flight13"
+              placeholder="Kenya Airways"
             />
           </label>
           <Button disabled={busy} onClick={() => void onSave()}>

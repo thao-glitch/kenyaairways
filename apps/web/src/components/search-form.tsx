@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
-import type { AirportDto } from '@flight13/shared';
+import type { AirportDto } from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { Button } from '@/components/ui/button';
 import { DatePicker, todayIso } from '@/components/ui/date-picker';

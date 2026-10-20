@@ -8,11 +8,11 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
-import { AppError, ERROR_CODES, type ErrorCode } from '@flight13/shared';
+import { AppError, ERROR_CODES, type ErrorCode } from '@kenyaairways/shared';
 
 /**
  * Every error leaves the API as `{ error: { code, message, details?, requestId } }`
- * (`ApiErrorBody` in @flight13/shared). The requestId is echoed in the response
+ * (`ApiErrorBody` in @kenyaairways/shared). The requestId is echoed in the response
  * header and attached to logs so a support ticket can be traced end-to-end.
  */
 @Catch()

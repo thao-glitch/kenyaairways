@@ -1,7 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, Length, Matches } from 'class-validator';
-import type { LoadReportDto, RevenueReportDto } from '@flight13/shared';
+import type { LoadReportDto, RevenueReportDto } from '@kenyaairways/shared';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ReportsService } from './reports.service';
 

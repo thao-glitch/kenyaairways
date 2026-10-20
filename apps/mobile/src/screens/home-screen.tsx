@@ -90,7 +90,7 @@ export function HomeScreen() {
           <Card>
             <EmptyState
               title="No trips yet"
-              body="Search a route to book your first Flight13 flight."
+              body="Search a route to book your first Kenya Airways flight."
             />
           </Card>
         )}

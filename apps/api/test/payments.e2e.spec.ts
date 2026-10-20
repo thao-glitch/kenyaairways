@@ -100,7 +100,7 @@ describe('payments (e2e): STK, callbacks, C2B, refunds, reconciliation', () => {
         tripType: 'ONE_WAY',
         segments: [{ flightId, fareClassCode: 'SAVER' }],
         passengers: [{ type: 'ADULT', firstName: 'Pay', lastName: `Mentest${bookSeq}` }],
-        contactEmail: `pay+${stamp}@flight13.example`,
+        contactEmail: `pay+${stamp}@kenyaairways.example`,
         ...(opts.seat ? { seats: [{ segmentSeq: 0, seatLabel: opts.seat }] } : {}),
       })
       .expect(201);
@@ -206,20 +206,20 @@ describe('payments (e2e): STK, callbacks, C2B, refunds, reconciliation', () => {
         .padStart(8, '0')
         .slice(-8);
     ownerCookie = await register(
-      `pay+${stamp}@flight13.example`,
+      `pay+${stamp}@kenyaairways.example`,
       `+2547${digits8(1)}`,
       'Pay',
       'Owner',
     );
     otherCookie = await register(
-      `pay2+${stamp}@flight13.example`,
+      `pay2+${stamp}@kenyaairways.example`,
       `+2547${digits8(2)}`,
       'Pay',
       'Other',
     );
     const fin = await request(server())
       .post('/api/v1/auth/login')
-      .send({ identifier: 'finance@flight13.example', password: getEnv().SEED_USER_PASSWORD })
+      .send({ identifier: 'finance@kenyaairways.example', password: getEnv().SEED_USER_PASSWORD })
       .expect(200);
     financeCookie = cookieHeader(fin);
 

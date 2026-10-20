@@ -1,5 +1,5 @@
-import type { Currency, FlightOptionDto, Locale, SiteSettingsDto } from '@flight13/shared';
-import { formatMoney } from '@flight13/shared';
+import type { Currency, FlightOptionDto, Locale, SiteSettingsDto } from '@kenyaairways/shared';
+import { formatMoney } from '@kenyaairways/shared';
 import Link from 'next/link';
 import { RouteArc } from '@/components/art/route-arc';
 import { SitePhoto } from '@/components/media/site-photo';

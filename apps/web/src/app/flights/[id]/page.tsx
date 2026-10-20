@@ -1,5 +1,5 @@
-import type { FlightOptionDto } from '@flight13/shared';
-import { formatMoney } from '@flight13/shared';
+import type { FlightOptionDto } from '@kenyaairways/shared';
+import { formatMoney } from '@kenyaairways/shared';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { RouteArc } from '@/components/art/route-arc';

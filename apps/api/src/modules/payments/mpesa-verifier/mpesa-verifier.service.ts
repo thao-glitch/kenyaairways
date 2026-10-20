@@ -7,7 +7,7 @@ import {
   type MpesaVerifyCheckDto,
   type Paginated,
   type PaymentDto,
-} from '@flight13/shared';
+} from '@kenyaairways/shared';
 import type { MpesaManualVerification, Payment } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.module';
 import { STAFF_ROLES, type BookingActor } from '../../bookings/bookings.service';

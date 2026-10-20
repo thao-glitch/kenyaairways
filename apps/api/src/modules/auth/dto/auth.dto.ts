@@ -10,14 +10,14 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { SUPPORTED_LOCALES } from '@flight13/shared';
+import { SUPPORTED_LOCALES } from '@kenyaairways/shared';
 
 const passwordRules = {
   message: 'password must be 10–128 characters and contain at least one letter and one digit',
 } as const;
 
 export class RegisterDto {
-  @ApiPropertyOptional({ example: 'jane@flight13.example' })
+  @ApiPropertyOptional({ example: 'jane@kenyaairways.example' })
   @IsOptional()
   @IsEmail()
   email?: string;
