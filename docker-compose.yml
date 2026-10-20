@@ -1,38 +1,28 @@
-# Flight13 — local/dev stack: Postgres + Redis + API (migrate → seed →
-# serve, mock payments/SMS) + web. One `docker compose up` after
-# `pnpm bootstrap` gives the full demo environment.
-#
-# Secrets never live here: `env_file: .env` carries the generated JWT /
-# encryption / callback secrets from `pnpm bootstrap`. The DB password below
-# is a well-known dev credential for a container-internal database that is
-# not published to the host.
-name: flight13
-
+# Flight13 — full stack in containers.
+#   1) ./setup.sh            (creates apps/api/.env with generated secrets)
+#   2) docker compose up -d --build
+#   3) docker compose run --rm api pnpm db:seed
+# User app  → http://localhost:3000   Admin → http://localhost:3001
+# API       → http://localhost:4100/api/v1
 services:
-  postgres:
-    image: postgres:16-alpine
+  db:
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: flight13
-      POSTGRES_PASSWORD: flight13_dev
+      POSTGRES_PASSWORD: flight13
       POSTGRES_DB: flight13
-    ports:
-      # Optional host access for debugging (the API reaches it in-network).
-      - '${POSTGRES_PORT:-5432}:5432'
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - dbdata:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U flight13 -d flight13']
       interval: 5s
-      timeout: 5s
+      timeout: 3s
       retries: 12
 
   redis:
     image: redis:7-alpine
-    # Not published to the host: the dev Redis already owns 6379 on some
-    # machines and nothing outside the compose network talks to it.
-    command: ['redis-server', '--appendonly', 'yes']
     volumes:
-      - redis_data:/data
+      - redisdata:/data
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
@@ -43,50 +33,48 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    # NODE_ENV stays whatever `.env` says (development): over plain
-    # http://localhost the session cookies must not carry `Secure`.
-    # Production deployments terminate TLS and flip NODE_ENV themselves.
-    env_file: [.env]
-    environment:
-      PORT: 4000
-      # In-network endpoints — override the localhost URLs from .env.
-      DATABASE_URL: postgresql://flight13:flight13_dev@postgres:5432/flight13
-      REDIS_URL: redis://redis:6379
-      API_PUBLIC_URL: http://localhost:4000
-      WEB_PUBLIC_URL: http://localhost:3000
-      CORS_ORIGINS: http://localhost:3000
-      # Load-test headroom: the soak run drives everything from one IP, so
-      # the production defaults (RATE_LIMIT_MAX=300/min in .env.example)
-      # would throttle it. Keep the defaults outside this stack.
-      RATE_LIMIT_MAX: 10000
-      RATE_LIMIT_AUTH_MAX: 200
-    ports:
-      - '4000:4000'
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
+    env_file: apps/api/.env
+    environment:
+      PORT: '4100'
+      DATABASE_URL: postgresql://flight13:flight13@db:5432/flight13
+      REDIS_URL: redis://redis:6379
+      API_PUBLIC_URL: http://localhost:4100
+      NEXT_PUBLIC_API_URL: http://localhost:4100
+      WEB_PUBLIC_URL: http://localhost:3000
+      CORS_ORIGINS: http://localhost:3000,http://localhost:3001
+    ports:
+      - '4100:4100'
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        # What the browser runs against (host-mapped port).
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
-    environment:
-      # Server-side (SSR) fetches inside the compose network; the browser
-      # bundle already inlined NEXT_PUBLIC_API_URL at build time.
-      API_PUBLIC_URL: http://api:4000
+        API_PUBLIC_URL: http://localhost:4100
+        NEXT_PUBLIC_API_URL: http://localhost:4100
+    depends_on:
+      - api
     ports:
       - '3000:3000'
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      args:
+        API_PUBLIC_URL: http://localhost:4100
+        NEXT_PUBLIC_API_URL: http://localhost:4100
+        NEXT_PUBLIC_ADMIN_URL: http://localhost:3001
     depends_on:
-      api:
-        condition: service_healthy
-    restart: unless-stopped
+      - api
+    ports:
+      - '3001:3001'
 
 volumes:
-  pgdata:
-  redis_data:
+  dbdata:
+  redisdata:
