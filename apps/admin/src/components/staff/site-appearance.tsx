@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiRequestError, apiCall, apiUpload } from '@/lib/api-client';
-import { DEFAULT_IMAGES, resolveImage } from '@/lib/site-images';
+import { DEFAULT_IMAGES, SECTION_IMAGE_KEYS, resolveImage } from '@/lib/site-images';
 
 /** Settings read back in full to everyone; writes are ADMIN-only + audited. */
 const GET_PATH = '/api/v1/site-settings';
@@ -16,7 +16,7 @@ const PATCH_PATH = '/api/v1/admin/site-settings';
 const UPLOAD_PATH = '/api/v1/admin/media';
 const UPLOAD_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,image/avif';
 
-const THEMES: SiteTheme[] = ['sky', 'savanna', 'ocean', 'forest', 'midnight'];
+const THEMES: SiteTheme[] = ['sky', 'savanna', 'ocean', 'forest', 'midnight', 'crimson'];
 
 /** Swatch pairs shown on each theme card (bg / primary). */
 const SWATCH: Record<SiteTheme, [string, string]> = {
@@ -25,6 +25,7 @@ const SWATCH: Record<SiteTheme, [string, string]> = {
   ocean: ['hsl(197 40% 97%)', 'hsl(192 84% 24%)'],
   forest: ['hsl(100 25% 97%)', 'hsl(145 58% 24%)'],
   midnight: ['hsl(225 40% 8%)', 'hsl(199 85% 55%)'],
+  crimson: ['#ffffff', 'hsl(356 78% 48%)'],
 };
 
 type Draft = {
@@ -39,6 +40,8 @@ type Draft = {
 };
 
 const RESERVED_IMAGE_KEYS = new Set(['hero', 'auth', 'notFound', 'destinations']);
+/** Section backdrops get their own labelled row above the free-form keys. */
+const SECTION_KEY_SET = new Set<string>(SECTION_IMAGE_KEYS);
 const KEY_RE = /^[a-z][a-z0-9:-]{0,63}$/;
 
 function toDraft(site: SiteSettingsDto): Draft {
@@ -330,6 +333,30 @@ export function SiteAppearance() {
             />
           ))}
 
+          {/* Section backdrops behind Explore / Plan / Manage / Experience /
+              Rewards / Holidays — upload-first like every other slot. */}
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium">{t('staff.appearance.sections')}</span>
+            <p className="text-xs text-muted-foreground">{t('staff.appearance.sectionsBody')}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {SECTION_IMAGE_KEYS.map((key) => (
+                <ImageField
+                  key={key}
+                  compact
+                  label={t(`staff.appearance.image.${key}`)}
+                  value={draft.extra[key] ?? ''}
+                  fallback={DEFAULT_IMAGES[key]}
+                  uploading={uploading === `extra:${key}`}
+                  onFile={(file) => void onUpload(`extra:${key}`, file)}
+                  onRemove={() => {
+                    const { [key]: _dropped, ...rest } = draft.extra;
+                    setDraft({ ...draft, extra: rest });
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium">{t('staff.appearance.destinations')}</span>
             <p className="text-xs text-muted-foreground">
@@ -362,6 +389,7 @@ export function SiteAppearance() {
             {Object.keys(draft.extra).length > 0 ? (
               <div className="grid gap-3 sm:grid-cols-2">
                 {Object.entries(draft.extra)
+                  .filter(([key]) => !SECTION_KEY_SET.has(key))
                   .sort(([a], [b]) => a.localeCompare(b))
                   .map(([key, url]) => (
                     <ImageField

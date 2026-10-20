@@ -28,7 +28,6 @@
   "home.manage.body": "Look up a booking by reference, check in and download boarding passes.",
   "footer.rights": "© 2026 Flight13. All rights reserved.",
   "footer.licensed": "Licensed by the Kenya Civil Aviation Authority (KCAA).",
-  "footer.devNote": "Development build — payments, SMS and email run in mock mode until live credentials are configured.",
   "error.network": "Network error — please try again.",
   "error.notFound.title": "Page not found",
   "error.notFound.body": "The page you are looking for does not exist or has moved.",
@@ -414,6 +413,7 @@
   "staff.appearance.theme.ocean": "Ocean",
   "staff.appearance.theme.forest": "Forest",
   "staff.appearance.theme.midnight": "Midnight",
+  "staff.appearance.theme.crimson": "Crimson",
   "staff.appearance.images": "Photographs",
   "staff.appearance.imagesBody": "Preview first — click Upload to replace any photograph with your own file (JPEG, PNG, WebP, GIF or AVIF, up to 5 MB). Restore default returns to the built-in photo.",
   "staff.appearance.image.hero": "Home hero photograph",
@@ -492,5 +492,13 @@
   "staff.appearance.uploading": "Uploading…",
   "staff.appearance.uploadHint": "JPEG, PNG, WebP, GIF or AVIF · max 5 MB",
   "staff.appearance.clear": "Restore default",
-  "staff.pricing.bulk.pct": "Percent change (e.g. -10)"
+  "staff.pricing.bulk.pct": "Percent change (e.g. -10)",
+  "staff.appearance.sections": "Section & page backdrops",
+  "staff.appearance.sectionsBody": "Photographs behind Explore, Plan, Book & manage, Experience, Rewards and Holidays — upload your own file; removing it restores the built-in photo.",
+  "staff.appearance.image.explore": "Explore backdrop",
+  "staff.appearance.image.plan": "Plan your trip backdrop",
+  "staff.appearance.image.manage": "Book & manage backdrop",
+  "staff.appearance.image.experience": "Experience backdrop",
+  "staff.appearance.image.rewards": "Rewards backdrop",
+  "staff.appearance.image.holidays": "Holidays backdrop"
 }

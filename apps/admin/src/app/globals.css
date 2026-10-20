@@ -166,7 +166,35 @@
   --ring: 199 85% 55%;
 }
 
+/* Kenya Airways house style — see apps/web/src/app/globals.css for notes. */
+[data-theme='crimson'] {
+  --background: 0 0% 100%;
+  --foreground: 340 20% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 340 20% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 340 20% 8%;
+  --primary: 356 78% 48%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 340 12% 95%;
+  --secondary-foreground: 340 20% 8%;
+  --muted: 340 12% 95%;
+  --muted-foreground: 340 6% 42%;
+  --accent: 356 90% 95%;
+  --accent-foreground: 356 70% 25%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 71% 35%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 45%;
+  --warning-foreground: 0 0% 100%;
+  --border: 340 14% 89%;
+  --input: 340 14% 89%;
+  --ring: 356 78% 48%;
+}
+
 @theme inline {
+  --font-display: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));

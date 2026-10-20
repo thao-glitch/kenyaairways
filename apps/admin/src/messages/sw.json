@@ -28,7 +28,6 @@
   "home.manage.body": "Tafuta safari kwa marejeo, jiandikishe kupanda na pakua kadi za kupanda.",
   "footer.rights": "© 2026 Flight13. Haki zote zimehifadhiwa.",
   "footer.licensed": "Imeidhinishwa na Mamlaka ya Usalama wa Anga ya Kenya (KCAA).",
-  "footer.devNote": "Toleo la maendeleo — malipo, SMS na barua pepe hutumia hali ya mfano hadi hati halisi zitakapotolewa.",
   "error.network": "Hitilafu ya mtandao. Jaribu tena.",
   "error.notFound.title": "Ukurasa haupatikani",
   "error.notFound.body": "Ukurasa unaoutafuta haupo au umehamishwa.",
@@ -414,6 +413,7 @@
   "staff.appearance.theme.ocean": "Bahari",
   "staff.appearance.theme.forest": "Msitu",
   "staff.appearance.theme.midnight": "Usiku giza",
+  "staff.appearance.theme.crimson": "Nyekundu",
   "staff.appearance.images": "Picha",
   "staff.appearance.imagesBody": "Taswiri kwanza — bonyeza Pakia kubadilisha picha yoyote na faili lako (JPEG, PNG, WebP, GIF au AVIF, hadi MB5). Rudisha asilia inarudisha picha iliyojengwa ndani.",
   "staff.appearance.image.hero": "Picha ya ukurasa wa mwanzo",
@@ -492,5 +492,13 @@
   "staff.appearance.uploading": "Inapakia…",
   "staff.appearance.uploadHint": "JPEG, PNG, WebP, GIF au AVIF · max MB5",
   "staff.appearance.clear": "Rudisha asilia",
-  "staff.pricing.bulk.pct": "Badilisha kwa asilimia (mf. -10)"
+  "staff.pricing.bulk.pct": "Badilisha kwa asilimia (mf. -10)",
+  "staff.appearance.sections": "Mandharizo ya sehemu na kurasa",
+  "staff.appearance.sectionsBody": "Picha nyuma ya Gundua, Panga, Weka na simamua, Uzoefu, Zawadi na Likizo — pakia faili lako; kuiondoa hurudisha picha iliyojengwa ndani.",
+  "staff.appearance.image.explore": "Mandharizo ya Gundua",
+  "staff.appearance.image.plan": "Mandharizo ya Panga safari",
+  "staff.appearance.image.manage": "Mandharizo ya Weka na simamua",
+  "staff.appearance.image.experience": "Mandharizo ya Uzoefu",
+  "staff.appearance.image.rewards": "Mandharizo ya Zawadi",
+  "staff.appearance.image.holidays": "Mandharizo ya Likizo"
 }
