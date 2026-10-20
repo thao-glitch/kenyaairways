@@ -73,6 +73,20 @@ step "Workspace dependencies"
 pnpm install --silent
 ok "dependencies installed"
 
+# ── 3b. build @kenyaairways/shared ────────────────────────────────────
+# Its dist/ is git-ignored, so a fresh ZIP/tarball download ships the
+# SOURCE only. Without this build the API/web/admin cannot resolve the
+# shared types and crash with dozens of TS errors on first run — so it
+# is mandatory on first install (and a cheap no-op on upgrade).
+step "Building @kenyaairways/shared (required for first run)"
+if pnpm --filter @kenyaairways/shared build >/tmp/ka-shared-build.log 2>&1; then
+  ok "shared package built → packages/shared/dist"
+else
+  warn "shared build failed — showing output:"
+  tail -20 /tmp/ka-shared-build.log
+  fail "could not build @kenyaairways/shared (the apps cannot start without it)"
+fi
+
 # ── 4. secrets ────────────────────────────────────────────────────────
 step "Environment (.env with generated secrets)"
 node scripts/bootstrap.mjs

@@ -10,6 +10,15 @@ cd "$(dirname "$0")"
 
 [ -d node_modules ] || { printf '\033[31mNothing installed yet — double-click setup.sh first.\033[0m\n'; exit 1; }
 
+# Self-heal: @kenyaairways/shared's dist/ is git-ignored, so a fresh
+# download ships source only. If it is missing (or stale) the three apps
+# crash on type resolution — build it before starting.
+if [ ! -f packages/shared/dist/index.d.ts ]; then
+  printf '\033[36m▸ Building @kenyaairways/shared (first run)…\033[0m\n'
+  pnpm --filter @kenyaairways/shared build >/dev/null 2>&1 || {
+    printf '\033[31m✗ could not build @kenyaairways/shared — run ./setup.sh first.\033[0m\n'; exit 1; }
+fi
+
 tcp_up() { (exec 3<>"/dev/tcp/$1/$2") 2>/dev/null && exec 3>&- 3<&- && return 0 || return 1; }
 
 # Databases: prefer Docker, fall back to whatever is already running.

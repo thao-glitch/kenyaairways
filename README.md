@@ -20,13 +20,25 @@ materialises routes on demand).
 `git clone`), unzip it, and **double-click — it installs itself, no
 navigation through files needed**:
 
-| System      | Double-click                                                 |
-| ----------- | ------------------------------------------------------------ |
-| **Windows** | `INSTALL.bat`                                                |
-| **macOS**   | `INSTALL.command`                                            |
-| **Linux**   | `Install Kenya Airways.desktop` (or `INSTALL.sh` in a shell) |
+| System      | Double-click                    |
+| ----------- | ------------------------------- |
+| **Windows** | `INSTALL.bat`                   |
+| **macOS**   | `INSTALL.command`               |
+| **Linux**   | `Install Kenya Airways.desktop` |
 
-GNOME may ask once to trust the launcher — choose _Trust and Launch_.
+**Linux note (Kali, XFCE, Debian, Ubuntu):** the `.desktop` launcher is
+the one to double-click. Your file manager may show a one-time security
+prompt before running any downloaded program — that is normal Linux
+behaviour, not an error:
+
+- **Thunar** (Kali/XFCE) → _Execute_ / _Trust and Launch_
+- **Nautilus** (Ubuntu/GNOME) → _Trust and Launch_ / _Run as a program_
+- **Dolphin** (Kali KDE) → _Run_ / _Mark as executable_
+
+It appears once; after that the launcher double-clicks straight into the
+installer. (If your file manager opens `INSTALL.sh` as text instead, use
+the `.desktop` launcher above — that is exactly what it is for.)
+
 The installer takes it from there — no prerequisites needed:
 
 - installs **Node.js + pnpm** if missing (Windows silently via winget;
