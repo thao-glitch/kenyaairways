@@ -42,14 +42,21 @@ and installs it — **no unzipping, no clicking through folders.**
 
 ### Windows / macOS (or installing from a ZIP)
 
-**Download** the repo (GitHub → green _Code_ → _Download ZIP_, or
-`git clone`), unzip it, and **double-click — it installs itself**:
+**Windows:** grab the single self-extracting **`Install Kenya Airways.exe`**
+from the [Releases page](https://github.com/thao-glitch/kenyaairways/releases)
+and **double-click it**. It extracts the _entire_ platform into
+`%USERPROFILE%\KenyaAirways` and launches the installer — **no unzipping,
+no clicking through folders** (same one-file flow as Linux above).
 
-| System      | Double-click                    |
-| ----------- | ------------------------------- |
-| **Windows** | `INSTALL.bat`                   |
-| **macOS**   | `INSTALL.command`               |
-| **Linux**   | `Install Kenya Airways.desktop` |
+**macOS (or installing from a ZIP):** download the repo (GitHub → green
+_Code_ → _Download ZIP_, or `git clone`), unzip it, and **double-click —
+it installs itself**:
+
+| System      | Double-click                                                      |
+| ----------- | ----------------------------------------------------------------- |
+| **Windows** | `Install Kenya Airways.exe` (one file) / `INSTALL.bat` (from ZIP) |
+| **macOS**   | `INSTALL.command`                                                 |
+| **Linux**   | `Install Kenya Airways.desktop`                                   |
 
 The installer takes it from there — no prerequisites needed:
 
@@ -151,8 +158,9 @@ in **Admin → Appearance** (images are replaced by file upload, never URLs).
 Run **the same installer you ran the first time** — that is the whole
 upgrade flow:
 
-- **Windows**: download/unzip the new version over the old folder (or
-  `git pull` inside it) → double-click `INSTALL.bat`
+- **Windows**: re-run `Install Kenya Airways.exe` (or unzip the new
+  version over the old folder / `git pull` inside it, then double-click
+  `INSTALL.bat`)
 - **Linux / macOS**: `git pull && ./setup.sh` (or run `setup.sh` from a
   fresh download in the same folder)
 - **Docker**: `git pull && docker compose up -d --build`
@@ -179,6 +187,7 @@ apps/admin      Staff app (Next.js, role-gated)
 apps/api        NestJS + Prisma REST API, OpenAPI, background jobs
 packages/shared Shared DTOs & contracts consumed by all three
 INSTALL.bat / INSTALL.command / INSTALL.sh
+Install Kenya Airways.exe / .sh / .desktop   One-file self-extracting installers — Windows / Linux (double-click: extract + install)
 Install Kenya Airways.desktop  Double-click installers — Windows / macOS / Linux (first install & in-place upgrades)
 START.bat / Start.command / Start Kenya Airways.desktop
 start.sh                       Double-click launchers for the whole platform

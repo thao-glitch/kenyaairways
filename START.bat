@@ -9,6 +9,19 @@ if not exist node_modules (
   exit /b 1
 )
 
+rem Self-heal: @kenyaairways/shared's dist/ is git-ignored, so a fresh
+rem download ships source only. If missing (or stale) the three apps crash
+rem on type resolution - build it before starting.
+if not exist packages\shared\dist\index.d.ts (
+  echo Building @kenyaairways/shared (first run)...
+  call pnpm --filter @kenyaairways/shared build >nul 2>&1
+  if errorlevel 1 (
+    echo [!] Could not build @kenyaairways/shared - double-click INSTALL.bat first.
+    pause
+    exit /b 1
+  )
+)
+
 rem Databases: prefer Docker, otherwise assume they are already running.
 docker >nul 2>&1
 if not errorlevel 1 docker compose up -d db redis >nul 2>&1

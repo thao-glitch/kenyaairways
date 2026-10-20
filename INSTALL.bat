@@ -52,6 +52,18 @@ if errorlevel 1 (
   exit /b 1
 )
 
+rem --- @kenyaairways/shared: dist/ is git-ignored, so a fresh download ships
+rem --- source only. Without this build the apps crash with dozens of TS
+rem --- errors on first run - it is mandatory (and a cheap no-op on upgrade).
+echo - Building @kenyaairways/shared (required for first run)...
+call pnpm --filter @kenyaairways/shared build
+if errorlevel 1 (
+  echo [!] Could not build @kenyaairways/shared - the apps cannot start without it.
+  echo     Check the messages above, then run INSTALL.bat again.
+  pause
+  exit /b 1
+)
+
 echo - Generating secrets into .env (never overwritten)...
 call node scripts\bootstrap.mjs
 if errorlevel 1 (
