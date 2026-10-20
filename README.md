@@ -125,6 +125,21 @@ The user app is a **PWA** — browsers offer it as a real app:
 It launches full-screen with the airline icon, works offline for cached pages,
 and updates itself automatically whenever the server updates (just refresh).
 
+### Opening it on a phone over your local network
+
+The installer runs the apps on the computer (user app on `:3000`). A phone
+on the **same Wi-Fi** reaches that computer by its local IP, not
+`localhost`:
+
+1. On the computer, find its address — `hostname -I` (Linux),
+   `ipconfig` → _IPv4_ (Windows), or `ipconfig getifaddr en0` (macOS).
+2. On the phone's browser, open `http://<that-IP>:3000`.
+3. If it doesn't load, allow port `3000` through the computer's firewall.
+
+Then use **Add to Home screen** (table above) for the app icon. For anyone
+outside your network, host the platform on a public HTTPS URL (see
+_Production hardening checklist_) and share that link instead.
+
 ### Shipping it to the Play Store / app stores
 
 1. Run the app on a public HTTPS URL.
