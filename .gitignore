@@ -48,3 +48,6 @@ dump.rdb
 
 # Appearance-console uploads (API media store)
 apps/api/uploads/
+
+# built by build-installer.sh — ships as a release asset, not committed
+Install Kenya Airways.sh

@@ -16,28 +16,40 @@ materialises routes on demand).
 
 ## Quick start — one file installs everything
 
+### Linux (Kali, Ubuntu, Debian) — download ONE file
+
+From the [Releases page](https://github.com/thao-glitch/kenyaairways/releases)
+grab the single self-extracting installer **`Install Kenya Airways.sh`**
+(and its tiny launcher **`Install Kenya Airways.desktop`** — keep both in
+the same folder, e.g. `Downloads`). Then:
+
+**Double-click `Install Kenya Airways.desktop`.**
+
+It extracts the _entire_ platform out of the file into `~/KenyaAirways`
+and installs it — **no unzipping, no clicking through folders.**
+
+> **The one-time Linux security prompt.** Double-clicking any downloaded
+> program makes the file manager ask once before it will run it. That is
+> normal OS security (it applies to every app on every Linux distro), not
+> an error — click the affirmative button and it never asks again:
+>
+> - **Thunar** (Kali/XFCE) → _Execute_ / _Trust and Launch_
+> - **Nautilus** (Ubuntu/GNOME) → _Trust and Launch_ / _Run as a program_
+> - **Dolphin** (Kali KDE) → _Run_ / _Mark as executable_
+>
+> If your file manager opens the `.sh` as text instead, just use the
+> `.desktop` launcher — that is exactly what it is for.
+
+### Windows / macOS (or installing from a ZIP)
+
 **Download** the repo (GitHub → green _Code_ → _Download ZIP_, or
-`git clone`), unzip it, and **double-click — it installs itself, no
-navigation through files needed**:
+`git clone`), unzip it, and **double-click — it installs itself**:
 
 | System      | Double-click                    |
 | ----------- | ------------------------------- |
 | **Windows** | `INSTALL.bat`                   |
 | **macOS**   | `INSTALL.command`               |
 | **Linux**   | `Install Kenya Airways.desktop` |
-
-**Linux note (Kali, XFCE, Debian, Ubuntu):** the `.desktop` launcher is
-the one to double-click. Your file manager may show a one-time security
-prompt before running any downloaded program — that is normal Linux
-behaviour, not an error:
-
-- **Thunar** (Kali/XFCE) → _Execute_ / _Trust and Launch_
-- **Nautilus** (Ubuntu/GNOME) → _Trust and Launch_ / _Run as a program_
-- **Dolphin** (Kali KDE) → _Run_ / _Mark as executable_
-
-It appears once; after that the launcher double-clicks straight into the
-installer. (If your file manager opens `INSTALL.sh` as text instead, use
-the `.desktop` launcher above — that is exactly what it is for.)
 
 The installer takes it from there — no prerequisites needed:
 
