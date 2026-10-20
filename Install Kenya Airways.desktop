@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Install Kenya Airways
+GenericName=Platform installer
+Comment=Install or upgrade the Kenya Airways platform automatically (no terminal needed)
+Exec=bash -c "cd \"\$(dirname \"%k\")\" && exec bash INSTALL.sh"
+Terminal=true
+Icon=utilities-terminal
+Categories=Utility;
+StartupNotify=false

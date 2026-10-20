@@ -17,13 +17,16 @@ materialises routes on demand).
 ## Quick start — one file installs everything
 
 **Download** the repo (GitHub → green _Code_ → _Download ZIP_, or
-`git clone`), unzip it, and **double-click**:
+`git clone`), unzip it, and **double-click — it installs itself, no
+navigation through files needed**:
 
-| System            | Double-click                                               |
-| ----------------- | ---------------------------------------------------------- |
-| **Windows**       | `INSTALL.bat`                                              |
-| **Linux / macOS** | `setup.sh` (file manager: right-click → _Run in Terminal_) |
+| System      | Double-click                                                 |
+| ----------- | ------------------------------------------------------------ |
+| **Windows** | `INSTALL.bat`                                                |
+| **macOS**   | `INSTALL.command`                                            |
+| **Linux**   | `Install Kenya Airways.desktop` (or `INSTALL.sh` in a shell) |
 
+GNOME may ask once to trust the launcher — choose _Trust and Launch_.
 The installer takes it from there — no prerequisites needed:
 
 - installs **Node.js + pnpm** if missing (Windows silently via winget;
@@ -35,7 +38,8 @@ The installer takes it from there — no prerequisites needed:
 - applies the database schema and **seeds the 114-airport worldwide
   network** (first run ≈ 10 minutes)
 
-Then **double-click `START.bat`** (Windows) or **`start.sh`** — the whole
+Then **double-click `START.bat`** (Windows), **`Start.command`**
+(macOS) or **`Start Kenya Airways.desktop`** (Linux) — the whole
 platform comes up and your browser opens:
 
 - **http://localhost:3000** — user app
@@ -150,8 +154,10 @@ apps/web        Passenger app (Next.js App Router, EN+SW i18n, PWA)
 apps/admin      Staff app (Next.js, role-gated)
 apps/api        NestJS + Prisma REST API, OpenAPI, background jobs
 packages/shared Shared DTOs & contracts consumed by all three
-INSTALL.bat / setup.sh   Double-click installer (Windows / Linux+macOS) — first install & upgrades
-START.bat / start.sh     Double-click launcher for the whole platform
+INSTALL.bat / INSTALL.command / INSTALL.sh
+Install Kenya Airways.desktop  Double-click installers — Windows / macOS / Linux (first install & in-place upgrades)
+START.bat / Start.command / Start Kenya Airways.desktop
+start.sh                       Double-click launchers for the whole platform
 .vscode/tasks.json       “setup / start / seed” tasks inside VS Code
 docker-compose.yml       Entire stack in containers
 ```
