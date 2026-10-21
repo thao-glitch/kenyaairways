@@ -14,18 +14,30 @@ materialises routes on demand).
 
 ---
 
-## Quick start — one file installs everything
+## Quick start — pick your app, one file installs everything
+
+The platform ships as **two standalone releases**, each a complete
+full-stack install (API + database + seed) with ONE app as its front door:
+
+| I want…                                             | Download this release                                                                        | Front door              |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------------------- |
+| **Traveller app** — booking, check-in, manage trips | [Traveller App v1.0.0](https://github.com/thao-glitch/kenyaairways/releases/tag/v1.0.0-user) | `http://localhost:3000` |
+| **Admin console** — staff operations & settings     | [Admin App v1.0.0](https://github.com/thao-glitch/kenyaairways/releases/tag/v1.0.0-admin)    | `http://localhost:3001` |
+
+Each release has a Windows `.exe`, a Linux/macOS `.sh`, a Linux
+`.desktop` launcher and a source ZIP of just that app.
 
 ### Linux (Kali, Ubuntu, Debian) — download ONE file
 
-From the [Releases page](https://github.com/thao-glitch/kenyaairways/releases)
-grab the single self-extracting installer **`Install Kenya Airways.sh`**
-(and its tiny launcher **`Install Kenya Airways.desktop`** — keep both in
-the same folder, e.g. `Downloads`). Then:
+From the release for your app grab the self-extracting installer
+**`Install-Kenya-Airways-User.sh`** or **`Install-Kenya-Airways-Admin.sh`**
+(and its tiny launcher **`Install-Kenya-Airways-User.desktop`** /
+**`-Admin.desktop`** — keep both in the same folder, e.g. `Downloads`).
+Then:
 
-**Double-click `Install Kenya Airways.desktop`.**
+**Double-click the `.desktop` launcher.**
 
-It extracts the _entire_ platform out of the file into `~/KenyaAirways`
+It extracts the _entire_ bundle out of the file into `~/KenyaAirways`
 and installs it — **no unzipping, no clicking through folders.**
 
 > **The one-time Linux security prompt.** Double-clicking any downloaded
@@ -42,21 +54,21 @@ and installs it — **no unzipping, no clicking through folders.**
 
 ### Windows / macOS (or installing from a ZIP)
 
-**Windows:** grab the single self-extracting **`Install Kenya Airways.exe`**
-from the [Releases page](https://github.com/thao-glitch/kenyaairways/releases)
-and **double-click it**. It extracts the _entire_ platform into
+**Windows:** grab **`Install-Kenya-Airways-User.exe`** or
+**`Install-Kenya-Airways-Admin.exe`** from the release for your app and
+**double-click it**. It extracts the bundle into
 `%USERPROFILE%\KenyaAirways` and launches the installer — **no unzipping,
 no clicking through folders** (same one-file flow as Linux above).
 
-**macOS (or installing from a ZIP):** download the repo (GitHub → green
-_Code_ → _Download ZIP_, or `git clone`), unzip it, and **double-click —
-it installs itself**:
+**macOS (or installing from a ZIP):** download the release's source ZIP
+(`KenyaAirways-Traveller-Source.zip` / `KenyaAirways-Admin-Source.zip`),
+unzip it, and **double-click — it installs itself**:
 
-| System      | Double-click                                                      |
-| ----------- | ----------------------------------------------------------------- |
-| **Windows** | `Install Kenya Airways.exe` (one file) / `INSTALL.bat` (from ZIP) |
-| **macOS**   | `INSTALL.command`                                                 |
-| **Linux**   | `Install Kenya Airways.desktop`                                   |
+| System      | Double-click                                                        |
+| ----------- | ------------------------------------------------------------------- |
+| **Windows** | `Install-Kenya-Airways-*.exe` (one file) / `INSTALL.bat` (from ZIP) |
+| **macOS**   | `INSTALL.command`                                                   |
+| **Linux**   | `Install-Kenya-Airways-*.desktop`                                   |
 
 The installer takes it from there — no prerequisites needed:
 
