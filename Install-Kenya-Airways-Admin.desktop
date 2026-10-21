@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Install Kenya Airways (Admin)
+GenericName=Platform installer
+Comment=Install or upgrade the Kenya Airways admin bundle automatically (no terminal needed)
+Exec=bash -c "cd \\$(dirname '%k') && if [ -f 'Install-Kenya-Airways-Admin.sh' ]; then exec bash 'Install-Kenya-Airways-Admin.sh'; fi; if [ -f 'Install-Kenya-Airways-Admin.sh' ]; then exec bash 'Install-Kenya-Airways-Admin.sh'; fi; if [ -f INSTALL.sh ]; then exec bash INSTALL.sh; fi; echo 'Installer script not found next to this launcher'; exit 1"
+Terminal=true
+Icon=utilities-terminal
+Categories=Utility;
+StartupNotify=false

@@ -167,17 +167,23 @@ fi
 
 # ── 7. done ───────────────────────────────────────────────────────────
 bold "✓ Setup complete"
+# Bundle-aware listing: the traveller release ships apps/web, the admin
+# release apps/admin (the full repo has both).
+FRONT_LINE="  User app  →  http://localhost:3000"
+ADMIN_LINE="  Admin     →  http://localhost:3001    (admin@kenyaairways.example / Password123!)"
+[ -d apps/web ]    || FRONT_LINE=""
+[ -d apps/admin ]  || ADMIN_LINE=""
 if [ "$DEV" = 1 ]; then
-  echo "  starting all apps — user :3000 · admin :3001 · api :4100 (Ctrl-C to stop)"
+  echo "  starting the apps — api :4100 (Ctrl-C to stop)"
   exec pnpm dev
 fi
-cat <<'EOF'
+cat <<EOF
 
   Start everything:     ./start.sh          (Windows: double-click START.bat)
   or in a terminal:     pnpm dev
 
-  User app  →  http://localhost:3000
-  Admin     →  http://localhost:3001    (admin@kenyaairways.example / Password123!)
+$FRONT_LINE
+$ADMIN_LINE
   API       →  http://localhost:4100/api/v1    (Swagger: /api/docs)
 
   Upgrading later: download the new version (or git pull) and run this

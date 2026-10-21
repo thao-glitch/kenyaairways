@@ -53,3 +53,7 @@ apps/api/uploads/
 # assets, not committed (they embed the whole committed tree)
 Install Kenya Airways.sh
 Install Kenya Airways.exe
+
+# Release bundle assets (built by build-bundles.sh / build-installer*.sh)
+Install-Kenya-Airways-*.sh
+Install-Kenya-Airways-*.exe

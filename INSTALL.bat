@@ -133,8 +133,8 @@ echo ==============================================
 echo   Install complete.
 echo.
 echo   Start everything:  double-click START.bat
-echo   User app  -  http://localhost:3000
-echo   Admin     -  http://localhost:3001   (admin@kenyaairways.example / Password123!)
+if exist apps\web   echo   User app  -  http://localhost:3000
+if exist apps\admin echo   Admin     -  http://localhost:3001   (admin@kenyaairways.example / Password123!)
 echo   API       -  http://localhost:4100/api/v1
 echo.
 echo   Open this folder in your code editor any time;

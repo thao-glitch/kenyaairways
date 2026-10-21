@@ -10,8 +10,8 @@
   },
   "scripts": {
     "bootstrap": "node scripts/bootstrap.mjs",
-    "dev": "pnpm -r --parallel --filter @kenyaairways/api --filter @kenyaairways/web --filter @kenyaairways/admin dev",
-    "build": "pnpm --filter @kenyaairways/shared build && pnpm -r --filter @kenyaairways/api --filter @kenyaairways/web build",
+    "dev": "pnpm -r --parallel --filter \"./apps/*\" dev",
+    "build": "pnpm --filter @kenyaairways/shared build && pnpm -r --filter \"./apps/*\" build",
     "lint": "eslint . && pnpm -r lint",
     "lint:fix": "eslint . --fix && pnpm -r lint:fix",
     "typecheck": "pnpm -r typecheck",
