@@ -19,6 +19,8 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { useSessionStore } from '@/store/session';
 import { hydrateApiBase } from '@/lib/server';
 import { IS_ADMIN_APP } from '@/lib/variant';
+import { bootstrapOffline } from '@/offline/dispatch';
+import { startConnectivityMonitor } from '@/offline/connectivity';
 import { RootNavigator } from '@/navigation/root-navigator';
 import { AdminConsoleScreen } from '@/screens/admin-console-screen';
 import { colors } from '@/theme/tokens';
@@ -42,6 +44,12 @@ export default function App() {
     // address before mounting the navigator so we never flash the auth
     // stack at a signed-in user or fire a request at the wrong host.
     void Promise.all([hydrate(), hydrateApiBase()]).finally(() => setReady(true));
+    // Standalone mode: open the on-device offline world in the background
+    // (seeding happens once per install) and start watching the PC backend.
+    setTimeout(() => {
+      bootstrapOffline();
+      startConnectivityMonitor();
+    }, 0);
   }, [hydrate]);
 
   if (!ready) return null;

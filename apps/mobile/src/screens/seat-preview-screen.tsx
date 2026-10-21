@@ -48,7 +48,7 @@ export function SeatPreviewScreen() {
     if (!selected || !params.bookingId) return;
     setBusy(true);
     try {
-      await api.post(`/api/v1/bookings/${params.bookingId}/seats`, { seatLabels: [selected] });
+      await api.post(`/api/v1/bookings/${params.bookingId}/seats`, { seatLabel: selected });
       Alert.alert('Seat held', `${selected} is held on your booking.`);
     } catch (err) {
       Alert.alert('Error', err instanceof ApiError ? err.message : 'Could not hold seat');

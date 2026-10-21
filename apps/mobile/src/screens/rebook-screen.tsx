@@ -46,11 +46,20 @@ export function RebookScreen() {
     if (!booking) return;
     setBusyId(flightId);
     try {
-      // 1. Create the replacement booking.
+      // 1. Create the replacement booking (passenger names travel with the
+      //    passengers — the API rejects anonymous rows).
       const replacement = await api.post<BookingDto>('/api/v1/bookings', {
+        tripType: 'ONE_WAY',
         segments: [{ flightId, fareClassCode }],
-        passengers: booking.passengers.map((p) => ({ type: p.type })),
-        adults: booking.adultCount,
+        passengers: booking.passengers.map((p) => ({
+          type: p.type,
+          firstName: p.firstName,
+          lastName: p.lastName,
+          email: p.email ?? undefined,
+          phone: p.phone ?? undefined,
+        })),
+        contactEmail: booking.contactEmail ?? undefined,
+        contactPhone: booking.contactPhone ?? undefined,
       });
       // 2. Cancel the old booking (releases inventory; refund if paid).
       await api.post(`/api/v1/bookings/${booking.id}/cancel`, {

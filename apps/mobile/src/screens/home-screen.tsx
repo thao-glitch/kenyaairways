@@ -4,10 +4,12 @@
  * from `useBookings` which mirrors into the SQLite vault, so a signed-in
  * user always sees their next trip even on a cold, offline launch.
  */
+import { useEffect, useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBookings } from '@/lib/hooks';
+import { getBackendMode, subscribeBackendMode, type BackendMode } from '@/offline/connectivity';
 import { Badge, Button, Card, EmptyState, Loading, Screen } from '@/components/ui';
 import { colors, spacing, type } from '@/theme/tokens';
 import type { RootStackParamList } from '@/navigation/root-navigator';
@@ -15,6 +17,29 @@ import type { RootStackParamList } from '@/navigation/root-navigator';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const PAYABLE = new Set(['HELD', 'PENDING_PAYMENT']);
+
+/** Shown while the PC backend is unreachable — the device answers instead. */
+function OfflineBanner() {
+  const [mode, setMode] = useState<BackendMode>(getBackendMode());
+  useEffect(() => subscribeBackendMode(setMode), []);
+  if (mode !== 'local') return null;
+  return (
+    <View
+      style={{
+        backgroundColor: colors.card,
+        borderColor: colors.border,
+        borderWidth: 1,
+        borderRadius: 8,
+        padding: spacing.sm,
+        marginBottom: spacing.md,
+      }}
+    >
+      <Text style={{ ...type.caption, color: colors.mutedForeground }}>
+        Offline mode — search, booking, check-in and boarding passes run on this device.
+      </Text>
+    </View>
+  );
+}
 
 export function HomeScreen() {
   const nav = useNavigation<Nav>();
@@ -33,6 +58,7 @@ export function HomeScreen() {
   return (
     <Screen>
       <ScrollView showsVerticalScrollIndicator={false}>
+        <OfflineBanner />
         <Text style={{ ...type.hero, color: colors.foreground, marginBottom: spacing.md }}>
           Karibu 👋
         </Text>

@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Alert, FlatList, Text, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useFlight } from '@/lib/hooks';
+import { useFlight, useMe } from '@/lib/hooks';
 import { api, ApiError } from '@/lib/api';
 import type { BookingDto } from '@kenyaairways/shared';
 import { Badge, Button, Card, Loading, Screen } from '@/components/ui';
@@ -20,6 +20,7 @@ export function FlightDetailScreen() {
   const nav = useNavigation<Nav>();
   const { params } = useRoute<Rt>();
   const { data: flight, isLoading } = useFlight(params.flightId);
+  const { data: me } = useMe();
   const [busy, setBusy] = useState(false);
 
   if (isLoading || !flight) return <Loading label="Loading flight…" />;
@@ -28,9 +29,19 @@ export function FlightDetailScreen() {
     setBusy(true);
     try {
       const booking = await api.post<BookingDto>('/api/v1/bookings', {
+        tripType: 'ONE_WAY',
         segments: [{ flightId: params.flightId, fareClassCode }],
-        passengers: [{ type: 'ADULT' }],
-        adults: 1,
+        passengers: [
+          {
+            type: 'ADULT',
+            firstName: me?.firstName ?? 'Passenger',
+            lastName: me?.lastName ?? 'Traveller',
+            email: me?.email ?? undefined,
+            phone: me?.phone ?? undefined,
+          },
+        ],
+        contactEmail: me?.email ?? undefined,
+        contactPhone: me?.phone ?? undefined,
       });
       nav.navigate('SeatPreview', { flightId: params.flightId, bookingId: booking.id });
     } catch (err) {

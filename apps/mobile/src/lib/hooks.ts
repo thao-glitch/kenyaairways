@@ -14,6 +14,7 @@ import type {
   FlightPositionDto,
   FlightSearchResultDto,
   FlightStatusDto,
+  Paginated,
   SeatMapDto,
   SessionUserDto,
 } from '@kenyaairways/shared';
@@ -85,7 +86,10 @@ export function useBookings() {
   return useQuery({
     queryKey: ['bookings'],
     queryFn: async () => {
-      const bookings = await api.get<BookingDto[]>('/api/v1/bookings');
+      // The endpoint is paginated ({items, page, ...}); older responses were
+      // bare arrays, so accept both shapes.
+      const res = await api.get<Paginated<BookingDto> | BookingDto[]>('/api/v1/bookings');
+      const bookings = Array.isArray(res) ? res : res.items;
       // Best-effort mirror into SQLite — offline Trips screen.
       await Promise.allSettled(bookings.map(saveBooking));
       return bookings;
