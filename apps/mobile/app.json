@@ -5,6 +5,7 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "kenyaairways",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -13,8 +14,9 @@
     },
     "android": {
       "package": "ke.co.kenyaairways",
+      "versionCode": 1,
       "edgeToEdgeEnabled": true
     },
-    "plugins": ["expo-secure-store", "expo-sqlite", "expo-constants", "expo-device"]
+    "plugins": ["expo-secure-store", "expo-sqlite"]
   }
 }
