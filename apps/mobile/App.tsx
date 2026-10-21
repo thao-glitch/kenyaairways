@@ -18,7 +18,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { useSessionStore } from '@/store/session';
 import { hydrateApiBase } from '@/lib/server';
+import { IS_ADMIN_APP } from '@/lib/variant';
 import { RootNavigator } from '@/navigation/root-navigator';
+import { AdminConsoleScreen } from '@/screens/admin-console-screen';
 import { colors } from '@/theme/tokens';
 
 const queryClient = new QueryClient({
@@ -47,22 +49,31 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <NavigationContainer
-          theme={{
-            ...DefaultTheme,
-            colors: {
-              ...DefaultTheme.colors,
-              background: colors.background,
-              card: colors.card,
-              text: colors.foreground,
-              primary: colors.primary,
-              border: colors.border,
-            },
-          }}
-        >
-          <StatusBar style="dark" />
-          <RootNavigator signedIn={status === 'authenticated'} />
-        </NavigationContainer>
+        {IS_ADMIN_APP ? (
+          // Admin APK: the staff console in a native WebView — no auth
+          // stack of its own; the console does its own sign-in.
+          <>
+            <StatusBar style="dark" />
+            <AdminConsoleScreen />
+          </>
+        ) : (
+          <NavigationContainer
+            theme={{
+              ...DefaultTheme,
+              colors: {
+                ...DefaultTheme.colors,
+                background: colors.background,
+                card: colors.card,
+                text: colors.foreground,
+                primary: colors.primary,
+                border: colors.border,
+              },
+            }}
+          >
+            <StatusBar style="dark" />
+            <RootNavigator signedIn={status === 'authenticated'} />
+          </NavigationContainer>
+        )}
       </QueryClientProvider>
     </SafeAreaProvider>
   );

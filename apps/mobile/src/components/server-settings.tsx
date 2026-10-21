@@ -1,35 +1,59 @@
 /**
  * Server settings — pick the backend address this device talks to.
  *
- * Shown on the auth screen (a fresh install must be able to reach a LAN
- * backend BEFORE sign-in) and on Profile (change it later). Save runs a
- * real `GET /healthz` probe first, so we never persist a dead address.
+ * Two slots: `api` (NestJS on 4100 — shown on the traveller auth screen)
+ * and `admin` (staff console on 3001 — shown in the admin APK header).
+ * Editable BEFORE sign-in so a fresh install can reach a LAN backend on
+ * first launch. Save runs a real probe first (`/healthz` for the API, `/`
+ * for the console) so we never persist a dead address.
  */
 import { useState } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
 import { Button } from '@/components/ui';
 import { colors, spacing, type } from '@/theme/tokens';
-import { getApiBase, probeApi, setApiBase } from '@/lib/server';
+import {
+  getAdminBase,
+  getApiBase,
+  normalizeBase,
+  probeApi,
+  probeWeb,
+  setServerBase,
+  slotLabel,
+  type ServerSlot,
+} from '@/lib/server';
 
-export function ServerSettings() {
+export function ServerSettings({
+  slot = 'api',
+  onChanged,
+}: {
+  slot?: ServerSlot;
+  onChanged?: () => void;
+}) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(getApiBase());
+  const [draft, setDraft] = useState(slot === 'admin' ? getAdminBase() : getApiBase());
   const [busy, setBusy] = useState(false);
+
+  const current = slot === 'admin' ? getAdminBase() : getApiBase();
+  const hint =
+    slot === 'admin'
+      ? 'Address of the machine running the admin console (port 3001)'
+      : 'Backend address (LAN IP of the machine running the API, port 4100)';
 
   async function save() {
     setBusy(true);
     try {
-      const ok = await probeApi(draft);
+      const ok = slot === 'admin' ? await probeWeb(draft) : await probeApi(draft);
       if (!ok) {
         Alert.alert(
           'Server not reachable',
-          `No answer from ${draft}/healthz.\n\nCheck that:\n• the backend is running (./start.sh)\n• this phone and the server are on the same network\n• the address uses the server's LAN IP, not localhost`,
+          `No answer from ${normalizeBase(draft, slot)}${slot === 'admin' ? '/' : '/healthz'}.\n\nCheck that:\n• the platform is running (./start.sh)\n• this phone and the server are on the same network\n• the address uses the server's LAN IP, not localhost`,
         );
         return;
       }
-      await setApiBase(draft);
+      await setServerBase(draft, slot);
       setEditing(false);
-      Alert.alert('Connected', `Now using ${getApiBase()}`);
+      onChanged?.();
+      Alert.alert('Connected', `Now using ${slot === 'admin' ? getAdminBase() : getApiBase()}`);
     } finally {
       setBusy(false);
     }
@@ -40,12 +64,13 @@ export function ServerSettings() {
       <View style={{ marginTop: spacing.md, alignItems: 'center' }}>
         <Text
           onPress={() => {
-            setDraft(getApiBase());
+            setDraft(current);
             setEditing(true);
           }}
           style={{ ...type.caption, color: colors.mutedForeground, textAlign: 'center' }}
         >
-          Server: {getApiBase()} · <Text style={{ color: colors.primary }}>Change</Text>
+          {slot === 'admin' ? 'Console' : 'Server'}: {current} ·{' '}
+          <Text style={{ color: colors.primary }}>Change</Text>
         </Text>
       </View>
     );
@@ -54,7 +79,7 @@ export function ServerSettings() {
   return (
     <View style={{ marginTop: spacing.md }}>
       <Text style={{ ...type.caption, color: colors.mutedForeground, marginBottom: 2 }}>
-        Backend address (LAN IP of the machine running the API, port 4100)
+        {hint} — currently {slotLabel(slot)}
       </Text>
       <TextInput
         value={draft}
@@ -62,7 +87,7 @@ export function ServerSettings() {
         autoCapitalize="none"
         autoCorrect={false}
         keyboardType="url"
-        placeholder="http://192.168.1.20:4100"
+        placeholder={slot === 'admin' ? 'http://192.168.1.20:3001' : 'http://192.168.1.20:4100'}
         placeholderTextColor={colors.mutedForeground}
         style={{
           borderWidth: 1,
