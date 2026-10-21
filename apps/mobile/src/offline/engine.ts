@@ -30,6 +30,7 @@ import {
 import {
   adminBulkPrices,
   adminListBookings,
+  adminListUsers,
   adminListFlights,
   adminSetFlightPrices,
   getSiteSettings,
@@ -224,6 +225,11 @@ function adminRoute(ctx: EngineCtx, actor: Actor, req: LocalRequest, rest: strin
         (req.body ?? {}) as Parameters<typeof recordDirect>[3],
       );
     }
+  }
+
+  if (rest[0] === 'users' && rest.length === 1 && method === 'GET') {
+    requireRole(actor, ['ADMIN']);
+    return adminListUsers(ctx, req.query.page, req.query.pageSize);
   }
 
   if (rest[0] === 'site-settings' && rest.length === 1 && method === 'PATCH') {

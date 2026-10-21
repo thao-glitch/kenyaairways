@@ -13,6 +13,7 @@ import {
   toMpesaMsisdn,
   type AdminBookingSummaryDto,
   type AdminFlightPriceDto,
+  type AdminUserDto,
   type BookingStatus,
   type BulkPriceUpdateResultDto,
   type LoadReportDto,
@@ -281,6 +282,57 @@ export function adminListBookings(ctx: EngineCtx, q?: string): AdminBookingSumma
       createdAt: b.createdAt,
     };
   });
+}
+
+// ── admin users (directory) ─────────────────────────────────────────────────
+
+const MAX_USERS_PAGE_SIZE = 100;
+
+/**
+ * User directory for the `/admin` landing page — same pagination contract as
+ * `users.module.ts` on the API. The device schema has no `lastLoginAt`
+ * column, so it is always null offline (the console renders a dash).
+ */
+export function adminListUsers(
+  ctx: EngineCtx,
+  page?: string,
+  pageSize?: string,
+): Paginated<AdminUserDto> {
+  const pageNo = Math.max(1, Number.parseInt(page ?? '1', 10) || 1);
+  const size = Math.min(
+    MAX_USERS_PAGE_SIZE,
+    Math.max(1, Number.parseInt(pageSize ?? '20', 10) || 20),
+  );
+  const total = ctx.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM users')?.n ?? 0;
+  const rows = ctx.db.all<{
+    id: string;
+    email: string | null;
+    phone: string | null;
+    firstName: string;
+    lastName: string;
+    role: string;
+    status: string;
+    locale: string;
+    createdAt: string;
+  }>('SELECT * FROM users ORDER BY createdAt DESC LIMIT ? OFFSET ?', [size, (pageNo - 1) * size]);
+  return {
+    items: rows.map((u) => ({
+      id: u.id,
+      email: u.email,
+      phone: u.phone,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      role: u.role as AdminUserDto['role'],
+      status: u.status as AdminUserDto['status'],
+      locale: u.locale,
+      createdAt: u.createdAt,
+      lastLoginAt: null,
+    })),
+    page: pageNo,
+    pageSize: size,
+    total,
+    hasMore: pageNo * size < total,
+  };
 }
 
 // ── payments DTO + recordDirect ─────────────────────────────────────────────

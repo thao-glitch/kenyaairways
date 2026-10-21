@@ -3,8 +3,6 @@ import Link from 'next/link';
 import { getTranslator } from '@/lib/i18n';
 import { getSiteSettings } from '@/lib/site';
 
-export const dynamic = 'force-dynamic';
-
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getTranslator();
   const site = await getSiteSettings();

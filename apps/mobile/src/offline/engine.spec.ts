@@ -512,6 +512,35 @@ describe('engine admin', () => {
     expect(byName.map((b) => b.pnr)).toContain(booking.pnr);
   });
 
+  it('lists the user directory with pagination (ADMIN only)', () => {
+    const page = ok<{
+      items: Array<{ email: string | null; role: string; lastLoginAt: string | null }>;
+      page: number;
+      pageSize: number;
+      total: number;
+      hasMore: boolean;
+    }>(
+      call(ctx, 'GET', '/api/v1/admin/users', {
+        token: adminToken,
+        query: { page: '1', pageSize: '20' },
+      }),
+    );
+    expect(page.page).toBe(1);
+    expect(page.pageSize).toBe(20);
+    expect(page.total).toBeGreaterThanOrEqual(3); // seeded admin/ops/finance (+ passengers)
+    expect(page.hasMore).toBe(page.total > 20);
+    expect(page.items[0].role).toBeTruthy();
+    // The device schema has no lastLoginAt — always null offline.
+    expect(page.items.every((u) => u.lastLoginAt === null)).toBe(true);
+    expect(page.items.some((u) => u.email === 'admin@kenyaairways.example')).toBe(true);
+  });
+
+  it('refuses the user directory to non-ADMIN staff', () => {
+    const opsToken = loginAs(ctx, 'ops@kenyaairways.example');
+    const res = call(ctx, 'GET', '/api/v1/admin/users', { token: opsToken });
+    expectError(res, 'FORBIDDEN', 403);
+  });
+
   it('recordDirect on an already-paid offline booking conflicts (server parity)', () => {
     const token = loginAs(ctx, 'passenger@kenyaairways.example');
     const { flightId, fare } = searchOne(ctx, token);

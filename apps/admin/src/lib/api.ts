@@ -24,9 +24,12 @@ interface ApiGetOptions {
  */
 export async function apiGet<T>(path: string, options: ApiGetOptions = {}): Promise<T> {
   const { revalidate, headers, cache } = options;
+  // ISR (`next.revalidate`) doesn't exist in a static export — the APK
+  // bundle fetches site-settings on the client anyway, so drop it there.
+  const next = revalidate && process.env.ADMIN_STATIC_EXPORT !== '1' ? { revalidate } : undefined;
   const res = await fetch(`${API_URL}${path}`, {
     headers: { accept: 'application/json', ...headers },
-    ...(revalidate ? { next: { revalidate } } : {}),
+    ...(next ? { next } : {}),
     ...(cache ? { cache } : {}),
   });
 

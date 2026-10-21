@@ -23,7 +23,13 @@ export function isLocale(value: unknown): value is Locale {
   return typeof value === 'string' && value in catalogs;
 }
 
+const isStaticExport = process.env.ADMIN_STATIC_EXPORT === '1';
+
 export async function getLocale(): Promise<Locale> {
+  // Static export (the APK bundle) has no request scope at build time —
+  // cookies/headers would throw and fail the build. The WebView console
+  // renders one locale per build; the native screens carry EN+SW parity.
+  if (isStaticExport) return 'en-KE';
   const cookieValue = (await cookies()).get('locale')?.value;
   if (isLocale(cookieValue)) return cookieValue;
   return resolveLocale((await headers()).get('accept-language'));
