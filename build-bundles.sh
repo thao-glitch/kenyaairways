@@ -11,12 +11,13 @@
 #   user bundle  → boots and opens :3000
 #   admin bundle → boots and opens :3001
 #
-# Per bundle this produces three RELEASE assets (never committed — they
+# Per bundle this produces four RELEASE assets (never committed — they
 # are many MB each):
 #   Install-Kenya-Airways-User.sh     self-extracting Linux installer
 #   Install-Kenya-Airways-User.exe    self-extracting Windows installer
 #   Install-Kenya-Airways-User.desktop  double-click launcher for the .sh
-#   (same three, -Admin, for the admin bundle)
+#   KenyaAirways-Traveller-Source.zip pruned source tree (INSTALL.sh entry)
+#   (same four, -Admin, for the admin bundle)
 #
 # Payload rule (same as build-installer.sh): always `git archive HEAD`
 # — committed files only, so .env secrets and build output never ship.
@@ -248,10 +249,32 @@ DESEOF
   echo "  .sh payload: $n files · $other_dir present: $([ -d "$vdir/$other_dir" ] && echo YES || echo no)"
   rm -rf "$vdir"
 
+  # ── 4. source ZIP — the same pruned tree for direct download ──────
+  # `zip -r -X .` from the stage root: entries without a ./ prefix (so
+  # INSTALL.sh and friends sit at the top level) and dotfiles included.
+  local out_zip zipword
+  if [ "$bundle" = user ]; then zipword="Traveller"; else zipword="Admin"; fi
+  out_zip="KenyaAirways-$zipword-Source.zip"
+  echo "▸ Packing $out_zip (source zip)"
+  local abs_zip="$PWD/$out_zip"
+  rm -f "$abs_zip"
+  (cd "$stage" && zip -q -r -X "$abs_zip" .)
+  local zline
+  zline=$(unzip -l "$out_zip" | tail -1)
+  echo "  ✓ $zline"
+  if unzip -l "$out_zip" | grep -q ' \.env$'; then
+    echo "  ✗ .env leaked into $out_zip"; exit 1
+  fi
+  if unzip -l "$out_zip" | grep -q "$other_dir/"; then
+    echo "  ✗ $other_dir present in $out_zip"; exit 1
+  fi
+  unzip -l "$out_zip" | grep -q 'INSTALL.sh' || { echo "  ✗ INSTALL.sh missing from $out_zip"; exit 1; }
+
   echo "✓ Built:"
   echo "    $out_sh      $(du -h "$out_sh" | cut -f1)"
   echo "    $out_exe     $(du -h "$out_exe" | cut -f1)"
   echo "    $out_desktop $(du -h "$out_desktop" | cut -f1)"
+  echo "    $out_zip     $(du -h "$out_zip" | cut -f1)"
   rm -rf "$stage" "$nsi" "$nsi.real" "$stub" "$payload"
 }
 
@@ -263,9 +286,9 @@ echo "Upload (delete-then-upload pattern — --clobber deletes BEFORE the"
 echo "transfer starts, which can leave the release missing an asset):"
 if [ "$WHAT" = user ] || [ "$WHAT" = all ]; then
   echo "  gh release delete-asset USER_TAG 'Install-Kenya-Airways-User.sh' -y 2>/dev/null || true"
-  echo "  gh release upload     USER_TAG 'Install-Kenya-Airways-User.sh' 'Install-Kenya-Airways-User.exe' 'Install-Kenya-Airways-User.desktop'"
+  echo "  gh release upload     USER_TAG 'Install-Kenya-Airways-User.sh' 'Install-Kenya-Airways-User.exe' 'Install-Kenya-Airways-User.desktop' 'KenyaAirways-Traveller-Source.zip'"
 fi
 if [ "$WHAT" = admin ] || [ "$WHAT" = all ]; then
   echo "  gh release delete-asset ADMIN_TAG 'Install-Kenya-Airways-Admin.sh' -y 2>/dev/null || true"
-  echo "  gh release upload     ADMIN_TAG 'Install-Kenya-Airways-Admin.sh' 'Install-Kenya-Airways-Admin.exe' 'Install-Kenya-Airways-Admin.desktop'"
+  echo "  gh release upload     ADMIN_TAG 'Install-Kenya-Airways-Admin.sh' 'Install-Kenya-Airways-Admin.exe' 'Install-Kenya-Airways-Admin.desktop' 'KenyaAirways-Admin-Source.zip'"
 fi
