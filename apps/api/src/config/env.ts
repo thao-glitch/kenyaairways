@@ -39,14 +39,14 @@ export const envSchema = z
   .object({
     // ── runtime ────────────────────────────────────────────────────────
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-    PORT: zPort.default(4000),
+    PORT: zPort.default(4100),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     ENABLE_SWAGGER: zBool(true),
 
     // ── urls & cors ────────────────────────────────────────────────────
-    API_PUBLIC_URL: z.url().default('http://localhost:4000'),
+    API_PUBLIC_URL: z.url().default('http://localhost:4100'),
     WEB_PUBLIC_URL: z.url().default('http://localhost:3000'),
-    NEXT_PUBLIC_API_URL: z.url().default('http://localhost:4000'),
+    NEXT_PUBLIC_API_URL: z.url().default('http://localhost:4100'),
     CORS_ORIGINS: zStr('http://localhost:3000'),
 
     // ── secrets (never have defaults — must be present) ────────────────

@@ -18,7 +18,7 @@ describe('env validation', () => {
     const result = loadEnv(validEnv());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.env.PORT).toBe(4000);
+    expect(result.env.PORT).toBe(4100);
     expect(result.env.MPESA_MODE).toBe('mock');
     expect(result.env.STRIPE_MODE).toBe('mock');
     expect(result.env.SMS_PROVIDER).toBe('mock');

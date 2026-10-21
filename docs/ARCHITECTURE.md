@@ -13,7 +13,7 @@ M-Pesa callback path), this document wins.
                        └──────────────┬───────────────┘
                                       │ REST /api/v1  +  Socket.IO /rt
                        ┌──────────────▼───────────────┐
-                       │  apps/api   (NestJS :4000)   │
+                       │  apps/api   (NestJS :4100)   │
                        │  controllers → services      │
                        │  BullMQ workers · guards     │
                        └───┬──────────┬──────────┬────┘
@@ -500,7 +500,7 @@ so replays trim nothing:
   yields a migrated, seeded, mock-mode stack; `HEALTHCHECK` probes `/healthz`.
 - **`apps/web/Dockerfile`** — Next.js `output: 'standalone'`; `NEXT_PUBLIC_API_URL` is a
   build **arg** (baked into the browser bundle), while the runtime gets
-  `API_PUBLIC_URL=http://api:4000` for in-network SSR fetches.
+  `API_PUBLIC_URL=http://api:4100` for in-network SSR fetches.
 - **`docker-compose.yml`** — postgres (optional host port for debugging) + redis
   (internal only, append-only persistence, healthchecked), api, web. Secrets come from
   the generated root `.env` (`env_file`), never from the repo; the DB password is a

@@ -13,7 +13,7 @@ import { expect, test, type APIRequestContext } from '@playwright/test';
  * … now+23h) — the browser cannot know tomorrow's timetable and check-in is
  * only legal inside that window (24h open, 60min cutoff).
  */
-const API_URL = (process.env.API_URL ?? 'http://localhost:4000').replace(/\/+$/, '');
+const API_URL = (process.env.API_URL ?? 'http://localhost:4100').replace(/\/+$/, '');
 
 interface Candidate {
   date: string;
