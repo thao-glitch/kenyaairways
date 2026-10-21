@@ -9,6 +9,7 @@ import { useSessionStore } from '@/store/session';
 import { api, ApiError } from '@/lib/api';
 import type { MobileSessionDto } from '@kenyaairways/shared';
 import { Button, Card, Screen } from '@/components/ui';
+import { ServerSettings } from '@/components/server-settings';
 import { colors, spacing, type } from '@/theme/tokens';
 
 export function AuthScreen() {
@@ -83,6 +84,7 @@ export function AuthScreen() {
           {mode === 'login' ? 'New here? Create an account' : 'Already have an account? Sign in'}
         </Text>
       </Card>
+      <ServerSettings />
     </Screen>
   );
 }

@@ -7,6 +7,7 @@ import { useSessionStore } from '@/store/session';
 import { useMe } from '@/lib/hooks';
 import { clearVault } from '@/lib/vault';
 import { Button, Card, Loading, Screen } from '@/components/ui';
+import { ServerSettings } from '@/components/server-settings';
 import { colors, spacing, type } from '@/theme/tokens';
 
 export function ProfileScreen() {
@@ -52,6 +53,7 @@ export function ProfileScreen() {
           />
         </View>
       </Card>
+      <ServerSettings />
     </Screen>
   );
 }

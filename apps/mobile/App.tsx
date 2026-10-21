@@ -17,6 +17,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { useSessionStore } from '@/store/session';
+import { hydrateApiBase } from '@/lib/server';
 import { RootNavigator } from '@/navigation/root-navigator';
 import { colors } from '@/theme/tokens';
 
@@ -35,9 +36,10 @@ export default function App() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Restore the persisted session (secure store) before mounting the
-    // navigator so we never flash the auth stack at a signed-in user.
-    void hydrate().finally(() => setReady(true));
+    // Restore the persisted session (secure store) and the saved backend
+    // address before mounting the navigator so we never flash the auth
+    // stack at a signed-in user or fire a request at the wrong host.
+    void Promise.all([hydrate(), hydrateApiBase()]).finally(() => setReady(true));
   }, [hydrate]);
 
   if (!ready) return null;

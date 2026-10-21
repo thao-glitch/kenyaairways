@@ -7,12 +7,13 @@
  *   share a single in-flight refresh promise (no thundering herd).
  * - Sends `X-Client: mobile` so the API returns tokens in the body instead
  *   of relying on httpOnly cookies (which React Native cannot persist).
- * - `API_BASE` is read from Expo config (`extra.apiBaseUrl`) with a LAN
- *   fallback for physical-device testing against `pnpm dev`.
+ * - `API_BASE` comes from `src/lib/server.ts`: build-time
+ *   `EXPO_PUBLIC_API_BASE`, overridable at runtime (saved on device) so an
+ *   installed APK can point at a LAN backend. Read per request via
+ *   `getApiBase()` so a server-address change takes effect immediately.
  */
 import { useSessionStore } from '@/store/session';
-
-const API_BASE: string = process.env.EXPO_PUBLIC_API_BASE ?? 'http://localhost:3000';
+import { getApiBase } from '@/lib/server';
 
 export class ApiError extends Error {
   constructor(
@@ -31,7 +32,7 @@ async function refreshAccessToken(): Promise<string | null> {
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
+        const res = await fetch(`${getApiBase()}/api/v1/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Client': 'mobile' },
           body: JSON.stringify({
@@ -71,7 +72,7 @@ interface RequestOptions {
 
 async function request<T>(path: string, opts: RequestOptions = {}, retry = true): Promise<T> {
   const { accessToken } = useSessionStore.getState();
-  const url = new URL(`${API_BASE}${path}`);
+  const url = new URL(`${getApiBase()}${path}`);
   if (opts.query) {
     for (const [k, v] of Object.entries(opts.query)) {
       if (v !== undefined) url.searchParams.set(k, String(v));
