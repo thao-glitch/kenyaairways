@@ -12,7 +12,7 @@
  *
  * Navigation inside the bundled console is full-page: the shim intercepts
  * link clicks and hard `location` assignments land here, where
- * `consoleFileForPath` maps them onto the exported HTML files. WebView
+ * `consoleNavigationTarget` maps them onto the exported HTML files. WebView
  * history therefore behaves like the browser's — the hardware back button
  * (owned by the screen) walks it naturally.
  */
@@ -23,8 +23,8 @@ import { ServerSettings } from '@/components/server-settings';
 import { getAdminBase, getApiBase } from '@/lib/server';
 import { colors, spacing } from '@/theme/tokens';
 import {
-  consoleFileForPath,
   consoleHandle,
+  consoleNavigationTarget,
   respondScript,
   CONSOLE_ASSET_BASE,
 } from './console-bridge';
@@ -85,14 +85,16 @@ export const ConsoleHost = forwardRef<ConsoleHostHandle, Props>(function Console
 
   const shouldStart = useCallback((req: { url: string }) => {
     const { url } = req;
-    if (url.startsWith(CONSOLE_ASSET_BASE) || url.startsWith('about:')) return true;
-    // A hard navigation to a bare path (`file:///login`) → the bundled page.
-    const mapped = consoleFileForPath(url);
-    if (mapped) {
-      webRef.current?.injectJavaScript(`window.location.replace(${JSON.stringify(mapped)}); true;`);
+    // file:// routes → their bundled page (`file:///index.html`, a basePath
+    // directory, …); asset files, http(s) and externals load as they come.
+    const target = consoleNavigationTarget(url);
+    if (target) {
+      // Visible in logcat (ReactNativeJS) — the audit trail for redirects.
+      console.log(`[F13] redirect ${url} -> ${target}`);
+      webRef.current?.injectJavaScript(`window.location.replace(${JSON.stringify(target)}); true;`);
       return false;
     }
-    return true; // http(s): remote console fallback, external links
+    return true;
   }, []);
 
   return (

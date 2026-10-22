@@ -119,12 +119,29 @@ export function consoleFileForPath(url: string): string | null {
   const page =
     path === '' || path === '/'
       ? 'index'
-      : ['login', 'admin', 'pricing', 'bookings', 'agent', 'ops', 'finance'].includes(
+      : ['index', 'login', 'admin', 'pricing', 'bookings', 'agent', 'ops', 'finance'].includes(
             path.split('/').pop() ?? '',
           )
         ? (path.split('/').pop() as string)
         : '404';
   return `${CONSOLE_ASSET_BASE}/${page}.html${query}`;
+}
+
+/**
+ * Main-frame navigation policy for the WebView hosting the bundled console.
+ *
+ * Returns the URL the navigation must be replaced with, or `null` when the
+ * WebView should simply load what it was given. In the `file://` export every
+ * hard navigation resolves to a filesystem path, while the console speaks
+ * routes — and `usePathname()` (and therefore the login form's `?next=`)
+ * reports `/index.html`-style paths once basePath is stripped. Extensions and
+ * the asset base are folded away by `consoleFileForPath`, so a navigation that
+ * already equals its mapped file (the real `.html` pages, subresource loads)
+ * passes through untouched.
+ */
+export function consoleNavigationTarget(url: string): string | null {
+  const mapped = consoleFileForPath(url);
+  return mapped && mapped !== url ? mapped : null;
 }
 
 /** Only API-ish paths are bridged; everything else never reaches this module. */

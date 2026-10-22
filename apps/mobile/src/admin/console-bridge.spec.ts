@@ -22,6 +22,7 @@ vi.mock('@/lib/server', () => ({
 
 import {
   consoleFileForPath,
+  consoleNavigationTarget,
   consolePath,
   createConsoleHandler,
   isBridgeablePath,
@@ -140,9 +141,47 @@ describe('consoleFileForPath', () => {
   it('sends unknown routes to the 404 page', () => {
     expect(consoleFileForPath('file:///nope')).toBe('file:///android_asset/console/404.html');
   });
+  it('maps index.html — what usePathname() reports after basePath strip', () => {
+    expect(consoleFileForPath('file:///index.html')).toBe(
+      'file:///android_asset/console/index.html',
+    );
+    expect(consoleFileForPath('file:///android_asset/console/index.html')).toBe(
+      'file:///android_asset/console/index.html',
+    );
+  });
+  it('maps an extensionless path under the asset base', () => {
+    expect(consoleFileForPath('file:///android_asset/console/admin')).toBe(
+      'file:///android_asset/console/admin.html',
+    );
+  });
   it('ignores non-file URLs', () => {
     expect(consoleFileForPath('http://example.com/x')).toBeNull();
     expect(consoleFileForPath('about:blank')).toBeNull();
+  });
+});
+
+describe('consoleNavigationTarget', () => {
+  it('replaces root-relative route paths (the post-login /index.html redirect)', () => {
+    expect(consoleNavigationTarget('file:///index.html')).toBe(
+      'file:///android_asset/console/index.html',
+    );
+    expect(consoleNavigationTarget('file:///')).toBe('file:///android_asset/console/index.html');
+    expect(consoleNavigationTarget('file:///admin')).toBe(
+      'file:///android_asset/console/admin.html',
+    );
+  });
+  it('loads real export files as they are', () => {
+    expect(consoleNavigationTarget('file:///android_asset/console/index.html')).toBeNull();
+    expect(consoleNavigationTarget('file:///android_asset/console/login.html?next=%2F')).toBeNull();
+  });
+  it('folds basePath directories onto their page file', () => {
+    expect(consoleNavigationTarget('file:///android_asset/console/admin')).toBe(
+      'file:///android_asset/console/admin.html',
+    );
+  });
+  it('leaves non-file navigations to the WebView', () => {
+    expect(consoleNavigationTarget('http://localhost:3001/')).toBeNull();
+    expect(consoleNavigationTarget('about:blank')).toBeNull();
   });
 });
 

@@ -28,6 +28,9 @@ export const CONSOLE_SHIM = `
   if (window.__f13shim) return;
   window.__f13shim = true;
 
+  // Breadcrumb → logcat (chromium CONSOLE tag): which bundled page booted.
+  try { console.log('[F13] boot ' + window.location.href); } catch (e) {}
+
   var BASE = 'file:///android_asset/console';
   var seq = 0;
   var pending = {};
