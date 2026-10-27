@@ -98,6 +98,12 @@ export function TripsScreen() {
                 marginTop: spacing.sm,
               }}
             >
+              {(item.status === 'HELD' || item.status === 'PENDING_PAYMENT') && (
+                <SmallAction
+                  label="Pay now"
+                  onPress={() => nav.navigate('Payment', { bookingId: item.id })}
+                />
+              )}
               {item.status === 'CONFIRMED' && (
                 <SmallAction
                   label="Check in"

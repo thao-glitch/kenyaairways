@@ -9,6 +9,7 @@ import { useSessionStore } from '@/store/session';
 import { api, ApiError } from '@/lib/api';
 import type { MobileSessionDto } from '@kenyaairways/shared';
 import { Button, Card, Screen } from '@/components/ui';
+import { BrandLogo } from '@/components/brand-logo';
 import { ServerSettings } from '@/components/server-settings';
 import { colors, spacing, type } from '@/theme/tokens';
 
@@ -46,10 +47,7 @@ export function AuthScreen() {
   return (
     <Screen>
       <View style={{ marginTop: spacing.xl, marginBottom: spacing.lg }}>
-        <Text style={{ ...type.hero, color: colors.foreground }}>Kenya Airways</Text>
-        <Text style={{ ...type.body, color: colors.mutedForeground }}>
-          Flights across the world
-        </Text>
+        <BrandLogo size={56} name="Kenya Airways." tagline="Flights across the world" />
       </View>
       <Card>
         <Text style={{ ...type.title, color: colors.foreground, marginBottom: spacing.sm }}>

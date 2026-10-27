@@ -30,7 +30,7 @@ ok()    { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 warn()  { printf '  \033[33m⚠ %s\033[0m\n' "$*"; }
 fail()  { printf '\033[31m✗ %s\033[0m\n' "$*"; exit 1; }
 
-bold "Kenya Airways platform setup"
+bold "Kenya Airways. platform setup"
 UPGRADE=0
 if [ -d node_modules ] || [ -f .env ]; then UPGRADE=1; fi
 if [ "$UPGRADE" = 1 ]; then warn "existing installation detected — upgrading in place (data preserved)"; fi

@@ -70,13 +70,13 @@ ensure_android_tree() {
 retarget_admin_identity() {
   grep -q "ke.co.kenyaairways.admin" "$BG" || \
     sed -i "s/applicationId 'ke.co.kenyaairways'/applicationId 'ke.co.kenyaairways.admin'/" "$BG"
-  grep -q '>Kenya Airways Admin<' "$STR" || \
-    sed -i 's|<string name="app_name">Kenya Airways</string>|<string name="app_name">Kenya Airways Admin</string>|' "$STR"
+  grep -q '>Kenya Airways Admin.<' "$STR" || \
+    sed -i 's|<string name="app_name">Kenya Airways\.</string>|<string name="app_name">Kenya Airways Admin\.</string>|' "$STR"
 }
 
 restore_traveller_identity() {
   sed -i "s/applicationId 'ke.co.kenyaairways.admin'/applicationId 'ke.co.kenyaairways'/" "$BG" 2>/dev/null || true
-  sed -i 's|<string name="app_name">Kenya Airways Admin</string>|<string name="app_name">Kenya Airways</string>|' "$STR" 2>/dev/null || true
+  sed -i 's|<string name="app_name">Kenya Airways Admin\.</string>|<string name="app_name">Kenya Airways\.</string>|' "$STR" 2>/dev/null || true
 }
 trap restore_traveller_identity EXIT
 

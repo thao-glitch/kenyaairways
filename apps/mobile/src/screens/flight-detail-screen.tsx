@@ -43,7 +43,7 @@ export function FlightDetailScreen() {
         contactEmail: me?.email ?? undefined,
         contactPhone: me?.phone ?? undefined,
       });
-      nav.navigate('SeatPreview', { flightId: params.flightId, bookingId: booking.id });
+      nav.navigate('Payment', { bookingId: booking.id, flightId: params.flightId });
     } catch (err) {
       Alert.alert('Error', err instanceof ApiError ? err.message : 'Could not create booking');
     } finally {

@@ -1,10 +1,10 @@
 @echo off
 setlocal EnableExtensions
-title Kenya Airways platform - installer
+title Kenya Airways. platform - installer
 cd /d "%~dp0"
 
 echo ==============================================
-echo   Kenya Airways platform - install / upgrade
+echo   Kenya Airways. platform - install / upgrade
 echo   (run this again later to upgrade in place)
 echo ==============================================
 

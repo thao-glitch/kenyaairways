@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   AppError,
+  normalizeBrandName,
   type SiteImagesDto,
   type SiteSettingsDto,
   type SiteTheme,
@@ -134,7 +135,7 @@ export class SiteSettingsService {
     const row = await this.prisma.siteSettings.findUnique({ where: { id: true } });
     const theme =
       row && SITE_THEMES.includes(row.theme as SiteTheme) ? (row.theme as SiteTheme) : 'sky';
-    const appName = row?.appName?.trim() ? row.appName.trim() : 'Kenya Airways';
+    const appName = normalizeBrandName(row?.appName);
     const images = sanitizeImages(row?.images);
     this.cache = { at: now, appName, theme, images };
     return { appName, theme, images };

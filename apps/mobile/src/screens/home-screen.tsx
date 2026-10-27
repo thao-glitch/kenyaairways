@@ -90,10 +90,17 @@ export function HomeScreen() {
 
             <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
               <View style={{ flex: 1 }}>
-                <Button
-                  title="View trip"
-                  onPress={() => nav.navigate('FlightDetail', { flightId: seg.flightId })}
-                />
+                {PAYABLE.has(upcoming.status) ? (
+                  <Button
+                    title="Pay now"
+                    onPress={() => nav.navigate('Payment', { bookingId: upcoming.id })}
+                  />
+                ) : (
+                  <Button
+                    title="View trip"
+                    onPress={() => nav.navigate('FlightDetail', { flightId: seg.flightId })}
+                  />
+                )}
               </View>
               {upcoming.status === 'CONFIRMED' && (
                 <View style={{ flex: 1 }}>
@@ -107,9 +114,18 @@ export function HomeScreen() {
             </View>
 
             {PAYABLE.has(upcoming.status) && (
-              <Text style={{ ...type.caption, color: colors.warning, marginTop: spacing.sm }}>
-                Payment due — open the trip to pay by M-Pesa.
-              </Text>
+              <>
+                <Text style={{ ...type.caption, color: colors.warning, marginTop: spacing.sm }}>
+                  Payment due — pay by M-Pesa to confirm your seat.
+                </Text>
+                <View style={{ marginTop: spacing.sm }}>
+                  <Button
+                    title="View trip"
+                    variant="ghost"
+                    onPress={() => nav.navigate('FlightDetail', { flightId: seg.flightId })}
+                  />
+                </View>
+              </>
             )}
           </Card>
         ) : (

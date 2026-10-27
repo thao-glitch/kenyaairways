@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableExtensions
-title Kenya Airways platform
+title Kenya Airways. platform
 cd /d "%~dp0"
 
 if not exist node_modules (
@@ -34,7 +34,7 @@ if not exist apps\web if exist apps\admin set "FRONT=3001"
 
 echo Starting the platform: front door :%FRONT%, api :4100
 echo Close this window to stop everything.
-start "Kenya Airways platform (close to stop)" cmd /k pnpm dev
+start "Kenya Airways. platform (close to stop)" cmd /k pnpm dev
 
 echo Waiting for the apps to come up...
 set /a _tries=0

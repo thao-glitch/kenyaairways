@@ -35,6 +35,19 @@ export const MPESA_ACCOUNT_REFERENCE_MAX = 12;
 export const MPESA_TRANSACTION_DESC_MAX = 13;
 export const MPESA_TRANSACTION_DESC = 'Kenya Airways';
 
+/**
+ * Public app name. The trailing full stop is part of the brand lockup, so it
+ * is rendered wherever the product name appears (header, manifest, installers).
+ */
+export const BRAND_NAME = 'Kenya Airways.';
+/** Pre-brand-period value stored by older installs — normalised on read. */
+export const LEGACY_BRAND_NAME = 'Kenya Airways';
+export function normalizeBrandName(value?: string | null): string {
+  const trimmed = value?.trim();
+  if (!trimmed) return BRAND_NAME;
+  return trimmed === LEGACY_BRAND_NAME ? BRAND_NAME : trimmed;
+}
+
 export const MAX_PAX_PER_BOOKING = 9;
 export const INFANT_MAX_YEARS = 1;
 export const CHILD_MAX_YEARS = 11;

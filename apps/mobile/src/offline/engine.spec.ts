@@ -6,7 +6,7 @@
  * What this proves:
  *  - auth (local register/login/refresh, remote-token identity)
  *  - flight search (incl. ensureRoute materialisation) + seats + status
- *  - booking creation auto-confirms + issues tickets + records a CASH payment
+ *  - booking creation holds seats, then M-Pesa payment confirms + issues tickets
  *  - check-in (with offline leniency) + boarding pass + baggage
  *  - admin: flights list/prices, bookings q, verifier, reports, site settings
  *  - error envelopes match the server (code + HTTP status via httpStatusFor)
@@ -242,7 +242,7 @@ describe('engine flights', () => {
     const site = ok<{ appName: string; mpesaPaybill: string | null }>(
       call(ctx, 'GET', '/api/v1/site-settings'),
     );
-    expect(site.appName).toBe('Kenya Airways');
+    expect(site.appName).toBe('Kenya Airways.');
     expect(site.mpesaPaybill).toBe('0182774255');
   });
 });
@@ -276,7 +276,7 @@ function searchOne(ctx: EngineCtx, token: string) {
   return { flightId: option.flightId, fare: option.fareOptions[0].fareClass.code };
 }
 
-function book(ctx: EngineCtx, token: string, flightId: string, fare: string): BookingDtoLike {
+function createHold(ctx: EngineCtx, token: string, flightId: string, fare: string): BookingDtoLike {
   return ok<BookingDtoLike>(
     call(ctx, 'POST', '/api/v1/bookings', {
       token,
@@ -293,6 +293,37 @@ function book(ctx: EngineCtx, token: string, flightId: string, fare: string): Bo
   );
 }
 
+/** Pay a held booking with an on-the-spot M-Pesa paybill SMS. */
+function payBooking(
+  ctx: EngineCtx,
+  token: string,
+  booking: BookingDtoLike,
+  receipt = `KQ${booking.pnr}Z`,
+): { record: { status: string }; payment: { id: string; status: string } } {
+  const payment = ok<{ id: string; status: string; manual: boolean }>(
+    call(ctx, 'POST', '/api/v1/payments', {
+      token,
+      body: { bookingId: booking.id, manual: true },
+    }),
+  );
+  expect(payment.status).toBe('REQUIRES_ACTION');
+  const message = `${receipt} confirmed. Ksh${(booking.totalMinor / 100).toFixed(
+    2,
+  )} sent to ACCOUNT 0182774255 for account ${booking.pnr} on 21/10/26 at 3:45 PM.`;
+  return ok<{ record: { status: string }; payment: { id: string; status: string } }>(
+    call(ctx, 'POST', `/api/v1/payments/${payment.id}/mpesa-manual`, {
+      token,
+      body: { message },
+    }),
+  );
+}
+
+function book(ctx: EngineCtx, token: string, flightId: string, fare: string): BookingDtoLike {
+  const booking = createHold(ctx, token, flightId, fare);
+  payBooking(ctx, token, booking);
+  return booking;
+}
+
 describe('engine bookings', () => {
   let ctx: EngineCtx;
   let token: string;
@@ -301,11 +332,22 @@ describe('engine bookings', () => {
     token = loginAs(ctx, 'passenger@kenyaairways.example');
   });
 
-  it('auto-confirms with tickets issued and a PAID CASH payment', () => {
+  it('holds a new booking until the M-Pesa payment settles', () => {
     const { flightId, fare } = searchOne(ctx, token);
-    const booking = book(ctx, token, flightId, fare);
-    expect(booking.status).toBe('CONFIRMED');
+    const booking = createHold(ctx, token, flightId, fare);
+    expect(booking.status).toBe('HELD');
     expect(booking.pnr).toMatch(/^[A-Z0-9]{6}$/);
+    expect(ctx.db.all('SELECT * FROM tickets WHERE bookingId = ?', [booking.id])).toHaveLength(0);
+    expect(ctx.db.all('SELECT * FROM payments WHERE bookingId = ?', [booking.id])).toHaveLength(0);
+
+    const settled = payBooking(ctx, token, booking);
+    expect(settled.record.status).toBe('CONFIRMED');
+    expect(settled.payment.status).toBe('PAID');
+
+    const fresh = ctx.db.get<{ status: string }>('SELECT status FROM bookings WHERE id = ?', [
+      booking.id,
+    ]);
+    expect(fresh?.status).toBe('CONFIRMED');
 
     const tickets = ctx.db.all<{ ticketNumber: string; status: string; seatLabel: string | null }>(
       'SELECT * FROM tickets WHERE bookingId = ?',
@@ -320,8 +362,25 @@ describe('engine bookings', () => {
       [booking.id],
     );
     expect(payment?.status).toBe('PAID');
-    expect(payment?.provider).toBe('CASH');
-    expect(payment?.providerRef).toBe(`CASH-${booking.pnr}`);
+    expect(payment?.provider).toBe('MOCK');
+    expect(payment?.providerRef).toBe(`KQ${booking.pnr}Z`);
+  });
+
+  it('rejects a paste whose amount does not match the booking total', () => {
+    const { flightId, fare } = searchOne(ctx, token);
+    const booking = createHold(ctx, token, flightId, fare);
+    const payment = ok<{ id: string }>(
+      call(ctx, 'POST', '/api/v1/payments', {
+        token,
+        body: { bookingId: booking.id, manual: true },
+      }),
+    );
+    const message = `KQ${booking.pnr}Z confirmed. Ksh1 sent to ACCOUNT 0182774255 for account ${booking.pnr} on 21/10/26 at 3:45 PM.`;
+    const res = call(ctx, 'POST', `/api/v1/payments/${payment.id}/mpesa-manual`, {
+      token,
+      body: { message },
+    });
+    expectError(res, 'PAYMENT_AMOUNT_MISMATCH');
   });
 
   it('decrements inventory exactly once per seat', () => {
@@ -473,14 +532,23 @@ describe('engine admin', () => {
   });
 
   it('bulk price update respects the KES 10 floor', () => {
+    // The offline world is generated around the real current date, so take the
+    // date from the seeded window instead of hard-coding one that ages out.
+    const flight = ctx.db.get<{ flightDate: string }>(
+      `SELECT flightDate FROM flights
+        WHERE originCode = 'NBO' AND destinationCode = 'MBA'
+        ORDER BY flightDate LIMIT 1`,
+    );
+    expect(flight?.flightDate).toBeTruthy();
+    const day = flight!.flightDate;
     const result = ok<{ faresUpdated: number }>(
       call(ctx, 'POST', '/api/v1/admin/flights/bulk-prices', {
         token: adminToken,
         body: {
           originCode: 'NBO',
           destinationCode: 'MBA',
-          dateFrom: '2026-10-22',
-          dateTo: '2026-10-22',
+          dateFrom: day,
+          dateTo: day,
           operation: 'ADJUST_PERCENT',
           value: -90,
         },
@@ -490,7 +558,8 @@ describe('engine admin', () => {
     const min = ctx.db.get<{ m: number }>(
       `SELECT MIN(baseFareMinor) AS m FROM fares f
         JOIN flights fl ON fl.id = f.flightId
-        WHERE fl.originCode = 'NBO' AND fl.destinationCode = 'MBA' AND fl.flightDate = '2026-10-22'`,
+        WHERE fl.originCode = 'NBO' AND fl.destinationCode = 'MBA' AND fl.flightDate = ?`,
+      [day],
     );
     expect(min!.m).toBeGreaterThanOrEqual(1_000);
   });
@@ -589,13 +658,11 @@ describe('engine admin', () => {
   it('verify → confirm works when the booking awaits payment', () => {
     const token = loginAs(ctx, 'passenger@kenyaairways.example');
     const { flightId, fare } = searchOne(ctx, token);
-    const booking = book(ctx, token, flightId, fare);
-    // Offline bookings auto-confirm, so put this one back into the state a
-    // payment would confirm (PENDING_PAYMENT) to exercise the success path.
-    ctx.db.run(`UPDATE bookings SET status = 'PENDING_PAYMENT', confirmedAt = NULL WHERE id = ?`, [
-      booking.id,
-    ]);
-    // Simulate a passenger-submitted pending payment (not the CASH one).
+    const booking = createHold(ctx, token, flightId, fare);
+    // A manual payment moves the booking into the state staff confirmation
+    // settles (PENDING_PAYMENT), then a passenger-submitted record waits in
+    // the verifier queue.
+    ctx.db.run(`UPDATE bookings SET status = 'PENDING_PAYMENT' WHERE id = ?`, [booking.id]);
     ctx.db.run(
       `INSERT INTO payments (id, bookingId, provider, status, amountMinor, currency,
                              idempotencyKey, manual, createdAt)
@@ -625,7 +692,7 @@ describe('engine admin', () => {
   it('confirm on an already-confirmed booking reports manual resolution (server parity)', () => {
     const token = loginAs(ctx, 'passenger@kenyaairways.example');
     const { flightId, fare } = searchOne(ctx, token);
-    const booking = book(ctx, token, flightId, fare); // auto-CONFIRMED offline
+    const booking = book(ctx, token, flightId, fare); // already settled
     ctx.db.run(
       `INSERT INTO payments (id, bookingId, provider, status, amountMinor, currency,
                              idempotencyKey, manual, createdAt)

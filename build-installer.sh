@@ -53,7 +53,7 @@ c_step() { printf '\n\033[36m▸ %s\033[0m\n' "$*"; }
 
 SELF="${BASH_SOURCE[0]:-$0}"
 
-c_step "Kenya Airways — extracting to $DEST"
+c_step "Kenya Airways. — extracting to $DEST"
 mkdir -p "$DEST"
 # Everything after this stub is a gzipped tarball; unpack it in place.
 tail -c +$((10#$OFFSET + 1)) "$SELF" 2>/dev/null | tar xzf - -C "$DEST" \

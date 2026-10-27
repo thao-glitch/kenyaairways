@@ -2762,7 +2762,7 @@ async function seedSiteSettings(): Promise<void> {
     console.log('• site settings already seeded');
     return;
   }
-  await prisma.siteSettings.create({ data: { theme: 'sky' } });
+  await prisma.siteSettings.create({ data: { theme: 'sky', appName: 'Kenya Airways.' } });
   console.log('✓ site settings (theme "sky", images fall back to web defaults)');
 }
 

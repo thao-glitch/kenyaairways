@@ -9,6 +9,7 @@
  */
 import {
   AppError,
+  normalizeBrandName,
   toLocalIso,
   toMpesaMsisdn,
   type AdminBookingSummaryDto,
@@ -960,7 +961,7 @@ export function getSiteSettings(ctx: EngineCtx): SiteSettingsDto {
   const row = ctx.db.get<SiteRow>('SELECT * FROM site_settings WHERE id = 1');
   const theme =
     row && SITE_THEMES.includes(row.theme as SiteTheme) ? (row.theme as SiteTheme) : 'sky';
-  const appName = row?.app_name?.trim() ? row.app_name.trim() : 'Kenya Airways';
+  const appName = normalizeBrandName(row?.app_name);
   const images = sanitizeImages(safeParse(row?.images_json));
   return { appName, theme, images, mpesaPaybill: row?.mpesa_paybill ?? null };
 }

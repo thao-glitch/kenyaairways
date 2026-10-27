@@ -1,5 +1,5 @@
 {
-  "app.name": "Kenya Airways",
+  "app.name": "Kenya Airways.",
   "app.tagline": "Panga safari za ndege duniani kote",
   "a11y.skipToContent": "Rukia hadi maudhui",
   "nav.home": "Nyumbani",
@@ -26,7 +26,7 @@
   "home.network.international": "Kimataifa",
   "home.manage.title": "Simamia safari yako",
   "home.manage.body": "Tafuta safari kwa marejeo, jiandikishe kupanda na pakua kadi za kupanda.",
-  "footer.rights": "© 2026 {name}. Haki zote zimehifadhiwa.",
+  "footer.rights": "© 2026 {name} Haki zote zimehifadhiwa.",
   "footer.licensed": "Imeidhinishwa na Mamlaka ya Usalama wa Anga ya Kenya (KCAA).",
   "error.network": "Hitilafu ya mtandao. Jaribu tena.",
   "error.notFound.title": "Ukurasa haupatikani",

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Kenya Airways",
+    "name": "Kenya Airways.",
     "slug": "kenyaairways",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -15,7 +15,11 @@
     "android": {
       "package": "ke.co.kenyaairways",
       "versionCode": 1,
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      }
     },
     "plugins": ["expo-secure-store", "expo-sqlite", "./plugins/with-cleartext"]
   }

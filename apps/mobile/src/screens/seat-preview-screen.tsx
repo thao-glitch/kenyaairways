@@ -6,7 +6,8 @@
  */
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
-import { useRoute, type RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSeatMap } from '@/lib/hooks';
 import { api, ApiError } from '@/lib/api';
 import type { SeatMapSeatDto } from '@kenyaairways/shared';
@@ -15,6 +16,7 @@ import { colors, radii, spacing, type } from '@/theme/tokens';
 import type { RootStackParamList } from '@/navigation/root-navigator';
 
 type Rt = RouteProp<RootStackParamList, 'SeatPreview'>;
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const seatColor = (seat: SeatMapSeatDto, selected: boolean): string => {
   if (selected) return colors.primary;
@@ -29,6 +31,7 @@ const seatColor = (seat: SeatMapSeatDto, selected: boolean): string => {
 };
 
 export function SeatPreviewScreen() {
+  const nav = useNavigation<Nav>();
   const { params } = useRoute<Rt>();
   const { data: seatMap, isLoading } = useSeatMap(params.flightId);
   const [selected, setSelected] = useState<string | null>(null);
@@ -133,8 +136,18 @@ export function SeatPreviewScreen() {
               {seatMap.seats.find((s) => s.label === selected)?.cabin}
             </Text>
             {params.bookingId && (
-              <View style={{ marginTop: spacing.sm }}>
+              <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
                 <Button title="Hold this seat" onPress={() => void hold()} loading={busy} />
+                <Button
+                  title="Continue to payment"
+                  variant="secondary"
+                  onPress={() =>
+                    nav.navigate('Payment', {
+                      bookingId: params.bookingId!,
+                      flightId: params.flightId,
+                    })
+                  }
+                />
               </View>
             )}
           </Card>

@@ -303,7 +303,7 @@ export function SiteAppearance() {
               value={draft.appName}
               maxLength={40}
               onChange={(e) => setDraft({ ...draft, appName: e.target.value })}
-              placeholder="Kenya Airways"
+              placeholder="Kenya Airways."
             />
           </label>
           <Button disabled={busy} onClick={() => void onSave()}>

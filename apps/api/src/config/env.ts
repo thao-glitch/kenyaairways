@@ -82,7 +82,7 @@ export const envSchema = z
     RATE_LIMIT_AUTH_MAX: z.coerce.number().int().positive().default(20),
 
     // ── airline & locale ───────────────────────────────────────────────
-    AIRLINE_NAME: zStr('Kenya Airways'),
+    AIRLINE_NAME: zStr('Kenya Airways.'),
     AIRLINE_IATA_CODE: z
       .string()
       .regex(/^[A-Z0-9]{2,3}$/, '2–3 alphanumeric characters, e.g. F13')

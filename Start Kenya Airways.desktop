@@ -1,9 +1,9 @@
 [Desktop Entry]
 Type=Application
 Version=1.0
-Name=Start Kenya Airways
+Name=Start Kenya Airways.
 GenericName=Platform launcher
-Comment=Start the Kenya Airways platform and open it in the browser
+Comment=Start the Kenya Airways. platform and open it in the browser
 Exec=bash -c "cd \"\$(dirname \"%k\")\" && exec bash start.sh"
 Terminal=true
 Icon=utilities-terminal

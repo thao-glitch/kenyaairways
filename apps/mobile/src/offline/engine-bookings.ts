@@ -2,11 +2,11 @@
  * Bookings, seat holds, check-in, boarding passes and baggage — port of
  * bookings.service.ts / checkin.service.ts / baggage.service.ts.
  *
- * OFFLINE ADAPTATION (the one deliberate divergence): the traveller app has
- * no payment UI, so a booking is created CONFIRMED with tickets issued
- * immediately and a synthetic CASH payment row, instead of HELD awaiting an
- * STK push that can never arrive. Everything after that (cancel, seat hold,
- * check-in, boarding pass, baggage) follows the server exactly.
+ * A booking is created HELD, exactly like the server: the traveller app now
+ * has a real M-Pesa payment step (see engine-payments.ts), so seats convert
+ * to sold and e-tickets are issued only once the payment settles. Everything
+ * after that (cancel, seat hold, check-in, boarding pass, baggage) follows
+ * the server exactly.
  */
 import {
   AppError,
@@ -25,7 +25,6 @@ import {
 } from '@kenyaairways/shared';
 import {
   assertBookingAccess,
-  confirmBookingPaid,
   deriveStatus,
   fail,
   inventoryHold,
@@ -227,23 +226,9 @@ export function createBooking(ctx: EngineCtx, actor: Actor, dto: CreateBookingIn
       );
     });
 
-    // Offline adaptation: no payment step exists in the traveller app, so
-    // walk the real state machine in one go — HELD → PENDING_PAYMENT →
-    // CONFIRMED (held seats convert to sold) — and issue tickets at once.
-    ctx.db.run(`UPDATE bookings SET status = 'PENDING_PAYMENT' WHERE id = ? AND status = 'HELD'`, [
-      bookingId,
-    ]);
-    confirmBookingPaid(ctx, bookingId);
-    issueTickets(ctx, bookingId);
-
-    // Synthetic counter payment so admin/finance surfaces show the booking
-    // as settled (there is no payment step in the traveller app offline).
-    ctx.db.run(
-      `INSERT INTO payments (id, bookingId, provider, status, amountMinor, currency,
-                             idempotencyKey, providerRef, manual, paidAt, createdAt)
-       VALUES (?, ?, 'CASH', 'PAID', ?, 'KES', ?, ?, 1, ?, ?)`,
-      [randomId('pay'), bookingId, total, `offline_${bookingId}`, `CASH-${pnr}`, nowIso, nowIso],
-    );
+    // The booking stays HELD until a payment settles. The Payment screen
+    // creates the M-Pesa attempt (POST /payments) and confirms it from the
+    // pasted paybill SMS (POST /payments/:id/mpesa-manual).
   });
 
   return toBookingDto(ctx, loadBooking(ctx, bookingId));

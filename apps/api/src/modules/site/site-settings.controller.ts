@@ -14,7 +14,7 @@ import { SITE_THEMES, SiteSettingsService } from './site-settings.service';
 export class UpdateSiteSettingsDto {
   @ApiPropertyOptional({
     description: 'Live app name — renders across every surface immediately',
-    example: 'Kenya Airways',
+    example: 'Kenya Airways.',
     maxLength: 40,
   })
   @IsOptional()

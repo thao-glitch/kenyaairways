@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getTranslator } from '@/lib/i18n';
 import { getSiteSettings } from '@/lib/site';
+import { LogoRoundel } from '@/components/art/logo-roundel';
 import { AdminSession } from './admin-session';
 
 /**
@@ -22,10 +23,13 @@ export async function AdminHeader() {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
-        <Link href="/" className="shrink-0 font-semibold tracking-tight">
-          {name}
-          <span className="ml-2 text-sm font-normal text-muted-foreground">
-            / {t('staff.console.label')}
+        <Link href="/" className="flex shrink-0 items-center gap-2 font-semibold tracking-tight">
+          <LogoRoundel className="h-7 w-7" />
+          <span>
+            {name}
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              / {t('staff.console.label')}
+            </span>
           </span>
         </Link>
         <nav className="hidden items-center gap-1 md:flex">

@@ -137,7 +137,7 @@ c_step() { printf '\n\033[36m▸ %s\033[0m\n' "\$*"; }
 
 SELF="\${BASH_SOURCE[0]:-\$0}"
 
-c_step "Kenya Airways — extracting to \$DEST"
+c_step "Kenya Airways. — extracting to \$DEST"
 mkdir -p "\$DEST"
 # Everything after this stub is a gzipped tarball; unpack it in place.
 tail -c +\$((10#\$OFFSET + 1)) "\$SELF" 2>/dev/null | tar xzf - -C "\$DEST" \\
@@ -168,9 +168,9 @@ STUBEOF
   fi
   local abs_out="$PWD/$out_exe"
   cat > "$nsi" <<NSIEOF
-; ── Kenya Airways ($tagword bundle) — self-extracting Windows installer ─
+; ── Kenya Airways. ($tagword bundle) — self-extracting Windows installer ─
 Unicode true
-Name "Kenya Airways ($label)"
+Name "Kenya Airways. ($label)"
 OutFile "__OUT__"
 InstallDir "\$PROFILE\\KenyaAirways"
 RequestExecutionLevel user          ; no admin needed — installs to your profile
@@ -191,7 +191,7 @@ Section "Install"
   ; Hand off to the Windows installer (the twin of setup.sh) in its own
   ; visible window so you can watch it work.
   ExecShell "open" "\$INSTDIR\\INSTALL.bat"
-  MessageBox MB_ICONINFORMATION "Kenya Airways ($label) is installing in a new window.\$\\r\$\\nFollow it until it prints 'Install complete'. Then double-click START.bat to run the apps.\$\\r\$\\n\$\\r\$\\nFront door  __FRONT__\$\\r\$\\nAPI         http://localhost:4100"
+  MessageBox MB_ICONINFORMATION "Installing Kenya Airways. ($label) in a new window.\$\\r\$\\nFollow it until it prints 'Install complete'. Then double-click START.bat to run the apps.\$\\r\$\\n\$\\r\$\\nFront door  __FRONT__\$\\r\$\\nAPI         http://localhost:4100"
 SectionEnd
 NSIEOF
   sed -e "s#__OUT__#$abs_out#g" -e "s#__STAGE__#$stage#g" -e "s#__FRONT__#$front_url#g" "$nsi" > "$nsi.real"
@@ -211,9 +211,9 @@ NSIEOF
 [Desktop Entry]
 Type=Application
 Version=1.0
-Name=Install Kenya Airways (__LABEL__)
+Name=Install Kenya Airways. (__LABEL__)
 GenericName=Platform installer
-Comment=Install or upgrade the Kenya Airways __TAGWORD__ bundle automatically (no terminal needed)
+Comment=Install or upgrade the Kenya Airways. __TAGWORD__ bundle automatically (no terminal needed)
 Exec=bash -c "cd \\$(dirname '%k') && if [ -f '__SH__' ]; then exec bash '__SH__'; fi; if [ -f '__DOT__' ]; then exec bash '__DOT__'; fi; if [ -f INSTALL.sh ]; then exec bash INSTALL.sh; fi; echo 'Installer script not found next to this launcher'; exit 1"
 Terminal=true
 Icon=utilities-terminal

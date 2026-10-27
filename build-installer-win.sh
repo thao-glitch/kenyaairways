@@ -45,7 +45,7 @@ cat > "$NSI" <<'NSIEOF'
 ; the databases, the schema and the worldwide seed — then start with
 ; START.bat. Re-running this same .exe upgrades the install in place.
 Unicode true
-Name "Kenya Airways"
+Name "Kenya Airways."
 OutFile "__OUT__"
 InstallDir "$PROFILE\KenyaAirways"
 RequestExecutionLevel user          ; no admin needed — installs to your profile
@@ -66,7 +66,7 @@ Section "Install"
   ; Hand off to the Windows installer (the twin of setup.sh) in its own
   ; visible window so you can watch it work.
   ExecShell "open" "$INSTDIR\INSTALL.bat"
-  MessageBox MB_ICONINFORMATION "Kenya Airways is installing in a new window.$\r$\nFollow it until it prints 'Install complete'. Then double-click START.bat to run the apps.$\r$\n$\r$\nUser app  http://localhost:3000$\r$\nAdmin     http://localhost:3001"
+  MessageBox MB_ICONINFORMATION "Installing Kenya Airways. in a new window.$\r$\nFollow it until it prints 'Install complete'. Then double-click START.bat to run the apps.$\r$\n$\r$\nUser app  http://localhost:3000$\r$\nAdmin     http://localhost:3001"
 SectionEnd
 NSIEOF
 

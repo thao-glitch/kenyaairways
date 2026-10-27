@@ -8,7 +8,7 @@ import { getSiteSettings } from '@/lib/site';
  */
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const site = await getSiteSettings();
-  const name = site?.appName?.trim() || 'Kenya Airways';
+  const name = site?.appName?.trim() || 'Kenya Airways.';
   return {
     name: `${name} — Book flights around the world`,
     short_name: name,

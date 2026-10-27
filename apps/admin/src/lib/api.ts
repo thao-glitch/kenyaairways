@@ -23,10 +23,13 @@ interface ApiGetOptions {
  * Server-side GET helper. Never throws for optional UI — use `apiGetOrNull`.
  */
 export async function apiGet<T>(path: string, options: ApiGetOptions = {}): Promise<T> {
-  const { revalidate, headers, cache } = options;
-  // ISR (`next.revalidate`) doesn't exist in a static export — the APK
-  // bundle fetches site-settings on the client anyway, so drop it there.
-  const next = revalidate && process.env.ADMIN_STATIC_EXPORT !== '1' ? { revalidate } : undefined;
+  const { revalidate, headers } = options;
+  // ISR (`next.revalidate`) doesn't exist in a static export. There, always
+  // bypass the build cache so the bundled console bakes the current app name
+  // and theme instead of a stale site-settings response from an old build.
+  const isStaticExport = process.env.ADMIN_STATIC_EXPORT === '1';
+  const next = revalidate && !isStaticExport ? { revalidate } : undefined;
+  const cache = options.cache ?? (isStaticExport ? 'no-store' : undefined);
   const res = await fetch(`${API_URL}${path}`, {
     headers: { accept: 'application/json', ...headers },
     ...(next ? { next } : {}),

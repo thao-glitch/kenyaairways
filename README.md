@@ -1,4 +1,4 @@
-# ✈ Kenya Airways
+# ✈ Kenya Airways.
 
 A complete, self-contained airline booking platform: a passenger app, a staff
 admin app, and a production-grade API with PostgreSQL and Redis. The network
@@ -25,7 +25,8 @@ full-stack install (API + database + seed) with ONE app as its front door:
 | **Admin console** — staff operations & settings     | [Admin App v1.0.0](https://github.com/thao-glitch/kenyaairways/releases/tag/v1.0.0-admin)    | `http://localhost:3001` |
 
 Each release has a Windows `.exe`, a Linux/macOS `.sh`, a Linux
-`.desktop` launcher and a source ZIP of just that app.
+`.desktop` launcher, a native Android `.apk` and a source ZIP of just that
+app.
 
 ### Linux (Kali, Ubuntu, Debian) — download ONE file
 
@@ -136,6 +137,27 @@ The user app is a **PWA** — browsers offer it as a real app:
 
 It launches full-screen with the airline icon, works offline for cached pages,
 and updates itself automatically whenever the server updates (just refresh).
+
+### Native Android APKs (no browser required)
+
+Every release also ships a signed, installable Android app:
+
+| Release   | APK                           | What it is                                                             |
+| --------- | ----------------------------- | ---------------------------------------------------------------------- |
+| Traveller | **`Kenya-Airways-User.apk`**  | Native booking, seat selection, M-Pesa payment, boarding passes, trips |
+| Admin     | **`Kenya-Airways-Admin.apk`** | Staff console with the whole web admin bundled on-device               |
+
+Copy the APK to the phone, allow **Install unknown apps** for your file
+manager, and open it. The traveller app works **without the PC**: its
+on-device engine holds a booking, takes the M-Pesa paybill payment and
+verifies the confirmation SMS. When the PC is reachable it uses the live API
+instead. Payment is always the same demo paybill: **0182774255**, account =
+your **PNR**.
+
+To connect the app to the PC on the same Wi-Fi, open **Server settings** in
+the app and use `http://<pc-lan-ip>:4100` (the installer prints the address).
+The admin APK loads its console from the phone's assets, so it opens even
+before the PC API is up.
 
 ### Opening it on a phone over your local network
 

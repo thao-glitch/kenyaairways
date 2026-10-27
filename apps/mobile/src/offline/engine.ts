@@ -63,6 +63,15 @@ import {
   searchFlights,
   seatMap,
 } from './engine-flights';
+import {
+  createPayment,
+  getPayment,
+  listPaymentsForBooking,
+  manualStatus,
+  resendStk,
+  simulateStk,
+  submitMpesaManual,
+} from './engine-payments';
 import { issueSession, parseToken } from './session';
 import type { LocalRequest, LocalResponse } from './types';
 
@@ -122,6 +131,36 @@ function route(ctx: EngineCtx, req: LocalRequest): unknown {
     }
     if (rest.length === 3 && rest[2] === 'seats' && method === 'GET') {
       return seatMap(ctx, rest[1]);
+    }
+  }
+
+  // ── payments (passenger flow) ─────────────────────────────────────────────
+  if (rest[0] === 'payments') {
+    const actor = requireAuth(resolveActor(ctx, req));
+    if (rest.length === 1 && method === 'GET') {
+      const bookingId = req.query.bookingId;
+      if (!bookingId) throw new AppError('BAD_REQUEST', 'bookingId is required');
+      return listPaymentsForBooking(ctx, actor, bookingId);
+    }
+    if (rest.length === 1 && method === 'POST') {
+      return createPayment(ctx, actor, (req.body ?? {}) as Parameters<typeof createPayment>[2]);
+    }
+    if (rest.length === 2 && method === 'GET') return getPayment(ctx, actor, rest[1]);
+    if (rest.length === 3 && rest[2] === 'stk' && method === 'POST') {
+      return resendStk(ctx, actor, rest[1]);
+    }
+    if (rest.length === 3 && rest[2] === 'simulate' && method === 'POST') {
+      const body = (req.body ?? {}) as { resultCode?: unknown };
+      const resultCode = Number(body.resultCode ?? 0);
+      if (!Number.isInteger(resultCode)) throw new AppError('BAD_REQUEST', 'Invalid resultCode');
+      return simulateStk(ctx, actor, rest[1], resultCode);
+    }
+    if (rest.length === 3 && rest[2] === 'mpesa-manual') {
+      if (method === 'GET') return manualStatus(ctx, actor, rest[1]);
+      if (method === 'POST') {
+        const body = (req.body ?? {}) as { message?: string };
+        return submitMpesaManual(ctx, actor, rest[1], body.message ?? '');
+      }
     }
   }
 

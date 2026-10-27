@@ -21,6 +21,7 @@ import { CheckInScreen } from '@/screens/check-in-screen';
 import { BoardingPassScreen } from '@/screens/boarding-pass-screen';
 import { BaggageScreen } from '@/screens/baggage-screen';
 import { RebookScreen } from '@/screens/rebook-screen';
+import { PaymentScreen } from '@/screens/payment-screen';
 import { useSessionStore } from '@/store/session';
 import { colors } from '@/theme/tokens';
 
@@ -37,6 +38,7 @@ export type RootStackParamList = {
   Search: undefined;
   FlightDetail: { flightId: string };
   SeatPreview: { flightId: string; bookingId?: string };
+  Payment: { bookingId: string; flightId?: string };
   CheckIn: { bookingId: string };
   BoardingPass: { passId: string };
   Baggage: { bookingId: string };
@@ -108,6 +110,7 @@ export function RootNavigator({ signedIn }: { signedIn: boolean }) {
           <Stack.Screen name="Search" component={SearchScreen} />
           <Stack.Screen name="FlightDetail" component={FlightDetailScreen} />
           <Stack.Screen name="SeatPreview" component={SeatPreviewScreen} />
+          <Stack.Screen name="Payment" component={PaymentScreen} />
           <Stack.Screen name="CheckIn" component={CheckInScreen} />
           <Stack.Screen name="BoardingPass" component={BoardingPassScreen} />
           <Stack.Screen name="Baggage" component={BaggageScreen} />

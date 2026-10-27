@@ -1,10 +1,8 @@
 /**
- * Header/footer roundel — the house mark: a warm porcelain disc framed by a
- * double gold rim, carrying a solid crimson wing with a swallow-tail split
- * at its tip and a hairline feather slit through the body. The light disc
- * reads on any backdrop (crimson header block, black footer, white admin
- * shell); geometry is original. Purely presentational so server and client
- * components can both render it.
+ * Official Kenya Airways "KQ" monogram — the real brand mark, sourced from
+ * the airline's published logo (red #EC2227). Rendered on a white porcelain
+ * disc so it stays legible on the crimson header and the black footer.
+ * Purely presentational, so server and client components can both render it.
  */
 export function LogoRoundel({
   className = 'h-9 w-9',
@@ -14,67 +12,19 @@ export function LogoRoundel({
   title?: string;
 }) {
   return (
-    <svg viewBox="0 0 48 48" className={className} role="img" aria-label={title}>
-      <defs>
-        <linearGradient id="f13-gold" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#f7e3a1" />
-          <stop offset="45%" stopColor="#d8a62a" />
-          <stop offset="100%" stopColor="#a87a16" />
-        </linearGradient>
-        <radialGradient id="f13-ivory" cx="35%" cy="30%" r="85%">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="70%" stopColor="#fdf8ee" />
-          <stop offset="100%" stopColor="#f0e4cc" />
-        </radialGradient>
-        <linearGradient
-          id="f13-wing"
-          gradientUnits="userSpaceOnUse"
-          x1="11"
-          y1="34"
-          x2="39"
-          y2="13"
-        >
-          <stop offset="0%" stopColor="#8f0a1f" />
-          <stop offset="55%" stopColor="#c8102e" />
-          <stop offset="100%" stopColor="#e8354c" />
-        </linearGradient>
-      </defs>
-      {/* porcelain disc, gold rim + inner hairline */}
-      <circle
-        cx="24"
-        cy="24"
-        r="23.1"
-        fill="url(#f13-ivory)"
-        stroke="url(#f13-gold)"
-        strokeWidth="1.7"
-      />
-      <circle
-        cx="24"
-        cy="24"
-        r="20.3"
-        fill="none"
-        stroke="url(#f13-gold)"
-        strokeWidth="0.6"
-        opacity="0.75"
-      />
-      {/* the wing: solid sweep with a swallow-tail tip */}
-      <path
-        d="M10.9 32.9
-           C16.0 23.3, 26.4 15.9, 38.9 13.6
-           C33.9 17.9, 31.3 20.6, 29.6 23.4
-           C31.8 24.2, 34.6 24.8, 37.5 24.7
-           C32.0 28.2, 24.0 30.9, 16.6 33.0
-           C14.6 33.5, 12.2 33.5, 10.9 32.9 Z"
-        fill="url(#f13-wing)"
-      />
-      {/* hairline feather slit through the body */}
-      <path
-        d="M15.4 31.3C19.8 28.3, 24.6 25.9, 28.9 24.2"
-        fill="none"
-        stroke="#fbf6ea"
-        strokeWidth="0.85"
-        strokeLinecap="round"
-      />
+    <svg
+      viewBox="0 0 64 64"
+      className={className}
+      role={title ? 'img' : 'presentation'}
+      aria-label={title}
+      aria-hidden={title ? undefined : 'true'}
+      focusable="false"
+    >
+      <circle cx="32" cy="32" r="32" fill="#FFFFFF" />
+      <g transform="translate(9.575 11.557) scale(0.7085)" fill="#EC2227">
+        <path d="m 45.717,4.331 c 0,0 -8.88,-5.59 -20.555,-2.302 0,0 -15.71,4.521 -21.138,17.181 0,0 -7.309,11.759 -0.572,24.75 0,0 4.038,9.099 14.801,11.677 0,0 13.763,3.703 23.85,-3.936 0,0 15.23,-8.036 15.617,-25.007 0,0 1.476,-14.964 -12.003,-22.363 m 7.394,29.597 C 50.317,41.492 37.823,49.88 37.823,49.88 15.459,61.062 6.731,44.85 6.731,44.85 1.801,34.325 7.833,24.289 7.833,24.289 13.589,12.942 24.501,8.442 24.501,8.442 c 15.293,-6.577 24.01,0.823 24.01,0.823 12.333,9.209 4.6,24.663 4.6,24.663" />
+        <path d="m 21.201,17.772 c 0,0 -6.007,14.046 -6.091,14.893 0,0 -2.119,6.6 -1.102,13.031 l 10.645,0.313 c 0,0 -2.945,-1.415 -1.085,-8.946 0,0 1.271,-4.485 2.201,-4.823 0,0 0.253,-0.422 0.424,0.338 0,0 2.112,7.614 7.786,13.371 0,0 3.549,4.907 12.35,8.29 0,0 7.701,2.034 12.271,-1.772 0,0 3.893,-2.369 3.975,-9.228 0,0 0.066,-0.695 -0.59,-0.166 0,0 -2.879,3.213 -10.238,2.623 0,0 -2.198,0.422 -8.289,-4.23 L 30.509,30.805 c 0,0 -0.591,-0.424 0.253,-0.511 0,0 7.53,-1.353 9.733,-3.131 0,0 6.773,-3.328 7.697,-8.289 0,0 1.403,-5.437 -0.762,-8.631 0,0 -0.76,-0.509 -1.013,0.084 0,0 -3.872,3.994 -7.212,6.137 l -9.968,6.47 c 0,0 -0.765,0.508 -0.167,-0.676 l 2.876,-7.616 c 0,0 1.608,-2.623 -2.791,-2.284 0,0 -6.631,0.669 -10.296,5.186 0,0 -0.284,0.144 0.225,0.313 l 2.117,-0.085 z" />
+      </g>
     </svg>
   );
 }

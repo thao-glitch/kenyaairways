@@ -20,6 +20,7 @@ import { BackHandler, Platform, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { WebViewNavigation } from 'react-native-webview';
 import { Button } from '@/components/ui';
+import { BrandMark } from '@/components/brand-logo';
 import { colors, radii, spacing, type } from '@/theme/tokens';
 import { ConsoleHost, type ConsoleHostHandle } from '@/admin/console-host';
 import { OfflineToolsScreen } from '@/admin/offline-tools';
@@ -62,11 +63,14 @@ export function AdminConsoleScreen() {
           backgroundColor: colors.card,
         }}
       >
-        <View>
-          <Text style={{ ...type.title, color: colors.foreground }}>Kenya Airways</Text>
-          <Text style={{ ...type.caption, color: colors.mutedForeground }}>
-            {mode === 'console' ? 'Staff console' : 'Offline tools'}
-          </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <BrandMark size={28} />
+          <View>
+            <Text style={{ ...type.title, color: colors.foreground }}>Kenya Airways.</Text>
+            <Text style={{ ...type.caption, color: colors.mutedForeground }}>
+              {mode === 'console' ? 'Staff console' : 'Offline tools'}
+            </Text>
+          </View>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
           <View
