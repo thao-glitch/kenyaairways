@@ -207,9 +207,9 @@ in **Admin → Appearance** (images are replaced by file upload, never URLs).
 Run **the same installer you ran the first time** — that is the whole
 upgrade flow:
 
-- **Windows**: re-run `Install Kenya Airways.exe` (or unzip the new
-  version over the old folder / `git pull` inside it, then double-click
-  `INSTALL.bat`)
+- **Windows**: re-run `Install-Kenya-Airways-User.exe` (traveller) or
+  `Install-Kenya-Airways-Admin.exe` (staff), or unzip the new version over
+  the old folder / `git pull` inside it, then double-click `INSTALL.bat`
 - **Linux / macOS**: `git pull && ./setup.sh` (or run `setup.sh` from a
   fresh download in the same folder)
 - **Docker**: `git pull && docker compose up -d --build`
@@ -236,8 +236,7 @@ apps/admin      Staff app (Next.js, role-gated)
 apps/api        NestJS + Prisma REST API, OpenAPI, background jobs
 packages/shared Shared DTOs & contracts consumed by all three
 INSTALL.bat / INSTALL.command / INSTALL.sh
-Install Kenya Airways.exe / .sh / .desktop   One-file self-extracting installers — Windows / Linux (double-click: extract + install)
-Install Kenya Airways.desktop  Double-click installers — Windows / macOS / Linux (first install & in-place upgrades)
+Install-Kenya-Airways-User.* / Install-Kenya-Airways-Admin.*  Release installers (Windows .exe, Linux/macOS .sh, Linux .desktop)
 START.bat / Start.command / Start Kenya Airways.desktop
 start.sh                       Double-click launchers for the whole platform
 .vscode/tasks.json       “setup / start / seed” tasks inside VS Code
