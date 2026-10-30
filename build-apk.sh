@@ -20,6 +20,7 @@
 # Outputs (gitignored dist/):
 #   dist/Kenya-Airways-User.apk
 #   dist/Kenya-Airways-Admin.apk
+#   dist/*.apk.zip, dist/*.apk.sha256, dist/SHA256SUMS.txt
 #
 # Both are signed with android/app/debug.keystore (release type already
 # points at it). The two JS bundles MUST differ — the script verifies it
@@ -43,7 +44,11 @@ ANDROID="$MOBILE/android"
 BG="$ANDROID/app/build.gradle"
 STR="$ANDROID/app/src/main/res/values/strings.xml"
 CONSOLE_ASSETS="$ANDROID/app/src/main/assets/console"
-DIST="$PWD/dist"
+# Release builds target real phones, not desktop emulators. Keeping only the
+# two ARM ABIs removes ~37 MB of x86-only libraries from each APK. Set
+# F13_ANDROID_ARCHS=x86_64 when you need an emulator-test build.
+ANDROID_ARCHS="${F13_ANDROID_ARCHS:-arm64-v8a,armeabi-v7a}"
+DIST="${F13_DIST_DIR:-$PWD/dist}"
 mkdir -p "$DIST"
 
 USER_APK="$DIST/Kenya-Airways-User.apk"
@@ -65,6 +70,85 @@ ensure_android_tree() {
     (cd "$MOBILE" && npx expo prebuild -p android --no-install)
   fi
   [ -f "$BG" ] || { echo "✗ prebuild did not produce $BG"; exit 1; }
+}
+
+configure_android_packaging() {
+  local gp="$ANDROID/gradle.properties"
+  [ -f "$gp" ] || { echo "✗ missing $gp"; exit 1; }
+
+  # Compress the .so files in the APK and extract them on install. This makes
+  # the download roughly half the size; installed size is unchanged.
+  if grep -q '^expo.useLegacyPackaging=' "$gp"; then
+    sed -i 's/^expo.useLegacyPackaging=.*/expo.useLegacyPackaging=true/' "$gp"
+  else
+    printf '\nexpo.useLegacyPackaging=true\n' >> "$gp"
+  fi
+
+  # The native architecture list is read by the React Native Gradle plugin.
+  if grep -q '^reactNativeArchitectures=' "$gp"; then
+    sed -i "s/^reactNativeArchitectures=.*/reactNativeArchitectures=$ANDROID_ARCHS/" "$gp"
+  else
+    printf '\nreactNativeArchitectures=%s\n' "$ANDROID_ARCHS" >> "$gp"
+  fi
+
+  echo "  ✓ Android ABIs: $ANDROID_ARCHS · native libs compressed"
+}
+
+verify_apk_packaging() {
+  local apk="$1" abi entry
+  local listing
+  listing=$(unzip -l "$apk")
+
+  for abi in ${ANDROID_ARCHS//,/ }; do
+    [[ "$listing" == *"lib/$abi/"* ]] || {
+      echo "✗ $apk is missing native libraries for $abi"
+      exit 1
+    }
+  done
+
+  for abi in arm64-v8a armeabi-v7a x86_64 x86; do
+    case ",$ANDROID_ARCHS," in
+      *",$abi,"*) ;;
+      *)
+        if [[ "$listing" == *"lib/$abi/"* ]]; then
+          echo "✗ $apk unexpectedly contains $abi libraries"
+          exit 1
+        fi
+        ;;
+    esac
+  done
+
+  # useLegacyPackaging=true must set extractNativeLibs=true; otherwise install
+  # would fail because compressed libs would not be extracted.
+  local manifest
+  manifest=$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump xmltree "$apk" AndroidManifest.xml 2>/dev/null || true)
+  [[ "$manifest" == *"android:extractNativeLibs"*"0xffffffff"* ]] || {
+    echo "✗ $apk does not extract compressed native libraries"
+    exit 1
+  }
+
+  # Read the whole listing before awk exits: `unzip -v | awk '{...; exit}'`
+  # dies with SIGPIPE under pipefail and aborts the build.
+  local verbose
+  verbose=$(unzip -v "$apk")
+  entry=$(printf '%s\n' "$verbose" | awk '/lib\/.*\.so$/ && !found {print $2; found=1}')
+  [[ "$entry" == *"Defl:"* || "$entry" == *"Defl:N"* ]] || {
+    echo "✗ $apk native libraries are not compressed"
+    exit 1
+  }
+}
+
+make_apk_extras() {
+  local apk="$1" base dir
+  base=$(basename "$apk")
+  dir=$(dirname "$apk")
+  (
+    cd "$dir"
+    rm -f "$base.zip" "$base.sha256"
+    zip -9 -q "$base.zip" "$base"
+    sha256sum "$base" > "$base.sha256"
+  )
+  echo "  ✓ $dir/$base.zip + $base.sha256"
 }
 
 retarget_admin_identity() {
@@ -106,6 +190,7 @@ build_one() {
   echo
   echo "══ Building the $label APK ═════════════════════════════════════"
   ensure_android_tree
+  configure_android_packaging
 
   if [ "$variant" = admin ]; then
     build_console_export
@@ -170,6 +255,9 @@ build_one() {
     fi
   fi
 
+  verify_apk_packaging "$out"
+  echo "  ✓ expected ABIs only, compressed native libraries, extractNativeLibs=true"
+
   if [ "$variant" = user ]; then
     USER_BUNDLE_MD5="$md5"
   else
@@ -204,6 +292,20 @@ restore_traveller_identity
 trap - EXIT
 
 echo
+echo "▸ Packaging download fallbacks and checksums"
+for apk in "$USER_APK" "$ADMIN_APK"; do
+  [ -f "$apk" ] && make_apk_extras "$apk"
+done
+(
+  cd "$DIST"
+  : > SHA256SUMS.txt
+  for apk in Kenya-Airways-User.apk Kenya-Airways-Admin.apk; do
+    [ -f "$apk" ] && sha256sum "$apk" >> SHA256SUMS.txt
+  done
+)
+
+echo
 echo "✓ Built:"
 [ -f "$USER_APK" ] && echo "    $USER_APK   $(du -h "$USER_APK" | cut -f1)"
 [ -f "$ADMIN_APK" ] && echo "    $ADMIN_APK  $(du -h "$ADMIN_APK" | cut -f1)"
+[ -f "$DIST/SHA256SUMS.txt" ] && echo "    $DIST/SHA256SUMS.txt"

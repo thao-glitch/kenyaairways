@@ -147,17 +147,28 @@ Every release also ships a signed, installable Android app:
 | Traveller | **`Kenya-Airways-User.apk`**  | Native booking, seat selection, M-Pesa payment, boarding passes, trips |
 | Admin     | **`Kenya-Airways-Admin.apk`** | Staff console with the whole web admin bundled on-device               |
 
-Copy the APK to the phone, allow **Install unknown apps** for your file
-manager, and open it. The traveller app works **without the PC**: its
-on-device engine holds a booking, takes the M-Pesa paybill payment and
-verifies the confirmation SMS. When the PC is reachable it uses the live API
-instead. Payment is always the same demo paybill: **0182774255**, account =
-your **PNR**.
+The release APKs are built for real Android phones (Android 7+, ARM
+`arm64-v8a` / `armeabi-v7a`) and their native libraries are compressed, so
+each download is roughly half the size of the old universal build. Download
+the APK, allow **Install unknown apps** for your browser or file manager,
+and open it. Chrome may show **“File might be harmful”** for any APK — tap
+**Download anyway**. If your browser will not offer that option, download
+the matching **`.apk.zip`** asset instead, extract it with the Files app,
+then tap the APK inside. Each release also includes a `SHA256SUMS.txt`
+checksum file.
+
+The traveller app works **without the PC**: its on-device engine holds a
+booking, takes the M-Pesa paybill payment and verifies the confirmation SMS.
+When the PC is reachable it uses the live API instead. Payment is always the
+same demo paybill: **0182774255**, account = your **PNR**.
 
 To connect the app to the PC on the same Wi-Fi, open **Server settings** in
 the app and use `http://<pc-lan-ip>:4100` (the installer prints the address).
 The admin APK loads its console from the phone's assets, so it opens even
-before the PC API is up.
+before the PC API is up. To build an x86_64 APK for an emulator instead of a
+phone, run
+`F13_ANDROID_ARCHS=x86_64 F13_DIST_DIR=/tmp/f13-test ./build-apk.sh all`;
+release builds default to the two ARM ABIs.
 
 ### Opening it on a phone over your local network
 
