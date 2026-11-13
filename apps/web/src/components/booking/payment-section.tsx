@@ -1,31 +1,28 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type {
   BookingDto,
   MpesaManualVerificationDto,
   PaymentDto,
   SiteSettingsDto,
 } from '@kenyaairways/shared';
-import { formatMoney } from '@kenyaairways/shared';
+import { formatMoney, MPESA_ACCOUNT, MPESA_PAYBILL } from '@kenyaairways/shared';
 import { useT } from '@/components/i18n-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ApiRequestError, apiCall } from '@/lib/api-client';
-import { formatRemaining } from '@/lib/format';
 
 const ACTIVE_STATUSES: readonly string[] = ['REQUIRES_ACTION', 'PENDING'];
 
 /**
- * Pay flow: clicking Pay opens the M-Pesa payment-number panel straight away
- * (number + PNR + amount on screen — nothing is SMS'd), the passenger pays by
- * hand and pastes the confirmation message here (`POST /payments/:id/
- * mpesa-manual`) — it is verified on the spot and the booking confirms. STK
- * push stays available as an opt-in secondary path. The payment number comes
- * from the admin payment plan via the public site settings.
- * Mock mode adds explicit result buttons so demos don't wait on a Daraja
- * callback that will never come.
+ * Pay flow: clicking Pay opens the ChoiceBank M-Pesa panel straight away
+ * (paybill + account + QR + amount on screen — nothing is SMS'd), the
+ * passenger pays by hand or scans the QR, then pastes the confirmation
+ * message here (`POST /payments/:id/mpesa-manual`) — it is verified on the
+ * spot and the booking confirms. The paybill comes from the admin payment
+ * plan via the public site settings; the account and QR are the fixed
+ * ChoiceBank details supplied for this account.
  */
 export function PaymentSection({
   booking,
@@ -36,11 +33,9 @@ export function PaymentSection({
 }) {
   const { t } = useT();
   const [payment, setPayment] = useState<PaymentDto | null>(null);
-  const [msisdn, setMsisdn] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [site, setSite] = useState<SiteSettingsDto | null>(null);
-  const [showStk, setShowStk] = useState(false);
 
   // Manual paybill details (paybill number lives in the payment plan).
   const [verify, setVerify] = useState<MpesaManualVerificationDto | null>(null);
@@ -81,7 +76,7 @@ export function PaymentSection({
 
   const active = payment ? ACTIVE_STATUSES.includes(payment.status) : false;
   const isManual = payment?.manual === true;
-  const paybill = site?.mpesaPaybill ?? null;
+  const paybill = site?.mpesaPaybill ?? MPESA_PAYBILL;
 
   // Provider-side progress → poll (RT event arrives via the parent room).
   useEffect(() => {
@@ -107,20 +102,6 @@ export function PaymentSection({
     } finally {
       setBusy(false);
     }
-  }
-
-  function onStart(event: FormEvent): void {
-    event.preventDefault();
-    void run(async () => {
-      const created = await apiCall<PaymentDto>('/api/v1/payments', {
-        method: 'POST',
-        body: {
-          bookingId: booking.id,
-          ...(msisdn.trim() ? { msisdn: msisdn.trim() } : {}),
-        },
-      });
-      setPayment(created);
-    });
   }
 
   /** Manual payment: open one that settles when the passenger pastes the SMS. */
@@ -152,26 +133,9 @@ export function PaymentSection({
     });
   }
 
-  function onResend(): void {
-    if (!payment) return;
-    void run(async () => {
-      const fresh = await apiCall<PaymentDto>(`/api/v1/payments/${payment.id}/stk`, {
-        method: 'POST',
-      });
-      setPayment(fresh);
-    });
-  }
-
-  function onSimulate(resultCode: number): void {
-    if (!payment) return;
-    void run(async () => {
-      const fresh = await apiCall<PaymentDto>(`/api/v1/payments/${payment.id}/simulate`, {
-        method: 'POST',
-        body: { resultCode },
-      });
-      setPayment(fresh);
-      onChanged();
-    });
+  /** Start a fresh manual payment after an expired/failed attempt. */
+  function onRetry(): void {
+    onStartManual();
   }
 
   return (
@@ -201,20 +165,43 @@ export function PaymentSection({
             <p className="font-medium">{t('pay.manual.title')}</p>
             <p className="mt-1 text-xs text-muted-foreground">{t('pay.manual.body')}</p>
           </div>
-          <dl className="grid grid-cols-2 gap-2 rounded-md bg-secondary/60 px-3 py-2 text-xs">
-            <div>
-              <dt className="text-muted-foreground">{t('pay.manual.paybill')}</dt>
-              <dd className="font-mono text-sm font-semibold">{paybill ?? '—'}</dd>
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+            <dl className="grid grid-cols-2 gap-2 rounded-md bg-secondary/60 px-3 py-2 text-xs">
+              <div>
+                <dt className="text-muted-foreground">{t('pay.manual.paybill')}</dt>
+                <dd className="font-mono text-sm font-semibold">{paybill}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">{t('pay.manual.account')}</dt>
+                <dd className="font-mono text-sm font-semibold">{MPESA_ACCOUNT}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">{t('pay.manual.reference')}</dt>
+                <dd className="font-mono text-sm font-semibold">{booking.pnr}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">{t('pay.manual.amount')}</dt>
+                <dd className="font-semibold">
+                  {formatMoney(booking.totalMinor, booking.currency)}
+                </dd>
+              </div>
+            </dl>
+            <div className="flex flex-col items-center justify-center gap-2 rounded-md border bg-white p-3 text-center">
+              <span className="text-[11px] font-semibold tracking-wide text-slate-700">
+                {t('pay.manual.bank')}
+              </span>
+              <img
+                src="/payment-qr.png"
+                alt={t('pay.manual.qrAlt')}
+                width={160}
+                height={160}
+                className="h-40 w-40"
+              />
+              <span className="max-w-40 text-[11px] leading-snug text-slate-600">
+                {t('pay.manual.scan')}
+              </span>
             </div>
-            <div>
-              <dt className="text-muted-foreground">{t('pay.manual.reference')}</dt>
-              <dd className="font-mono text-sm font-semibold">{booking.pnr}</dd>
-            </div>
-            <div className="col-span-2">
-              <dt className="text-muted-foreground">{t('pay.manual.amount')}</dt>
-              <dd className="font-semibold">{formatMoney(booking.totalMinor, booking.currency)}</dd>
-            </div>
-          </dl>
+          </div>
 
           {verify && verify.status === 'CONFIRMED' && (
             <div className="rounded-md border border-success/40 bg-success/10 px-3 py-2 text-xs text-success">
@@ -257,63 +244,26 @@ export function PaymentSection({
         </div>
       ) : active && payment ? (
         <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
-          <p>{t('pay.stk.sent')}</p>
-          {payment.expiresAt && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              {t('pay.stk.expiresIn', {
-                remaining: formatRemaining(new Date(payment.expiresAt).getTime() - Date.now()),
-              })}
-            </p>
-          )}
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" disabled={busy} onClick={onResend}>
-              {t('pay.stk.resend')}
-            </Button>
-            <Button size="sm" variant="secondary" disabled={busy} onClick={() => onSimulate(0)}>
-              {t('pay.simulate.success')}
-            </Button>
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => onSimulate(1032)}>
-              {t('pay.simulate.cancelled')}
+          <p>{t('pay.processing')}</p>
+          <div className="mt-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() => void refreshPayment()}
+            >
+              {t('pay.manual.refresh')}
             </Button>
           </div>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {/* Primary: the payment-number flow — no phone entry needed; the
-              number, PNR and amount appear as soon as Pay is tapped. */}
+          {/* Primary: the ChoiceBank paybill flow — no phone entry needed; the
+              paybill, account, QR, PNR and amount appear as soon as Pay is tapped. */}
           <Button onClick={onStartManual} disabled={busy} className="w-full sm:w-auto">
             {busy ? t('pay.working') : t('pay.cta')}
           </Button>
           <p className="text-xs text-muted-foreground">{t('pay.manual.intro')}</p>
-
-          {showStk ? (
-            <form onSubmit={onStart} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <label className="flex flex-1 flex-col gap-1 text-sm font-medium">
-                {t('pay.phone')}
-                <Input
-                  type="tel"
-                  inputMode="tel"
-                  value={msisdn}
-                  onChange={(e) => setMsisdn(e.target.value)}
-                  placeholder="+254712345678"
-                />
-                <span className="text-xs font-normal text-muted-foreground">
-                  {t('pay.phone.hint')}
-                </span>
-              </label>
-              <Button type="submit" variant="secondary" disabled={busy}>
-                {busy ? t('pay.working') : t('pay.stk.cta')}
-              </Button>
-            </form>
-          ) : (
-            <button
-              type="button"
-              className="self-start text-xs text-muted-foreground underline underline-offset-2"
-              onClick={() => setShowStk(true)}
-            >
-              {t('pay.stk.alt')}
-            </button>
-          )}
         </div>
       )}
 
@@ -321,14 +271,12 @@ export function PaymentSection({
         <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {payment.failureMessage ?? t('pay.failed')}
           <div className="mt-2">
-            <Button size="sm" variant="outline" disabled={busy} onClick={onResend}>
+            <Button size="sm" variant="outline" disabled={busy} onClick={onRetry}>
               {t('pay.retry')}
             </Button>
           </div>
         </div>
       )}
-
-      <p className="text-xs text-muted-foreground">{t('pay.mockNote')}</p>
 
       {error && (
         <p

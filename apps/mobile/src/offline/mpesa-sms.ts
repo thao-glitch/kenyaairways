@@ -23,10 +23,11 @@ const PAYBILL_RES = [
   /\bto\s+(?:account\s+|akaunti\s+)?(\d{4,12})\b/i,
 ];
 
-/** Account reference: the booking PNR / invoice number the sender typed. */
+/** Account reference the payer typed (usually the booking PNR). */
 const ACCOUNT_RES = [
-  /(?:account|akaunti)\s*(?:number|no\.?|#)?\s*(?:is|:)?\s*([A-Z0-9]{4,12})/i,
-  /\bfor\s+(?:account\s+|akaunti\s+)?([A-Z0-9]{4,12})\b/,
+  /for\s+account\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9-]{1,19})\b/i,
+  /account\s*(?:number|no\.?)?\s*[:#]\s*([A-Za-z0-9][A-Za-z0-9-]{1,19})\b/i,
+  /(?:kwa\s+ajili\s+ya\s+akaunti|akaunti)\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9-]{1,19})\b/i,
 ];
 
 /** Sender phone number, however it is written. */
@@ -111,11 +112,15 @@ export function parseMpesaSms(message: string): MpesaParsedMessageDto {
 
   let accountReference: string | null = null;
   for (const re of ACCOUNT_RES) {
-    const m = re.exec(text);
-    if (m) {
-      accountReference = m[1].toUpperCase();
+    const global = new RegExp(re.source, `${re.flags}g`);
+    for (const m of text.matchAll(global)) {
+      const value = m[1].toUpperCase();
+      if (paybill && value === paybill) continue; // the paybill is not the reference
+      if (/^\d{9,}$/.test(value)) continue; // phone-like, not a reference
+      accountReference = value;
       break;
     }
+    if (accountReference) break;
   }
 
   const msisdnRaw = MSISDN_RE.exec(text)?.[1] ?? null;

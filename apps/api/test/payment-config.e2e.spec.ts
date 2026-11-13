@@ -144,7 +144,7 @@ describe('payment plans (e2e): admin-configurable payment methods', () => {
       data: {
         provider: 'MPESA_STK',
         enabled: true,
-        settings: { shortcode: '0182774255' },
+        settings: { shortcode: '444174' },
       },
     });
     await prisma.user.deleteMany({ where: { email: { startsWith: 'plan+' } } });

@@ -4,7 +4,7 @@ import { expect, test, type APIRequestContext } from '@playwright/test';
  * M10 end-to-end passenger journey — drives the real UI, the real API and
  * the mock M-Pesa provider:
  *
- *   register → search → fare → book → pay (STK simulate) → confirm →
+ *   register → search → fare → book → pay (ChoiceBank paybill + SMS) → confirm →
  *   PNR lookup → seat selection → check-in → boarding pass
  *
  * The stack must already be running (compose or dev servers). The one piece
@@ -76,9 +76,25 @@ test.describe('passenger journey (e2e)', () => {
     // ── Search through the real form ──────────────────────────────────────
     const candidate = await probeCandidate(request);
     await page.goto('/flights');
-    await page.getByLabel('From').selectOption('NBO');
-    await page.getByLabel('To').selectOption(candidate.destination);
-    await page.getByLabel('Date').fill(candidate.date);
+    await page.getByLabel(/^From/).selectOption('NBO');
+    await page.getByLabel(/^To/).selectOption(candidate.destination);
+    // The date field is a calendar button, not a text input. Walk the month
+    // grid forward if the candidate spills into the next month.
+    await page.getByRole('button', { name: 'Date', exact: true }).click();
+    const targetDate = new Date(`${candidate.date}T00:00:00Z`);
+    const monthLabel = new Intl.DateTimeFormat('en-KE', {
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(targetDate);
+    const calendar = page.getByRole('dialog', { name: 'Date' });
+    for (let i = 0; i < 3; i += 1) {
+      if ((await calendar.getByText(monthLabel, { exact: true }).count()) > 0) break;
+      await calendar.getByRole('button', { name: 'Next month' }).click();
+    }
+    await calendar
+      .getByRole('button', { name: String(targetDate.getUTCDate()), exact: true })
+      .click();
     await page.getByRole('button', { name: 'Search' }).click();
     await page.waitForURL(/\/flights\?/);
 
@@ -105,12 +121,28 @@ test.describe('passenger journey (e2e)', () => {
       .toUpperCase();
     expect(pnr, 'booking must show a PNR').toMatch(/^[A-Z0-9]{6}$/);
 
-    await page.getByLabel('M-Pesa number').fill(phone);
+    // Reveal the ChoiceBank paybill, account and QR — no phone entry.
     await page.getByRole('button', { name: 'Pay with M-Pesa' }).click();
+    await expect(page.getByText('444174', { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('05515', { exact: true })).toBeVisible();
     await expect(
-      page.getByText('STK push sent. Check your phone and enter your M-Pesa PIN.'),
-    ).toBeVisible({ timeout: 30_000 });
-    await page.getByRole('button', { name: 'Simulate: success' }).click();
+      page.getByRole('img', { name: /ChoiceBank M-Pesa payment QR code/ }),
+    ).toBeVisible();
+
+    // Read the amount from the API, then paste the confirmation SMS exactly as
+    // a passenger would after paying the paybill by hand or scanning the QR.
+    const bookingId = page.url().split('/').filter(Boolean).pop()!;
+    const bookingRes = await page.request.get(`${API_URL}/api/v1/bookings/${bookingId}`);
+    expect(bookingRes.ok(), 'booking detail for payment amount').toBeTruthy();
+    const bookingBody = (await bookingRes.json()) as { totalMinor: number };
+    const receipt = `E2E${String(stamp).slice(-6)}`.toUpperCase();
+    const sms =
+      `${receipt} confirmed. Ksh${(bookingBody.totalMinor / 100).toFixed(2)} sent to ` +
+      `ACCOUNT 444174 for account 05515 on 18/10/26 at 3:45 PM. ` +
+      `New M-PESA balance is Ksh9,000.00.`;
+    await page.getByLabel('M-Pesa confirmation message').fill(sms);
+    await page.getByRole('button', { name: 'Confirm payment' }).click();
+
     // The payment card unmounts once the booking confirms (the transient
     // "Paid" badge is already gone by then) — "Confirmed" is the durable
     // terminal state that successful payment produces.

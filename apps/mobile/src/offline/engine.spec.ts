@@ -26,7 +26,7 @@ const NOW = Date.parse('2026-10-21T09:00:00.000Z');
 
 function makeCtx(): EngineCtx {
   const db = openNodeDb(':memory:');
-  const world = World.load(db, { windowDaysAhead: 7 });
+  const world = World.load(db, { windowDaysAhead: 7, now: new Date(NOW) });
   return { db, world, now: () => NOW };
 }
 
@@ -238,12 +238,12 @@ describe('engine flights', () => {
     expect(meta.airline.iataCode).toBe('F13');
   });
 
-  it('serves site-settings with the Payment number paybill', () => {
+  it('serves site-settings with the ChoiceBank paybill', () => {
     const site = ok<{ appName: string; mpesaPaybill: string | null }>(
       call(ctx, 'GET', '/api/v1/site-settings'),
     );
     expect(site.appName).toBe('Kenya Airways.');
-    expect(site.mpesaPaybill).toBe('0182774255');
+    expect(site.mpesaPaybill).toBe('444174');
   });
 });
 
@@ -309,7 +309,7 @@ function payBooking(
   expect(payment.status).toBe('REQUIRES_ACTION');
   const message = `${receipt} confirmed. Ksh${(booking.totalMinor / 100).toFixed(
     2,
-  )} sent to ACCOUNT 0182774255 for account ${booking.pnr} on 21/10/26 at 3:45 PM.`;
+  )} sent to ACCOUNT 444174 for account 05515 on 21/10/26 at 3:45 PM.`;
   return ok<{ record: { status: string }; payment: { id: string; status: string } }>(
     call(ctx, 'POST', `/api/v1/payments/${payment.id}/mpesa-manual`, {
       token,
@@ -375,7 +375,7 @@ describe('engine bookings', () => {
         body: { bookingId: booking.id, manual: true },
       }),
     );
-    const message = `KQ${booking.pnr}Z confirmed. Ksh1 sent to ACCOUNT 0182774255 for account ${booking.pnr} on 21/10/26 at 3:45 PM.`;
+    const message = `KQ${booking.pnr}Z confirmed. Ksh1 sent to ACCOUNT 444174 for account 05515 on 21/10/26 at 3:45 PM.`;
     const res = call(ctx, 'POST', `/api/v1/payments/${payment.id}/mpesa-manual`, {
       token,
       body: { message },
@@ -627,7 +627,7 @@ describe('engine admin', () => {
     const booking = book(ctx, token, flightId, fare);
     const message = `SJH4LMOP32 confirmed. Ksh${(booking.totalMinor / 100).toLocaleString(
       'en-US',
-    )} sent to ACCOUNT 0182774255 for account ${booking.pnr} on 21/10/26 at 3:45 PM.`;
+    )} sent to ACCOUNT 444174 for account 05515 on 21/10/26 at 3:45 PM.`;
     const check = ok<{
       parsed: { receiptNumber: string | null; amountMinor: number | null };
       issues: string[];
@@ -639,13 +639,33 @@ describe('engine admin', () => {
     );
     expect(check.parsed.receiptNumber).toBe('SJH4LMOP32');
     expect(check.parsed.amountMinor).toBe(booking.totalMinor);
+
+    // The shared ChoiceBank account 05515 is never a PNR — without an
+    // explicit booking reference the staff tool says so instead of guessing.
+    const noPnr = ok<{ issues: string[]; pnr: string | null }>(
+      call(ctx, 'POST', '/api/v1/admin/mpesa-verifier/parse', {
+        token: adminToken,
+        body: { message },
+      }),
+    );
+    expect(noPnr.pnr).toBeNull();
+    expect(noPnr.issues.join(' ')).toContain('05515');
+
+    const withPnr = ok<{ issues: string[]; pnr: string | null }>(
+      call(ctx, 'POST', '/api/v1/admin/mpesa-verifier/parse', {
+        token: adminToken,
+        body: { message, pnr: booking.pnr },
+      }),
+    );
+    expect(withPnr.pnr).toBe(booking.pnr);
+    expect(withPnr.issues).toEqual([]);
   });
 
   it("verify against an offline booking's PAID payment conflicts (server parity)", () => {
     const token = loginAs(ctx, 'passenger@kenyaairways.example');
     const { flightId, fare } = searchOne(ctx, token);
     const booking = book(ctx, token, flightId, fare);
-    const message = `SJH4LMOP32 confirmed. Ksh${(booking.totalMinor / 100).toFixed(2)} sent to ACCOUNT 0182774255 for account ${booking.pnr} on 21/10/26 at 3:45 PM.`;
+    const message = `SJH4LMOP32 confirmed. Ksh${(booking.totalMinor / 100).toFixed(2)} sent to ACCOUNT 444174 for account 05515 on 21/10/26 at 3:45 PM.`;
     const res = call(ctx, 'POST', '/api/v1/admin/mpesa-verifier/verify', {
       token: adminToken,
       body: { message, pnr: booking.pnr },

@@ -581,7 +581,7 @@ export interface SiteSettingsDto {
   appName: string;
   theme: SiteTheme;
   images: SiteImagesDto;
-  /** Paybill number from the active payment plan (e.g. '0182774255'). */
+  /** Paybill number from the active payment plan (e.g. '444174'). */
   mpesaPaybill: string | null;
 }
 

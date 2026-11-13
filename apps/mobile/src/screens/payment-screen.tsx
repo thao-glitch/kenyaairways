@@ -1,19 +1,24 @@
 /**
  * Payment — the missing step in the native traveller funnel.
  *
- * A booking stays HELD until money arrives. The primary path is the same
- * paybill flow the website uses: show the paybill number, PNR and amount,
- * let the passenger pay from their phone, then paste the confirmation SMS —
- * verified on-device/at the API and the booking confirms on the spot. STK
- * push stays available as an opt-in alternative; mock mode can deliver a
- * simulated result so demos never wait on Daraja.
+ * A booking stays HELD until money arrives. The only passenger path is the
+ * ChoiceBank paybill flow the website uses: show paybill 444174, account
+ * 05515, the supplied QR and the amount, let the passenger pay from their
+ * phone or scan the code, then paste the confirmation SMS — verified
+ * on-device/at the API and the booking confirms on the spot.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, Text, TextInput, View, Pressable } from 'react-native';
+import { Image, ScrollView, Text, TextInput, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
-import type { PaymentDto, MpesaManualVerificationDto, SiteSettingsDto } from '@kenyaairways/shared';
+import {
+  MPESA_ACCOUNT,
+  MPESA_PAYBILL,
+  type PaymentDto,
+  type MpesaManualVerificationDto,
+  type SiteSettingsDto,
+} from '@kenyaairways/shared';
 import { useBooking } from '@/lib/hooks';
 import { api, ApiError } from '@/lib/api';
 import { Badge, Button, Card, Loading, Screen } from '@/components/ui';
@@ -24,6 +29,9 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Rt = RouteProp<RootStackParamList, 'Payment'>;
 
 const ACTIVE: readonly string[] = ['REQUIRES_ACTION', 'PENDING'];
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const PAYMENT_QR = require('../../assets/payment-qr.png');
 
 function money(amountMinor: number, currency: string): string {
   return `${currency} ${(amountMinor / 100).toLocaleString('en-KE', {
@@ -50,8 +58,6 @@ export function PaymentScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState('');
-  const [msisdn, setMsisdn] = useState('');
-  const [showStk, setShowStk] = useState(false);
 
   const payment = useMemo(() => {
     const sorted = payments.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -163,17 +169,6 @@ export function PaymentScreen() {
     });
   }
 
-  function startStk(): void {
-    void run(async () => {
-      const created = await api.post<PaymentDto>('/api/v1/payments', {
-        bookingId: params.bookingId,
-        ...(msisdn.trim() ? { msisdn: msisdn.trim() } : {}),
-      });
-      setPayments((list) => [created, ...list]);
-      refreshBooking();
-    });
-  }
-
   function submitMessage(): void {
     if (!payment || !message.trim()) return;
     void run(async () => {
@@ -189,30 +184,10 @@ export function PaymentScreen() {
     });
   }
 
-  function simulate(resultCode: number): void {
-    if (!payment) return;
-    void run(async () => {
-      const fresh = await api.post<PaymentDto>(`/api/v1/payments/${payment.id}/simulate`, {
-        resultCode,
-      });
-      setPayments((list) => [fresh, ...list.filter((p) => p.id !== fresh.id)]);
-      if (fresh.status === 'PAID') await issueTickets();
-      refreshBooking();
-    });
-  }
-
-  function resend(): void {
-    if (!payment) return;
-    void run(async () => {
-      const fresh = await api.post<PaymentDto>(`/api/v1/payments/${payment.id}/stk`);
-      setPayments((list) => [fresh, ...list.filter((p) => p.id !== fresh.id)]);
-    });
-  }
-
   if (isLoading || !booking) return <Loading label="Loading payment…" />;
 
   const amount = money(booking.totalMinor, booking.currency);
-  const paybill = site?.mpesaPaybill ?? null;
+  const paybill = site?.mpesaPaybill ?? MPESA_PAYBILL;
 
   return (
     <Screen>
@@ -275,7 +250,7 @@ export function PaymentScreen() {
           <Card>
             <Text style={{ ...type.title, color: colors.foreground }}>Pay by M-Pesa</Text>
             <Text style={{ ...type.caption, color: colors.mutedForeground, marginTop: 2 }}>
-              Pay the paybill from your phone, then paste the confirmation SMS below.
+              Pay the ChoiceBank paybill or scan the QR, then paste the confirmation SMS below.
             </Text>
             <View
               style={{
@@ -283,15 +258,50 @@ export function PaymentScreen() {
                 padding: spacing.sm,
                 backgroundColor: colors.secondary,
                 borderRadius: radii.sm,
-                gap: 4,
+                flexDirection: 'row',
+                gap: spacing.sm,
               }}
             >
-              <Text style={{ ...type.caption, color: colors.mutedForeground }}>Paybill</Text>
-              <Text style={{ ...type.title, color: colors.foreground }}>{paybill ?? '—'}</Text>
-              <Text style={{ ...type.caption, color: colors.mutedForeground }}>Account / PNR</Text>
-              <Text style={{ ...type.title, color: colors.foreground }}>{booking.pnr}</Text>
-              <Text style={{ ...type.caption, color: colors.mutedForeground }}>Amount</Text>
-              <Text style={{ ...type.title, color: colors.primary }}>{amount}</Text>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={{ ...type.caption, color: colors.mutedForeground }}>Paybill</Text>
+                <Text style={{ ...type.title, color: colors.foreground }}>{paybill}</Text>
+                <Text style={{ ...type.caption, color: colors.mutedForeground }}>
+                  Account number
+                </Text>
+                <Text style={{ ...type.title, color: colors.foreground }}>{MPESA_ACCOUNT}</Text>
+                <Text style={{ ...type.caption, color: colors.mutedForeground }}>
+                  Booking reference
+                </Text>
+                <Text style={{ ...type.mono, color: colors.foreground }}>{booking.pnr}</Text>
+                <Text style={{ ...type.caption, color: colors.mutedForeground }}>Amount</Text>
+                <Text style={{ ...type.title, color: colors.primary }}>{amount}</Text>
+              </View>
+              <View style={{ alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                <Text style={{ ...type.caption, color: colors.foreground, fontWeight: '600' }}>
+                  ChoiceBank · M-PESA
+                </Text>
+                <Image
+                  source={PAYMENT_QR}
+                  style={{
+                    width: 136,
+                    height: 136,
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: radii.sm,
+                  }}
+                  resizeMode="contain"
+                  accessibilityLabel={`ChoiceBank M-Pesa QR code for paybill ${paybill}, account ${MPESA_ACCOUNT}`}
+                />
+                <Text
+                  style={{
+                    ...type.caption,
+                    color: colors.mutedForeground,
+                    textAlign: 'center',
+                    maxWidth: 136,
+                  }}
+                >
+                  Scan with M-Pesa or the ChoiceBank app
+                </Text>
+              </View>
             </View>
 
             {verify?.status === 'CONFIRMED' && (
@@ -354,23 +364,15 @@ export function PaymentScreen() {
           </Card>
         ) : active && payment ? (
           <Card>
-            <Text style={{ ...type.title, color: colors.foreground }}>Check your phone</Text>
+            <Text style={{ ...type.title, color: colors.foreground }}>Payment processing</Text>
             <Text style={{ ...type.body, color: colors.mutedForeground, marginTop: 2 }}>
-              We sent an M-Pesa request. Enter your PIN to complete the payment.
+              This payment is being processed. Refresh the status below.
             </Text>
-            <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
-              <Button title="Resend request" variant="secondary" onPress={resend} disabled={busy} />
+            <View style={{ marginTop: spacing.md }}>
               <Button
-                title="Simulate success (demo)"
-                variant="ghost"
-                onPress={() => simulate(0)}
-                disabled={busy}
-              />
-              <Button
-                title="Simulate cancellation (demo)"
-                variant="ghost"
-                onPress={() => simulate(1032)}
-                disabled={busy}
+                title="Refresh status"
+                variant="secondary"
+                onPress={() => void refreshPayments()}
               />
             </View>
           </Card>
@@ -378,7 +380,8 @@ export function PaymentScreen() {
           <Card>
             <Text style={{ ...type.title, color: colors.foreground }}>Pay by M-Pesa</Text>
             <Text style={{ ...type.body, color: colors.mutedForeground, marginTop: 2 }}>
-              Pay the paybill from your phone and paste the confirmation message — no card needed.
+              Pay the ChoiceBank paybill or scan the QR, then paste the confirmation message — no
+              card needed.
             </Text>
             <View style={{ marginTop: spacing.md }}>
               <Button
@@ -387,41 +390,6 @@ export function PaymentScreen() {
                 loading={busy}
               />
             </View>
-
-            {showStk ? (
-              <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
-                <Text style={{ ...type.caption, color: colors.foreground, fontWeight: '600' }}>
-                  M-Pesa phone number (+254…)
-                </Text>
-                <TextInput
-                  value={msisdn}
-                  onChangeText={setMsisdn}
-                  keyboardType="phone-pad"
-                  placeholder="+254712345678"
-                  placeholderTextColor={colors.mutedForeground}
-                  style={{
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: radii.sm,
-                    padding: spacing.sm,
-                    color: colors.foreground,
-                    backgroundColor: colors.card,
-                  }}
-                />
-                <Button
-                  title="Send STK push"
-                  variant="secondary"
-                  onPress={startStk}
-                  disabled={busy}
-                />
-              </View>
-            ) : (
-              <Pressable onPress={() => setShowStk(true)} style={{ marginTop: spacing.sm }}>
-                <Text style={{ ...type.caption, color: colors.primary }}>
-                  Prefer an STK push? Enter your number
-                </Text>
-              </Pressable>
-            )}
           </Card>
         )}
 
@@ -431,7 +399,7 @@ export function PaymentScreen() {
               {payment.failureMessage ?? 'The payment did not go through.'}
             </Text>
             <View style={{ marginTop: spacing.sm }}>
-              <Button title="Try again" variant="secondary" onPress={resend} loading={busy} />
+              <Button title="Try again" variant="secondary" onPress={startManual} loading={busy} />
             </View>
           </Card>
         )}

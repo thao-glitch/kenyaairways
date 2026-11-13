@@ -9,6 +9,7 @@
  */
 import {
   AppError,
+  MPESA_ACCOUNT,
   normalizeBrandName,
   toLocalIso,
   toMpesaMsisdn,
@@ -700,7 +701,7 @@ function bookingActorId(actor: Actor): string | null {
   return actor.user.id;
 }
 
-/** Resolve which payment a message should confirm (paymentId → PNR → ref). */
+/** Resolve which payment a message should confirm (paymentId → PNR → legacy ref). */
 function resolveTarget(
   ctx: EngineCtx,
   input: VerifyInput,
@@ -717,7 +718,9 @@ function resolveTarget(
     );
     return { payment, pnr: booking?.pnr ?? '', userId: booking?.userId ?? null };
   }
-  const pnr = (input.pnr ?? accountReference ?? '').trim().toUpperCase();
+  const explicitPnr = (input.pnr ?? '').trim().toUpperCase();
+  const smsReference = (accountReference ?? '').trim().toUpperCase();
+  const pnr = explicitPnr || (smsReference === MPESA_ACCOUNT ? '' : smsReference);
   if (!pnr) return null;
   const booking = ctx.db.get<{ id: string; pnr: string; userId: string | null }>(
     'SELECT id, pnr, userId FROM bookings WHERE pnr = ?',
@@ -780,7 +783,15 @@ export function verifierCheck(
   if (parsed.amountMinor === null) issues.push('No amount found in the message');
 
   const target = resolveTarget(ctx, input, parsed.accountReference);
-  if (!target) issues.push('No payment found — check the PNR or payment id');
+  if (!target) {
+    const sharedAccountOnly =
+      !input.paymentId && !input.pnr && (parsed.accountReference ?? '').trim() === MPESA_ACCOUNT;
+    issues.push(
+      sharedAccountOnly
+        ? `This message uses the shared account ${MPESA_ACCOUNT} — enter the booking PNR`
+        : 'No payment found — check the PNR or payment id',
+    );
+  }
 
   const receiptAvailable =
     parsed.receiptNumber === null ? true : !receiptUsed(ctx, parsed.receiptNumber);
@@ -818,7 +829,16 @@ export function verifierVerify(
     fail('VALIDATION_ERROR', 'Could not read an M-Pesa receipt number and amount from the message');
   }
   const target = resolveTarget(ctx, input, parsed.accountReference);
-  if (!target) fail('NOT_FOUND', 'No payment found for this booking');
+  if (!target) {
+    const sharedAccountOnly =
+      !input.paymentId && !input.pnr && (parsed.accountReference ?? '').trim() === MPESA_ACCOUNT;
+    fail(
+      sharedAccountOnly ? 'VALIDATION_ERROR' : 'NOT_FOUND',
+      sharedAccountOnly
+        ? `This message uses the shared account ${MPESA_ACCOUNT} — enter the booking PNR`
+        : 'No payment found for this booking',
+    );
+  }
   assertAmount(target.payment, parsed.amountMinor);
 
   const nowIso = new Date(ctx.now()).toISOString();

@@ -376,6 +376,7 @@ export function PaymentsTab({ env }: { env: ToolsEnv }) {
     '/api/v1/admin/mpesa-verifier/records',
   );
   const [message, setMessage] = useState('');
+  const [pnr, setPnr] = useState('');
   const [check, setCheck] = useState<MpesaVerifyCheckDto | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
@@ -386,7 +387,7 @@ export function PaymentsTab({ env }: { env: ToolsEnv }) {
     setNote(null);
     try {
       const res = env.call<MpesaVerifyCheckDto>('POST', '/api/v1/admin/mpesa-verifier/parse', {
-        body: { message },
+        body: { message, ...(pnr.trim() ? { pnr: pnr.trim().toUpperCase() } : {}) },
       });
       setCheck(res);
     } catch (err) {
@@ -400,7 +401,9 @@ export function PaymentsTab({ env }: { env: ToolsEnv }) {
     setBusy(true);
     setNote(null);
     try {
-      env.call('POST', '/api/v1/admin/mpesa-verifier/verify', { body: { message } });
+      env.call('POST', '/api/v1/admin/mpesa-verifier/verify', {
+        body: { message, ...(pnr.trim() ? { pnr: pnr.trim().toUpperCase() } : {}) },
+      });
       setNote({ ok: true, text: env.t('verified') });
       setCheck(null);
       setMessage('');
@@ -449,10 +452,18 @@ export function PaymentsTab({ env }: { env: ToolsEnv }) {
           <Row label={env.t('paymentNumber')} value={site.data.mpesaPaybill} />
         ) : null}
         <TextInput
+          value={pnr}
+          onChangeText={setPnr}
+          autoCapitalize="characters"
+          placeholder={env.t('bookingRef')}
+          placeholderTextColor={colors.mutedForeground}
+          style={[inputStyle, { marginTop: spacing.sm }]}
+        />
+        <TextInput
           value={message}
           onChangeText={setMessage}
           multiline
-          placeholder="SJH4LMOP32 confirmed. Ksh1,500.00 sent to ACCOUNT 0182774255 …"
+          placeholder="SJH4LMOP32 confirmed. Ksh1,500.00 sent to ACCOUNT 444174 for account 05515 …"
           placeholderTextColor={colors.mutedForeground}
           style={[inputStyle, { minHeight: 84, marginTop: spacing.sm, textAlignVertical: 'top' }]}
         />

@@ -117,8 +117,10 @@ docker compose run --rm api pnpm db:seed   # first run only: seed the network
 | Admin                                    | `admin@kenyaairways.example` / `Password123!` |
 | Agent, finance, ops, sysadmin, passenger | seeded — see `apps/api/prisma/seed.ts`        |
 
-Demo payments use M-Pesa “Payment number **0182774255**” (manual-verification
-demo mode — the Daraja STK flow is intentionally untouched). Change
+Demo payments use the ChoiceBank M-Pesa paybill **444174**, account **05515**.
+Passengers pay by hand or scan the supplied ChoiceBank QR and paste the
+confirmation SMS; the Daraja STK machinery remains for configured
+integrations but is no longer offered to passengers. Change
 `SEED_USER_PASSWORD` and all secrets before any real deployment.
 
 ---
@@ -158,9 +160,10 @@ then tap the APK inside. Each release also includes a `SHA256SUMS.txt`
 checksum file.
 
 The traveller app works **without the PC**: its on-device engine holds a
-booking, takes the M-Pesa paybill payment and verifies the confirmation SMS.
-When the PC is reachable it uses the live API instead. Payment is always the
-same demo paybill: **0182774255**, account = your **PNR**.
+booking, takes the ChoiceBank M-Pesa payment and verifies the confirmation
+SMS. When the PC is reachable it uses the live API instead. Payment is always
+the same demo paybill: **444174**, account **05515** — pay by hand or scan the
+in-app ChoiceBank QR, then paste the confirmation SMS.
 
 To connect the app to the PC on the same Wi-Fi, open **Server settings** in
 the app and use `http://<pc-lan-ip>:4100` (the installer prints the address).

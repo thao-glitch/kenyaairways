@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   AppError,
+  MPESA_ACCOUNT,
   toMpesaMsisdn,
   type ManualVerifyStatus,
   type MpesaManualVerificationDto,
@@ -79,7 +80,15 @@ export class MpesaVerifierService {
     if (parsed.amountMinor === null) issues.push('No amount found in the message');
 
     const target = await this.resolveTarget(actor, input, parsed.accountReference);
-    if (!target) issues.push('No payment found — check the PNR or payment id');
+    if (!target) {
+      const sharedAccountOnly =
+        !input.paymentId && !input.pnr && (parsed.accountReference ?? '').trim() === MPESA_ACCOUNT;
+      issues.push(
+        sharedAccountOnly
+          ? `This message uses the shared account ${MPESA_ACCOUNT} — enter the booking PNR`
+          : 'No payment found — check the PNR or payment id',
+      );
+    }
 
     const receiptAvailable =
       parsed.receiptNumber === null ? true : !(await this.receiptUsed(parsed.receiptNumber));
@@ -123,7 +132,16 @@ export class MpesaVerifierService {
       );
     }
     const target = await this.resolveTarget(actor, input, parsed.accountReference);
-    if (!target) throw new AppError('NOT_FOUND', 'No payment found for this booking');
+    if (!target) {
+      const sharedAccountOnly =
+        !input.paymentId && !input.pnr && (parsed.accountReference ?? '').trim() === MPESA_ACCOUNT;
+      throw sharedAccountOnly
+        ? new AppError(
+            'VALIDATION_ERROR',
+            `This message uses the shared account ${MPESA_ACCOUNT} — enter the booking PNR`,
+          )
+        : new AppError('NOT_FOUND', 'No payment found for this booking');
+    }
     assertAmount(target.payment, parsed.amountMinor);
 
     let record: VerificationRow;
@@ -334,9 +352,11 @@ export class MpesaVerifierService {
 
   /**
    * Resolve the payment a message should confirm: explicit payment id, then
-   * explicit PNR, then the account reference the payer typed (usually the
-   * PNR). Prefers a payment that can still be claimed, falls back to the
-   * latest attempt so staff get a clear "already paid" instead of nothing.
+   * explicit PNR, then a legacy PNR typed as the SMS account reference.
+   * The shared ChoiceBank account (`05515`) is never a PNR, so staff must
+   * supply the booking reference when the SMS shows that account. Prefers a
+   * payment that can still be claimed, falls back to the latest attempt so
+   * staff get a clear "already paid" instead of nothing.
    */
   private async resolveTarget(
     actor: BookingActor,
@@ -352,7 +372,9 @@ export class MpesaVerifierService {
       return { payment, booking: booking ?? { pnr: '' } };
     }
 
-    const pnr = (input.pnr ?? accountReference ?? '').trim().toUpperCase();
+    const explicitPnr = (input.pnr ?? '').trim().toUpperCase();
+    const smsReference = (accountReference ?? '').trim().toUpperCase();
+    const pnr = explicitPnr || (smsReference === MPESA_ACCOUNT ? '' : smsReference);
     if (!pnr) return null;
     const booking = await this.prisma.booking.findUnique({
       where: { pnr },

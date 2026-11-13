@@ -36,6 +36,22 @@ export const MPESA_TRANSACTION_DESC_MAX = 13;
 export const MPESA_TRANSACTION_DESC = 'Kenya Airways';
 
 /**
+ * ChoiceBank M-Pesa paybill used by the passenger payment step.
+ *
+ * Passengers pay this paybill with account {@link MPESA_ACCOUNT}, or scan the
+ * supplied ChoiceBank QR, then paste the confirmation SMS. The paybill is
+ * seeded into the payment plan (and remains admin-editable there); these
+ * constants are the safe fallback used before site settings arrive and by the
+ * offline engine.
+ */
+export const MPESA_PAYBILL = '444174';
+export const MPESA_ACCOUNT = '05515';
+export const MPESA_ACCOUNT_NAME = 'Shadrack Kiprotich Bett';
+/** Exact payload of the ChoiceBank QR supplied for this account. */
+export const MPESA_QR_URL =
+  'https://www.choicebank.co.ke/m/pay?acc=05515&c=KES&n=Shadrack%20Kiprotich%20Bett&src=qr';
+
+/**
  * Public app name. The trailing full stop is part of the brand lockup, so it
  * is rendered wherever the product name appears (header, manifest, installers).
  */

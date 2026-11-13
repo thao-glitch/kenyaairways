@@ -163,6 +163,11 @@ restore_traveller_identity() {
   sed -i 's|<string name="app_name">Kenya Airways Admin\.</string>|<string name="app_name">Kenya Airways\.</string>|' "$STR" 2>/dev/null || true
 }
 trap restore_traveller_identity EXIT
+# A build killed mid-admin (SIGKILL, reboot, CI cancel) never runs the trap,
+# leaving applicationId 'ke.co.kenyaairways.admin' behind — which would make
+# the NEXT traveller build silently produce an admin package. Force the
+# traveller identity up front; the admin path retargets it later anyway.
+restore_traveller_identity
 
 build_console_export() {
   echo "▸ Static-exporting the admin console (ADMIN_STATIC_EXPORT=1)"

@@ -149,7 +149,7 @@ async function main() {
       enabled: true,
       source: 'ENV' as const,
       version: null,
-      settings: { shortcode: process.env.MPESA_SHORTCODE ?? '0182774255' },
+      settings: { shortcode: process.env.MPESA_SHORTCODE ?? '444174' },
       secrets: { passkey: { configured: false, masked: null } },
       updatedById: null,
       updatedAt: null,

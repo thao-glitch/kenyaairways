@@ -884,8 +884,8 @@ describe('payments (e2e): STK, callbacks, C2B, refunds, reconciliation', () => {
     const receipt = `MAN${stamp.slice(-5).toUpperCase()}${receiptSeq++ % 10}`;
     const amountMajor = booking.totalMinor / 100;
     const sms =
-      `${receipt} confirmed. Ksh${amountMajor.toFixed(2)} sent to ACCOUNT 0182774255 ` +
-      `for account ${booking.pnr} on 18/10/26 at 3:45 PM. New M-PESA balance is Ksh9,000.00.`;
+      `${receipt} confirmed. Ksh${amountMajor.toFixed(2)} sent to ACCOUNT 444174 ` +
+      `for account 05515 on 18/10/26 at 3:45 PM. New M-PESA balance is Ksh9,000.00.`;
 
     const pasted = await request(server())
       .post(`/api/v1/payments/${payment.body.id}/mpesa-manual`)
@@ -909,5 +909,49 @@ describe('payments (e2e): STK, callbacks, C2B, refunds, reconciliation', () => {
       .send({ message: sms })
       .expect(409);
     expect(replay.body.error.code).toBe('CONFLICT');
+  });
+
+  it('staff verify needs the booking PNR when the SMS shows the shared account 05515', async () => {
+    const booking = await book(flightD);
+    const payment = await request(server())
+      .post('/api/v1/payments')
+      .set('Cookie', ownerCookie)
+      .send({ bookingId: booking.id, manual: true })
+      .expect(201);
+
+    const receipt = `STF${stamp.slice(-5).toUpperCase()}${receiptSeq++ % 10}`;
+    const amountMajor = booking.totalMinor / 100;
+    const sms =
+      `${receipt} confirmed. Ksh${amountMajor.toFixed(2)} sent to ACCOUNT 444174 ` +
+      `for account 05515 on 18/10/26 at 3:45 PM. New M-PESA balance is Ksh9,000.00.`;
+
+    // The SMS account is the shared paybill account, never a PNR: staff have
+    // to name the booking explicitly instead of the server guessing.
+    const blind = await request(server())
+      .post('/api/v1/admin/mpesa-verifier/parse')
+      .set('Cookie', financeCookie)
+      .send({ message: sms })
+      .expect(200);
+    expect(blind.body.pnr).toBeNull();
+    expect(blind.body.paymentId).toBeNull();
+    expect(blind.body.issues.join(' ')).toContain('05515');
+
+    const aimed = await request(server())
+      .post('/api/v1/admin/mpesa-verifier/parse')
+      .set('Cookie', financeCookie)
+      .send({ message: sms, pnr: booking.pnr })
+      .expect(200);
+    expect(aimed.body.pnr).toBe(booking.pnr);
+    expect(aimed.body.paymentId).toBe(payment.body.id);
+    expect(aimed.body.issues).toEqual([]);
+
+    const verified = await request(server())
+      .post('/api/v1/admin/mpesa-verifier/verify')
+      .set('Cookie', financeCookie)
+      .send({ message: sms, pnr: booking.pnr })
+      .expect(200);
+    expect(verified.body.record.status).toBe('CONFIRMED');
+    expect(verified.body.record.accountReference).toBe('05515');
+    expect(verified.body.payment.status).toBe('PAID');
   });
 });

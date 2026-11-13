@@ -281,7 +281,12 @@ function adminRoute(ctx: EngineCtx, actor: Actor, req: LocalRequest, rest: strin
     requireRole(actor, ['FINANCE', 'ADMIN']);
     const body = (req.body ?? {}) as Record<string, string | undefined>;
     if (rest[1] === 'parse' && method === 'POST') {
-      return verifierCheck(ctx, actor, { message: body.message ?? '' });
+      return verifierCheck(ctx, actor, {
+        message: body.message ?? '',
+        pnr: body.pnr,
+        paymentId: body.paymentId,
+        notes: body.notes,
+      });
     }
     if (rest[1] === 'verify' && method === 'POST') {
       return verifierVerify(ctx, actor, {

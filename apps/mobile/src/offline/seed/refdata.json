@@ -33,7 +33,7 @@
     "appName": "Kenya Airways.",
     "theme": "sky",
     "images": {},
-    "mpesaPaybill": "0182774255"
+    "mpesaPaybill": "444174"
   },
   "paymentPlan": {
     "defaultProvider": "MOCK",
@@ -45,7 +45,7 @@
         "source": "DATABASE",
         "version": 1,
         "settings": {
-          "shortcode": "0182774255"
+          "shortcode": "444174"
         },
         "secrets": {
           "passkey": {

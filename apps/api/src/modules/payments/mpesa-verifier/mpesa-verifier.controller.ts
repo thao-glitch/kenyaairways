@@ -28,7 +28,7 @@ export class PasteMessageDto {
   @ApiProperty({
     description: 'Raw M-Pesa confirmation SMS, pasted verbatim',
     example:
-      'SJH4LMOP32 confirmed. Ksh1,500.00 sent to ACCOUNT 0182774255 for account KQ7XYZ123 on 18/10/26 at 3:45 PM.',
+      'SJH4LMOP32 confirmed. Ksh1,500.00 sent to ACCOUNT 444174 for account 05515 on 18/10/26 at 3:45 PM.',
   })
   @IsString()
   @MaxLength(4_000)
@@ -37,7 +37,8 @@ export class PasteMessageDto {
 
 export class VerifyMessageDto extends PasteMessageDto {
   @ApiPropertyOptional({
-    description: 'Booking PNR — defaults to the account reference in the SMS',
+    description:
+      'Booking PNR — required when the SMS shows the shared account 05515; legacy SMS references are used as a fallback',
   })
   @IsOptional()
   @IsString()
@@ -93,14 +94,18 @@ export class MpesaVerifierController {
   @Post('parse')
   @HttpCode(200)
   @Roles(Role.FINANCE, Role.ADMIN)
-  @ApiOperation({ summary: 'Dry-run: parse a pasted M-Pesa message and report blockers' })
+  @ApiOperation({
+    summary: 'Dry-run: parse a pasted M-Pesa message and report blockers',
+    description:
+      'Optional pnr/paymentId name the booking the message should settle — required when the SMS shows the shared account 05515.',
+  })
   @ApiOkResponse({ description: 'Parsed fields + issues + the payment it would confirm' })
   async parse(
     @CurrentUser() user: AuthUser,
-    @Body() dto: PasteMessageDto,
+    @Body() dto: VerifyMessageDto,
     @Req() req: AuthedRequest,
   ): Promise<MpesaVerifyCheckDto> {
-    return this.verifier.check(this.actor(user, req), { message: dto.message });
+    return this.verifier.check(this.actor(user, req), dto);
   }
 
   @Post('verify')

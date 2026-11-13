@@ -264,13 +264,13 @@ export class World {
   }
 
   /** Opens/creates the offline DB, seeds refdata and generates flights. */
-  static load(db: SqlDb, opts: { windowDaysAhead?: number } = {}): World {
+  static load(db: SqlDb, opts: { windowDaysAhead?: number; now?: Date } = {}): World {
     ensureSchema(db);
     const world = new World(db);
     world.seedRefData();
     world.seedUsers();
     world.seedSiteSettings();
-    const today = new Date();
+    const today = new Date(opts.now ?? Date.now());
     today.setUTCHours(0, 0, 0, 0);
     world.ensureWindow(today, addDays(today, opts.windowDaysAhead ?? 30));
     return world;
@@ -549,6 +549,12 @@ export class World {
         data.site.mpesaPaybill,
         new Date().toISOString(),
       ]),
+    );
+    // Upgrade devices that cached the retired demo paybill. A deliberately
+    // admin-edited value is left alone; only the known old number is swapped.
+    this.db.run(
+      `UPDATE site_settings SET mpesa_paybill = ?, updated_at = ? WHERE mpesa_paybill = ?`,
+      sqlParams([data.site.mpesaPaybill, new Date().toISOString(), '0182774255']),
     );
   }
 

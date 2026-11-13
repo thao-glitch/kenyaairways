@@ -36,10 +36,15 @@ describe('i18n message catalogs', () => {
   });
 
   it('actually translates: sw differs from en for every key but the brand/language labels', () => {
-    // These three are identical by design — a brand name and the names of the
-    // two language options themselves. Anything else equal means a missing
+    // These are identical by design — brand names and the names of the two
+    // language options themselves. Anything else equal means a missing
     // translation that key-completeness alone would not catch.
-    const identicalByDesign = new Set(['app.name', 'nav.english', 'nav.swahili']);
+    const identicalByDesign = new Set([
+      'app.name',
+      'nav.english',
+      'nav.swahili',
+      'pay.manual.bank',
+    ]);
     const equal: string[] = [];
     for (const key of enKeys) {
       const enValue = (en as Record<string, string>)[key];

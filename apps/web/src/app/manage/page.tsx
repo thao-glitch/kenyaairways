@@ -1,4 +1,4 @@
-import type { SiteSettingsDto } from '@kenyaairways/shared';
+import { MPESA_ACCOUNT, MPESA_PAYBILL, type SiteSettingsDto } from '@kenyaairways/shared';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PnrLookup } from '@/components/pnr-lookup';
@@ -186,14 +186,34 @@ export default async function ManagePage({ searchParams }: { searchParams: Searc
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 {t('section.support.paymentBody')}
               </p>
-              {site?.mpesaPaybill && (
-                <p className="mt-3 rounded-lg bg-background/70 px-4 py-3 text-sm">
-                  <span className="text-muted-foreground">{t('pay.manual.paybill')}: </span>
-                  <span className="font-bold tracking-widest text-foreground">
-                    {site.mpesaPaybill}
+              <div className="mt-3 flex flex-col gap-3 rounded-lg bg-background/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="grid gap-2 text-sm sm:grid-cols-2">
+                  <p>
+                    <span className="text-muted-foreground">{t('pay.manual.paybill')}: </span>
+                    <span className="font-bold tracking-widest text-foreground">
+                      {site?.mpesaPaybill ?? MPESA_PAYBILL}
+                    </span>
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">{t('pay.manual.account')}: </span>
+                    <span className="font-bold tracking-widest text-foreground">
+                      {MPESA_ACCOUNT}
+                    </span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <img
+                    src="/payment-qr.png"
+                    alt={t('pay.manual.qrAlt')}
+                    width={104}
+                    height={104}
+                    className="h-24 w-24 rounded bg-white p-1"
+                  />
+                  <span className="max-w-36 text-xs text-muted-foreground">
+                    {t('pay.manual.scan')}
                   </span>
-                </p>
-              )}
+                </div>
+              </div>
             </section>
 
             <section className="rounded-xl border bg-card p-5">

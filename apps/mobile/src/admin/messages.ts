@@ -60,8 +60,10 @@ const en = {
   noBookings: 'No bookings found',
   // payments
   paymentsTitle: 'M-Pesa verification',
-  paymentsHint: 'Paste the confirmation SMS exactly as received.',
+  paymentsHint:
+    'Paste the confirmation SMS, then enter the booking PNR — the SMS account is the shared 05515.',
   pasteSms: 'M-Pesa message',
+  bookingRef: 'Booking reference (PNR)',
   parse: 'Check message',
   verify: 'Verify & mark paid',
   verified: 'Payment verified',
@@ -76,7 +78,7 @@ const en = {
   confirmed: 'Record confirmed',
   rejected: 'Record rejected',
   noRecords: 'No verification records',
-  paymentNumber: 'Payment number',
+  paymentNumber: 'Paybill',
   // settings
   settingsTitle: 'Site settings',
   appName: 'App name',
@@ -143,8 +145,10 @@ const sw: Record<AdminMessageKey, string> = {
   noBookings: 'Hakuna maagizo yaliyopatikana',
   // payments
   paymentsTitle: 'Uthibitisho wa M-Pesa',
-  paymentsHint: 'Bandika ujumbe wa uthibitisho hasa ulivyopokea.',
+  paymentsHint:
+    'Bandika ujumbe wa uthibitisho, kisha weka kitambulisho cha upangaji — akaunti ya ujumbe ni 05515.',
   pasteSms: 'Ujumbe wa M-Pesa',
+  bookingRef: 'Kitambulisho cha upangaji (PNR)',
   parse: 'Angalia ujumbe',
   verify: 'Thibitisha na lipa',
   verified: 'Malipo yamethibitishwa',
@@ -159,7 +163,7 @@ const sw: Record<AdminMessageKey, string> = {
   confirmed: 'Rekodi imethibitishwa',
   rejected: 'Rekodi imekataliwa',
   noRecords: 'Hakuna rekodi za uthibitisho',
-  paymentNumber: 'Namba ya malipo',
+  paymentNumber: 'Paybill',
   // settings
   settingsTitle: 'Mipangilio ya tovuti',
   appName: 'Jina la programu',

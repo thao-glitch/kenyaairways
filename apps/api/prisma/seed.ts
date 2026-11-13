@@ -2730,19 +2730,34 @@ async function seedUsers(): Promise<void> {
 // ─────────────────── manual M-Pesa paybill + site settings ──────────────────
 /**
  * Paybill customers pay into BY HAND (no Daraja STK involved): the passenger
- * sends money to this number with their PNR as the account/reference, then
- * pastes the confirmation message while booking — it settles the payment on
- * the spot. Shown in the payment plan and in the passenger pay panel.
+ * pays ChoiceBank paybill 444174 with account 05515 (or scans the supplied
+ * ChoiceBank QR), then pastes the confirmation message while booking — it
+ * settles the payment on the spot. Shown in the payment plan and in the
+ * passenger pay panel.
  */
-const MPESA_PAYBILL = '0182774255';
+const MPESA_PAYBILL = '444174';
+const LEGACY_DEMO_PAYBILL = '0182774255';
 
-/** Seed the paybill into the payment plan — never overwrites admin edits. */
+/**
+ * Seed the paybill into the payment plan — never overwrites admin edits.
+ * Older installs that still carry the retired demo number are upgraded in
+ * place; a deliberate admin-configured shortcode is left untouched.
+ */
 async function seedPaymentPlan(): Promise<void> {
   const existing = await prisma.paymentMethodConfig.findUnique({
     where: { provider: 'MPESA_STK' },
   });
   if (existing) {
-    console.log('• payment plan already configured — keeping admin overrides');
+    const settings = (existing.settings ?? {}) as Record<string, unknown>;
+    if (settings.shortcode === LEGACY_DEMO_PAYBILL) {
+      await prisma.paymentMethodConfig.update({
+        where: { provider: 'MPESA_STK' },
+        data: { settings: { ...settings, shortcode: MPESA_PAYBILL } },
+      });
+      console.log(`✓ payment plan: replaced retired demo paybill with ${MPESA_PAYBILL}`);
+    } else {
+      console.log('• payment plan already configured — keeping admin overrides');
+    }
     return;
   }
   await prisma.paymentMethodConfig.create({
