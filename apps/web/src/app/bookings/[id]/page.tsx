@@ -8,7 +8,8 @@ type Params = Promise<{ id: string }>;
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getTranslator();
-  return { title: t('booking.title') };
+  // Owner-scoped booking record — private, and would 404 for a crawler.
+  return { title: t('booking.title'), robots: { index: false, follow: false } };
 }
 
 /**

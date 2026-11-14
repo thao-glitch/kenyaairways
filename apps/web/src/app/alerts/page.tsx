@@ -1,5 +1,12 @@
+import type { Metadata } from 'next';
 import { PriceAlertsList } from '@/components/price-alerts-list';
 import { getTranslator } from '@/lib/i18n';
+
+/** Price alerts — own title so it is not a duplicate of the homepage. */
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return { title: t('alerts.title'), description: t('alerts.body') };
+}
 
 /** My price alerts (Kenya Airways price-alert feature — list is client-fetched). */
 export default async function AlertsPage() {

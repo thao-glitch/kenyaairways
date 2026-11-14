@@ -6,6 +6,7 @@ import type {
   FlightSearchResultDto,
 } from '@kenyaairways/shared';
 import { formatMoney } from '@kenyaairways/shared';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { RouteArc } from '@/components/art/route-arc';
 import { SitePhoto } from '@/components/media/site-photo';
@@ -47,6 +48,16 @@ const searchUrl = (s: LegSpec, adults: string): string =>
  * books them as one multi-segment booking. Selection lives in the `sel` URL
  * param — no client JS beyond the search form itself.
  */
+/**
+ * Live search/results route. It needs its own title: without one it inherits
+ * the homepage's, and four duplicate title tags is how a site ends up looking
+ * like a doorway page to Google.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return { title: t('search.title'), description: t('search.prompt') };
+}
+
 export default async function FlightsPage({ searchParams }: { searchParams: SearchParams }) {
   const { t, locale } = await getTranslator();
   const sp = await searchParams;

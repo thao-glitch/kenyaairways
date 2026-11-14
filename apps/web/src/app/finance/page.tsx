@@ -7,7 +7,8 @@ export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getTranslator();
-  return { title: t('staff.finance.title') };
+  // Staff console — never surface a login-gated page in search results.
+  return { title: t('staff.finance.title'), robots: { index: false, follow: false } };
 }
 
 /** The finance console now lives in its own standalone app. */

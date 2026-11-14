@@ -13,7 +13,8 @@ const first = (value: string | string[] | undefined): string | undefined =>
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getTranslator();
-  return { title: t('auth.register.title') };
+  // Account entry point — nothing here is useful to a crawler.
+  return { title: t('auth.register.title'), robots: { index: false, follow: false } };
 }
 
 export default async function RegisterPage({ searchParams }: { searchParams: SearchParams }) {

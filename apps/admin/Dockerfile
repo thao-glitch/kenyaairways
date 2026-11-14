@@ -19,7 +19,7 @@ FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production PORT=3001 HOSTNAME=0.0.0.0
 COPY --from=build /repo/apps/admin/.next/standalone ./
-COPY --from=build /repo/apps/admin/.next/static ./.next/static
-COPY --from=build /repo/apps/admin/public ./public
+COPY --from=build /repo/apps/admin/.next/static ./apps/admin/.next/static
+COPY --from=build /repo/apps/admin/public ./apps/admin/public
 EXPOSE 3001
-CMD ["node", "server.js"]
+CMD ["node", "apps/admin/server.js"]

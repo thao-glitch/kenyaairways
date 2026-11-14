@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import type { FlightOptionDto } from '@kenyaairways/shared';
+import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { BookForm } from '@/components/booking/book-form';
 import { apiGetOrNull } from '@/lib/api';
@@ -20,6 +21,12 @@ const first = (value: string | string[] | undefined): string | undefined =>
  * round trip or up to 4 multi-city legs), form is a client island.
  * Legacy `?flightId=…&fare=…` links keep working as a single segment.
  */
+/** Booking funnel — own title so it is not a duplicate of the homepage. */
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return { title: t('book.title'), description: t('book.priceNote') };
+}
+
 export default function BookPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <Suspense fallback={<BookSkeleton />}>

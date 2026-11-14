@@ -5,6 +5,7 @@ import type {
   SiteSettingsDto,
 } from '@kenyaairways/shared';
 import { formatMoney } from '@kenyaairways/shared';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SitePhoto } from '@/components/media/site-photo';
 import { SearchForm } from '@/components/search-form';
@@ -13,6 +14,15 @@ import { apiGetOrNull } from '@/lib/api';
 import { getTranslator } from '@/lib/i18n';
 import { getSiteSettings } from '@/lib/site';
 import { destinationImage, siteImage } from '@/lib/site-images';
+
+// The homepage is the one page that must declare its own canonical: it is
+// the URL every share, ad and search result should consolidate onto, and a
+// relative value resolves against `metadataBase` (lib/site-url). Deliberately
+// not set at the layout level — an inherited canonical would tell Google that
+// every page on the site is the homepage.
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 
 /** Airports whose destination photos and copy are curated in defaults. */
 const CAROUSEL_CODES = ['MBA', 'KIS', 'DAR', 'EBB', 'JNB', 'LHR', 'DXB', 'CPT'];

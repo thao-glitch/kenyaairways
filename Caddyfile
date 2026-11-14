@@ -1,0 +1,58 @@
+# Caddy reverse proxy for the Kenya Airways web deployment.
+#
+# Two hosts:
+#   {$SITE_URL}      → traveller web app (Next.js), with /api/*, /socket.io/*
+#                      and the health probes forwarded straight to the API so
+#                      the Android app and the browser share one origin.
+#   {$ADMIN_URL}     → admin console, behind HTTP basic auth + a noindex header.
+#
+# Caddy provisions and renews Let's Encrypt certificates automatically for
+# both hosts, so a brand-new free subdomain (e.g. *.duckdns.org) gets HTTPS
+# the first time it is requested — no certbot, no DNS TXT records.
+#
+# All values come from the environment (.env). Never hard-code a domain here.
+
+{
+    email {$ACME_EMAIL:admin@example.com}
+}
+
+{$SITE_URL} {
+    encode gzip zstd
+
+    # API + realtime + health probes → the NestJS API (also the public URL the
+    # Android app is configured to talk to).
+    @api path /api/* /socket.io/* /readyz /healthz
+    handle @api {
+        reverse_proxy api:4100
+    }
+
+    # Everything else → the traveller Next.js app.
+    handle {
+        reverse_proxy web:3000
+    }
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    }
+}
+
+{$ADMIN_URL} {
+    # Lock the console down at the edge: HTTP basic auth in front of the app,
+    # plus a hard noindex so Google never lists it even if auth is bypassed.
+    basicauth {
+        {$ADMIN_USER} {$ADMIN_PASSWORD_HASH}
+    }
+
+    encode gzip zstd
+    reverse_proxy admin:3001
+
+    header {
+        X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+}

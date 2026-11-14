@@ -1,4 +1,5 @@
 import type { FlightStatusBoardDto } from '@kenyaairways/shared';
+import type { Metadata } from 'next';
 import { RouteArc } from '@/components/art/route-arc';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,12 @@ function timeOnly(iso: string | null): string {
  * Public flight-status board (Flighty style). A plain GET form, so it works
  * with JavaScript disabled — the lookup itself is server-rendered.
  */
+/** Flight status lookup — own title so it is not a duplicate of the homepage. */
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return { title: t('status.title'), description: t('status.prompt') };
+}
+
 export default async function StatusPage({ searchParams }: { searchParams: SearchParams }) {
   const { t } = await getTranslator();
   const params = await searchParams;

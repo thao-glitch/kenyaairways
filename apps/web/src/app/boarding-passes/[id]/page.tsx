@@ -8,7 +8,8 @@ type Params = Promise<{ id: string }>;
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getTranslator();
-  return { title: t('pass.title') };
+  // Owner-scoped boarding pass — private, and would 404 for a crawler.
+  return { title: t('pass.title'), robots: { index: false, follow: false } };
 }
 
 /** Printable boarding pass (owner-scoped, fetched client-side with cookies). */

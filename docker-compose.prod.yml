@@ -1,0 +1,121 @@
+# Kenya Airways — production stack.
+#
+#   1) cp .env.production.example .env   (then fill in the secrets + domains)
+#   2) docker compose -f docker-compose.prod.yml up -d --build
+#   3) docker compose -f docker-compose.prod.yml exec api pnpm db:seed
+#   4) Point your free subdomain(s) at this box (see DEPLOY.md)
+#
+# Only Caddy publishes ports (80/443). Postgres, Redis and the API are
+# internal to the compose network — they are never reachable from the internet.
+# The traveller web app is reachable at {$SITE_URL}, the admin console at
+# {$ADMIN_URL} (behind HTTP basic auth, see Caddyfile).
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    env_file: .env
+    depends_on:
+      - web
+      - admin
+      - api
+
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: 4100
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      REDIS_URL: redis://redis:6379
+      UPLOAD_DIR: /data/uploads
+      CORS_ORIGINS: ${SITE_URL},${ADMIN_URL}
+      MPESA_CALLBACK_BASE_URL: ${SITE_URL}/api/v1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - uploads:/data/uploads
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_PUBLIC_URL: http://api:4100
+        NEXT_PUBLIC_API_URL: http://api:4100
+        NEXT_PUBLIC_ADMIN_URL: ${NEXT_PUBLIC_ADMIN_URL}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      SITE_URL: ${SITE_URL}
+      API_PUBLIC_URL: http://api:4100
+    depends_on:
+      - api
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      args:
+        API_PUBLIC_URL: http://api:4100
+        NEXT_PUBLIC_API_URL: http://api:4100
+        NEXT_PUBLIC_ADMIN_URL: ${NEXT_PUBLIC_ADMIN_URL}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      HOSTNAME: 0.0.0.0
+      SITE_URL: ${ADMIN_URL}
+      API_PUBLIC_URL: http://api:4100
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:
+  caddy_data:
+  caddy_config:
