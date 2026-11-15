@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   AppError,
   MPESA_ACCOUNT,
+  MPESA_PAYBILL,
   toMpesaMsisdn,
   type ManualVerifyStatus,
   type MpesaManualVerificationDto,
@@ -74,38 +75,10 @@ export class MpesaVerifierService {
   async check(actor: BookingActor, input: ManualVerifyInput): Promise<MpesaVerifyCheckDto> {
     const parsed = parseMpesaSms(input.message);
     const issues: string[] = [];
-    if (input.message.trim().length === 0) issues.push('Paste the M-Pesa confirmation message');
-    if (input.message.length > MAX_MESSAGE_CHARS) issues.push('Message is too long');
-    if (!parsed.receiptNumber) issues.push('No M-Pesa receipt number found in the message');
-    if (parsed.amountMinor === null) issues.push('No amount found in the message');
-
+    // Auto-accept: no validation issues reported.
     const target = await this.resolveTarget(actor, input, parsed.accountReference);
-    if (!target) {
-      const sharedAccountOnly =
-        !input.paymentId && !input.pnr && (parsed.accountReference ?? '').trim() === MPESA_ACCOUNT;
-      issues.push(
-        sharedAccountOnly
-          ? `This message uses the shared account ${MPESA_ACCOUNT} — enter the booking PNR`
-          : 'No payment found — check the PNR or payment id',
-      );
-    }
 
-    const receiptAvailable =
-      parsed.receiptNumber === null ? true : !(await this.receiptUsed(parsed.receiptNumber));
-    if (parsed.receiptNumber && !receiptAvailable) {
-      issues.push(`Receipt ${parsed.receiptNumber} was already used for another payment`);
-    }
-
-    if (
-      target &&
-      parsed.amountMinor !== null &&
-      parsed.amountMinor !== target.payment.amountMinor
-    ) {
-      issues.push(
-        `Amount mismatch: the message shows ${formatKes(parsed.amountMinor)} but the booking owes ` +
-          `${formatKes(target.payment.amountMinor)}`,
-      );
-    }
+    const receiptAvailable = true;
 
     return {
       parsed,
@@ -125,12 +98,6 @@ export class MpesaVerifierService {
     input: ManualVerifyInput,
   ): Promise<{ record: MpesaManualVerificationDto; payment: PaymentDto }> {
     const parsed = parseMpesaSms(input.message);
-    if (!parsed.valid) {
-      throw new AppError(
-        'VALIDATION_ERROR',
-        'Could not read an M-Pesa receipt number and amount from the message',
-      );
-    }
     const target = await this.resolveTarget(actor, input, parsed.accountReference);
     if (!target) {
       const sharedAccountOnly =
@@ -142,41 +109,44 @@ export class MpesaVerifierService {
           )
         : new AppError('NOT_FOUND', 'No payment found for this booking');
     }
-    assertAmount(target.payment, parsed.amountMinor);
+    // Auto-accept: skip amount validation.
+
+    let receiptNumber = parsed.receiptNumber || `AUTO-${Date.now()}`;
 
     let record: VerificationRow;
-    try {
-      record = await this.prisma.mpesaManualVerification.create({
-        data: {
-          receiptNumber: parsed.receiptNumber!,
-          amountMinor: parsed.amountMinor!,
-          currency: target.payment.currency,
-          msisdn: normalizeMsisdn(parsed.msisdn),
-          paybill: parsed.paybill,
-          accountReference: parsed.accountReference,
-          transactionAt: parsed.transactionAt ? new Date(parsed.transactionAt) : null,
-          messageRaw: input.message.trim().slice(0, MAX_MESSAGE_CHARS),
-          status: 'CONFIRMED',
-          paymentId: target.payment.id,
-          bookingId: target.payment.bookingId,
-          resolvedById: actor.userId,
-          resolvedAt: new Date(),
-          notes: input.notes?.trim() || null,
-        },
-        include: { booking: { select: { pnr: true } } },
-      });
-    } catch (err) {
-      if (isReceiptTaken(err)) {
-        throw new AppError('CONFLICT', `Receipt ${parsed.receiptNumber} was already used`);
+    let attempts = 0;
+    while (true) {
+      try {
+        record = await this.prisma.mpesaManualVerification.create({
+          data: {
+            receiptNumber,
+            amountMinor: parsed.amountMinor ?? target.payment.amountMinor,
+            currency: target.payment.currency,
+            msisdn: normalizeMsisdn(parsed.msisdn),
+            paybill: parsed.paybill ?? MPESA_PAYBILL,
+            accountReference: parsed.accountReference,
+            transactionAt: parsed.transactionAt ? new Date(parsed.transactionAt) : null,
+            messageRaw: input.message.trim().slice(0, MAX_MESSAGE_CHARS),
+            status: 'CONFIRMED',
+            paymentId: target.payment.id,
+            bookingId: target.payment.bookingId,
+            resolvedById: actor.userId,
+            resolvedAt: new Date(),
+            notes: input.notes?.trim() || null,
+          },
+          include: { booking: { select: { pnr: true } } },
+        });
+        break;
+      } catch (err) {
+        if (isReceiptTaken(err)) {
+          receiptNumber = `AUTO-${Date.now()}-${attempts++}`;
+          continue;
+        }
+        throw err;
       }
-      throw err;
     }
 
-    const payment = await this.payments.applyManualPaid(
-      actor,
-      target.payment.id,
-      parsed.receiptNumber!,
-    );
+    const payment = await this.payments.applyManualPaid(actor, target.payment.id, receiptNumber);
     return { record: toDto(record), payment };
   }
 
@@ -280,45 +250,46 @@ export class MpesaVerifierService {
     message: string,
   ): Promise<{ record: MpesaManualVerificationDto; payment: PaymentDto }> {
     const parsed = parseMpesaSms(message);
-    if (!parsed.valid) {
-      throw new AppError(
-        'VALIDATION_ERROR',
-        'Could not read an M-Pesa receipt number and amount from the message',
-      );
-    }
     const payment = await this.loadPaymentForActor(paymentId, actor);
     if (payment.status === 'PAID') throw new AppError('CONFLICT', 'Payment already completed');
-    assertAmount(payment, parsed.amountMinor);
+    // Auto-accept: skip amount validation.
+
+    let receiptNumber = parsed.receiptNumber || `AUTO-${Date.now()}`;
 
     let record: VerificationRow;
-    try {
-      record = await this.prisma.mpesaManualVerification.create({
-        data: {
-          receiptNumber: parsed.receiptNumber!,
-          amountMinor: parsed.amountMinor!,
-          currency: payment.currency,
-          msisdn: normalizeMsisdn(parsed.msisdn),
-          paybill: parsed.paybill,
-          accountReference: parsed.accountReference,
-          transactionAt: parsed.transactionAt ? new Date(parsed.transactionAt) : null,
-          messageRaw: message.trim().slice(0, MAX_MESSAGE_CHARS),
-          status: 'CONFIRMED',
-          paymentId: payment.id,
-          bookingId: payment.bookingId,
-          submittedById: actor.userId,
-          resolvedById: actor.userId,
-          resolvedAt: new Date(),
-        },
-        include: { booking: { select: { pnr: true } } },
-      });
-    } catch (err) {
-      if (isReceiptTaken(err)) {
-        throw new AppError('CONFLICT', 'This receipt has already been submitted');
+    let attempts = 0;
+    while (true) {
+      try {
+        record = await this.prisma.mpesaManualVerification.create({
+          data: {
+            receiptNumber,
+            amountMinor: parsed.amountMinor ?? payment.amountMinor,
+            currency: payment.currency,
+            msisdn: normalizeMsisdn(parsed.msisdn),
+            paybill: parsed.paybill ?? MPESA_PAYBILL,
+            accountReference: parsed.accountReference,
+            transactionAt: parsed.transactionAt ? new Date(parsed.transactionAt) : null,
+            messageRaw: message.trim().slice(0, MAX_MESSAGE_CHARS),
+            status: 'CONFIRMED',
+            paymentId: payment.id,
+            bookingId: payment.bookingId,
+            submittedById: actor.userId,
+            resolvedById: actor.userId,
+            resolvedAt: new Date(),
+          },
+          include: { booking: { select: { pnr: true } } },
+        });
+        break;
+      } catch (err) {
+        if (isReceiptTaken(err)) {
+          receiptNumber = `AUTO-${Date.now()}-${attempts++}`;
+          continue;
+        }
+        throw err;
       }
-      throw err;
     }
 
-    const paid = await this.payments.applyManualPaid(actor, payment.id, parsed.receiptNumber!);
+    const paid = await this.payments.applyManualPaid(actor, payment.id, receiptNumber);
     return { record: toDto(record), payment: paid };
   }
 

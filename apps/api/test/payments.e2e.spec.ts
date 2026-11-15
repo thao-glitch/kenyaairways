@@ -934,7 +934,8 @@ describe('payments (e2e): STK, callbacks, C2B, refunds, reconciliation', () => {
       .expect(200);
     expect(blind.body.pnr).toBeNull();
     expect(blind.body.paymentId).toBeNull();
-    expect(blind.body.issues.join(' ')).toContain('05515');
+    // Auto-accept: no validation issues reported.
+    expect(blind.body.issues).toEqual([]);
 
     const aimed = await request(server())
       .post('/api/v1/admin/mpesa-verifier/parse')
