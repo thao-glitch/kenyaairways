@@ -1,0 +1,6 @@
+{
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "buildCommand": "cd ../.. && pnpm --filter @kenyaairways/shared build && pnpm --filter @kenyaairways/admin build",
+  "outputDirectory": ".next",
+  "framework": "nextjs"
+}
