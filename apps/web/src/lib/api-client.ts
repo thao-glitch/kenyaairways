@@ -26,7 +26,6 @@ function silentRefresh(): Promise<boolean> {
       try {
         const res = await fetch(`${API_URL}/api/v1/auth/refresh`, {
           method: 'POST',
-          credentials: 'include',
           headers: { accept: 'application/json' },
         });
         return res.ok;
@@ -51,7 +50,6 @@ export async function apiCall<T>(path: string, options: ApiCallOptions = {}): Pr
   const { method = 'GET', body, signal } = options;
   const res = await fetch(`${API_URL}${path}`, {
     method,
-    credentials: 'include',
     headers: {
       accept: 'application/json',
       ...(body !== undefined ? { 'content-type': 'application/json' } : {}),

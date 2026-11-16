@@ -25,6 +25,9 @@ let socket: RtSocket | null = null;
  */
 function getSocket(): RtSocket {
   if (!socket) {
+    // When running without a backend (e.g. Vercel mock mode), skip
+    // socket.io entirely — there's no realtime server to talk to.
+    if (!API_URL) return null as unknown as RtSocket;
     socket = io(`${API_URL}${RT_NAMESPACE}`, {
       withCredentials: true,
       reconnection: true,
@@ -51,6 +54,10 @@ export function useRealtime(
 
   useEffect(() => {
     const s = getSocket();
+    if (!s) {
+      setState('offline');
+      return;
+    }
     const roomList = roomKey ? roomKey.split(',') : [];
 
     const joinAll = () => {
