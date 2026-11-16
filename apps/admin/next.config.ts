@@ -17,7 +17,10 @@ const isStaticExport = process.env.ADMIN_STATIC_EXPORT === '1';
 
 // Where the proxied API lives for browser clients (rewrites below). Server-side
 // code reads the same variables directly via src/lib/config.ts.
-const apiTarget = (process.env.API_PUBLIC_URL || 'http://localhost:4100').replace(/\/+$/, '');
+const apiTarget = (process.env.API_PUBLIC_URL || process.env.NEXT_PUBLIC_API_URL || '').replace(
+  /\/+$/,
+  '',
+);
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -40,6 +43,7 @@ const nextConfig: NextConfig = {
         // Self-contained server bundle for the Docker runtime image
         output: 'standalone' as const,
         async rewrites() {
+          if (!apiTarget) return [];
           // Browser clients stay same-origin (src/lib/config.ts returns '' in
           // the browser), so a device on the LAN only needs to reach this
           // console — API calls plus the root /readyz and /healthz probes are

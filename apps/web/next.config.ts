@@ -2,11 +2,12 @@ import type { NextConfig } from 'next';
 
 // Where the proxied API lives for browser clients. Server-side code reads the
 // same variables directly via src/lib/config.ts.
-const apiTarget = (
-  process.env.API_PUBLIC_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  'http://localhost:4100'
-).replace(/\/+$/, '');
+// When no API URL is set (e.g. Vercel with mock API routes), skip rewrites
+// so the filesystem API routes take precedence.
+const apiTarget = (process.env.API_PUBLIC_URL || process.env.NEXT_PUBLIC_API_URL || '').replace(
+  /\/+$/,
+  '',
+);
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -21,6 +22,10 @@ const nextConfig: NextConfig = {
   // Self-contained server bundle for the Docker runtime image
   output: 'standalone',
   async rewrites() {
+    // When no API URL is set (Vercel with mock API routes), skip rewrites
+    // so the filesystem API routes take precedence without proxying to
+    // a non-existent backend.
+    if (!apiTarget) return [];
     // Browser clients stay same-origin (src/lib/config.ts returns '' in the
     // browser), so a phone on the LAN only needs to reach this front door —
     // API calls, Socket.IO, paybill confirmation and the health probes are all
