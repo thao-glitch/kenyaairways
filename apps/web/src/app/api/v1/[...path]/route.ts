@@ -11,14 +11,17 @@ const siteSettings = {
 
 // Mock flight generator
 function mockFlights(origin: string, destination: string, date: string) {
-  const airlines = ['Kenya Airways', 'Jambojet', 'Safarilink'];
   const flights = [];
   const basePrice = origin === 'NBO' ? 8500 : 12000;
+  const durations = [75, 105, 135, 165, 195];
+  const priceVariation = [0, 1200, -800, 2500, -1500];
   for (let i = 0; i < 5; i++) {
     const hour = 6 + i * 3;
-    const dur = 60 + Math.floor(Math.random() * 120);
+    const dur = durations[i];
     const arriveHour = hour + Math.floor(dur / 60);
     const arriveMin = dur % 60;
+    const ecoPrice = basePrice + priceVariation[i] + i * 300;
+    const bizPrice = Math.round(ecoPrice * 2.8) + i * 500;
     flights.push({
       flightId: `mock-${origin}-${destination}-${i}`,
       flightNumber: `F13${100 + i}`,
@@ -43,7 +46,10 @@ function mockFlights(origin: string, destination: string, date: string) {
       arriveLocal: `${date}T${String(arriveHour).padStart(2, '0')}:${String(arriveMin).padStart(2, '0')}:00`,
       durationMinutes: dur,
       status: 'SCHEDULED',
-      aircraft: { code: 'B738', name: 'Boeing 737-800' },
+      aircraft: {
+        code: i % 2 === 0 ? 'B738' : 'E190',
+        name: i % 2 === 0 ? 'Boeing 737-800' : 'Embraer 190',
+      },
       fareOptions: [
         {
           fareClass: {
@@ -55,13 +61,13 @@ function mockFlights(origin: string, destination: string, date: string) {
             changesAllowed: true,
             refundable: false,
           },
-          seatsAvailable: 20 - i * 2,
+          seatsAvailable: 18 - i * 2,
           pricing: {
             currency: 'KES',
-            baseFareMinor: (basePrice + i * 500) * 100,
+            baseFareMinor: ecoPrice * 100,
             taxes: [],
             taxesTotalMinor: 0,
-            totalMinor: (basePrice + i * 500) * 100,
+            totalMinor: ecoPrice * 100,
           },
         },
         {
@@ -74,13 +80,13 @@ function mockFlights(origin: string, destination: string, date: string) {
             changesAllowed: true,
             refundable: true,
           },
-          seatsAvailable: 8,
+          seatsAvailable: 6,
           pricing: {
             currency: 'KES',
-            baseFareMinor: (basePrice * 3 + i * 1000) * 100,
+            baseFareMinor: bizPrice * 100,
             taxes: [],
             taxesTotalMinor: 0,
-            totalMinor: (basePrice * 3 + i * 1000) * 100,
+            totalMinor: bizPrice * 100,
           },
         },
       ],
@@ -219,11 +225,12 @@ export async function GET(
     const daysInMonth = new Date(y, m, 0).getDate();
     for (let d = 1; d <= daysInMonth; d++) {
       const date = `${month}-${String(d).padStart(2, '0')}`;
+      const dayPrice = 8500 + ((d * 7) % 20) * 100;
+      const flightCount = d % 5 === 0 ? 0 : (d % 4) + 1;
       days.push({
         date,
-        lowestTotalMinor:
-          Math.random() > 0.2 ? (8000 + Math.floor(Math.random() * 4000)) * 100 : null,
-        flightCount: Math.random() > 0.2 ? Math.floor(Math.random() * 4) + 1 : 0,
+        lowestTotalMinor: flightCount > 0 ? dayPrice * 100 : null,
+        flightCount: flightCount,
       });
     }
     return NextResponse.json({
@@ -478,19 +485,22 @@ export async function POST(
     }
     // Calculate total from selected flights
     if (body.segments && body.segments.length > 0) {
-      const flightPrices: Record<string, number> = {
-        'mock-NBO-MBA-0': 850000,
-        'mock-NBO-MBA-1': 900000,
-        'mock-NBO-MBA-2': 950000,
-        'mock-NBO-MBA-3': 1000000,
-        'mock-NBO-MBA-4': 1050000,
-        'mock-NBO-KIS-0': 650000,
-        'mock-NBO-KIS-1': 700000,
-        'mock-NBO-KIS-2': 750000,
-      };
       let total = 0;
       for (const seg of body.segments) {
-        total += flightPrices[seg.flightId] || 850000;
+        const parts = (seg.flightId || '').split('-');
+        const origin = parts[1] || 'NBO';
+        const dest = parts[2] || 'MBA';
+        const date = new Date().toISOString().slice(0, 10);
+        const mockFlightData = mockFlights(origin, dest, date);
+        const flight = mockFlightData.results.find((f: any) => f.flightId === seg.flightId);
+        if (flight) {
+          const fare = flight.fareOptions.find(
+            (fo: any) => fo.fareClass.code === (seg.fareClassCode || 'ECONOMY'),
+          );
+          total += fare ? fare.pricing.totalMinor : flight.fareOptions[0].pricing.totalMinor;
+        } else {
+          total += 850000;
+        }
       }
       booking.totalMinor = total * (body.passengers?.length || 1);
     }
