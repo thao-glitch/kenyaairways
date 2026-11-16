@@ -12,16 +12,52 @@ const siteSettings = {
 // Mock flight generator
 function mockFlights(origin: string, destination: string, date: string) {
   const flights = [];
-  const basePrice = origin === 'NBO' ? 8500 : 12000;
+  const routePrices: Record<string, number> = {
+    'NBO-MBA': 18500,
+    'NBO-KIS': 9500,
+    'NBO-WIL': 4500,
+    'NBO-MYD': 12000,
+    'NBO-EDL': 11000,
+    'NBO-LAU': 13500,
+    'NBO-PSC': 14000,
+    'NBO-DAR': 22000,
+    'NBO-EBB': 28000,
+    'NBO-JNB': 35000,
+    'NBO-DXB': 45000,
+    'NBO-LHR': 85000,
+    'NBO-CDG': 78000,
+    'NBO-JFK': 120000,
+    'NBO-NRT': 95000,
+    'NBO-SIN': 65000,
+    'NBO-SYD': 135000,
+    'NBO-HKG': 72000,
+    'NBO-DEL': 55000,
+    'NBO-BOM': 48000,
+    'NBO-CAI': 42000,
+    'NBO-IST': 58000,
+    'NBO-DOH': 52000,
+    'NBO-RUH': 45000,
+    'NBO-ADD': 28000,
+    'NBO-CPT': 42000,
+    'NBO-LOS': 68000,
+    'NBO-GRU': 145000,
+    'NBO-MEL': 125000,
+    'NBO-YYZ': 115000,
+    'NBO-AMS': 75000,
+    'NBO-MAD': 72000,
+    'NBO-FRA': 78000,
+  };
+  const routeKey = `${origin}-${destination}`;
+  const basePrice = routePrices[routeKey] || (origin === 'NBO' ? 15000 : 20000);
   const durations = [75, 105, 135, 165, 195];
-  const priceVariation = [0, 1200, -800, 2500, -1500];
   for (let i = 0; i < 5; i++) {
     const hour = 6 + i * 3;
     const dur = durations[i];
     const arriveHour = hour + Math.floor(dur / 60);
     const arriveMin = dur % 60;
-    const ecoPrice = basePrice + priceVariation[i] + i * 300;
-    const bizPrice = Math.round(ecoPrice * 2.8) + i * 500;
+    const timeMultiplier = i === 0 ? 1.15 : i === 1 ? 1.05 : i === 2 ? 1.0 : i === 3 ? 0.95 : 0.9;
+    const ecoPrice = Math.round(basePrice * timeMultiplier);
+    const bizPrice = Math.round(ecoPrice * 2.6);
     flights.push({
       flightId: `mock-${origin}-${destination}-${i}`,
       flightNumber: `F13${100 + i}`,
