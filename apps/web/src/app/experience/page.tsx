@@ -126,7 +126,7 @@ export default async function ExperiencePage({ searchParams }: { searchParams: S
                 </dl>
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {type.cabins.map((cabin) => (
+                  {type.cabins?.map((cabin) => (
                     <span
                       key={cabin.cabin}
                       className="rounded-full border px-2.5 py-0.5 text-xs text-muted-foreground"
@@ -141,7 +141,7 @@ export default async function ExperiencePage({ searchParams }: { searchParams: S
                     {t('section.experience.registrations')}
                   </p>
                   <ul className="mt-1.5 flex flex-wrap gap-2">
-                    {type.aircraft.map((ac) => (
+                    {type.aircraft?.map((ac) => (
                       <li
                         key={ac.registration}
                         title={`${t('section.experience.status')}: ${ac.status}`}
@@ -194,7 +194,7 @@ export default async function ExperiencePage({ searchParams }: { searchParams: S
                       · {fare.refundable ? t('section.plan.refundYes') : t('section.plan.refundNo')}
                     </li>
                   </ul>
-                  {fare.rules.length > 0 && (
+                  {(fare.rules ?? []).length > 0 && (
                     <ul className="mt-3 space-y-2 border-t pt-3 text-sm text-muted-foreground">
                       {fare.rules.map((rule) => (
                         <li key={rule.routeType} className="flex gap-2">

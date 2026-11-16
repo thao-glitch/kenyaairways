@@ -288,9 +288,30 @@ export async function GET(
   if (path === '/fleet') {
     return NextResponse.json({
       types: [
-        { code: 'B738', name: 'Boeing 737-800', seats: 189, range: 'Medium-haul' },
-        { code: 'B788', name: 'Boeing 787-8 Dreamliner', seats: 234, range: 'Long-haul' },
-        { code: 'E190', name: 'Embraer 190', seats: 96, range: 'Regional' },
+        {
+          code: 'B738',
+          name: 'Boeing 737-800',
+          seats: 189,
+          range: 'Medium-haul',
+          cabins: [],
+          aircraft: [{ registration: '5Y-KZA', name: 'Boeing 737-800' }],
+        },
+        {
+          code: 'B788',
+          name: 'Boeing 787-8 Dreamliner',
+          seats: 234,
+          range: 'Long-haul',
+          cabins: [],
+          aircraft: [{ registration: '5Y-KZB', name: 'Boeing 787-8 Dreamliner' }],
+        },
+        {
+          code: 'E190',
+          name: 'Embraer 190',
+          seats: 96,
+          range: 'Regional',
+          cabins: [],
+          aircraft: [{ registration: '5Y-KZC', name: 'Embraer 190' }],
+        },
       ],
     });
   }
@@ -443,17 +464,36 @@ export async function POST(
   // Create booking
   if (path === '/bookings') {
     const id = generateId();
-    const booking = {
-      id,
-      pnr: 'F13' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-      status: 'HELD',
-      totalMinor: 850000,
-      currency: 'KES',
-      flights: [],
-      passengers: [],
-      createdAt: new Date().toISOString(),
-      ...body,
-    };
+    const booking = mockBooking(id);
+    if (body.contactEmail) booking.contactEmail = body.contactEmail;
+    if (body.contactPhone) booking.contactPhone = body.contactPhone;
+    if (body.passengers) {
+      booking.passengers = body.passengers.map((p: any, i: number) => ({
+        seq: i + 1,
+        type: p.type || 'ADULT',
+        firstName: p.firstName || 'Demo',
+        lastName: p.lastName || 'User',
+      }));
+      booking.adultCount = body.passengers.length;
+    }
+    // Calculate total from selected flights
+    if (body.segments && body.segments.length > 0) {
+      const flightPrices: Record<string, number> = {
+        'mock-NBO-MBA-0': 850000,
+        'mock-NBO-MBA-1': 900000,
+        'mock-NBO-MBA-2': 950000,
+        'mock-NBO-MBA-3': 1000000,
+        'mock-NBO-MBA-4': 1050000,
+        'mock-NBO-KIS-0': 650000,
+        'mock-NBO-KIS-1': 700000,
+        'mock-NBO-KIS-2': 750000,
+      };
+      let total = 0;
+      for (const seg of body.segments) {
+        total += flightPrices[seg.flightId] || 850000;
+      }
+      booking.totalMinor = total * (body.passengers?.length || 1);
+    }
     store.bookings[id] = booking;
     return NextResponse.json(booking, { status: 201 });
   }
@@ -461,15 +501,11 @@ export async function POST(
   // Create payment
   if (path === '/payments') {
     const id = generateId();
-    const payment = {
-      id,
-      bookingId: body.bookingId,
-      status: 'REQUIRES_ACTION',
-      manual: body.manual || false,
-      amountMinor: 850000,
-      currency: 'KES',
-      createdAt: new Date().toISOString(),
-    };
+    const booking = store.bookings[body.bookingId];
+    const amount = booking ? booking.totalMinor : 850000;
+    const payment = mockPayment(id, body.bookingId || 'mock-booking');
+    payment.amountMinor = amount;
+    payment.manual = body.manual || false;
     store.payments[id] = payment;
     return NextResponse.json(payment, { status: 201 });
   }
@@ -479,6 +515,7 @@ export async function POST(
     const id = path.split('/')[2];
     const payment = store.payments[id] || mockPayment(id, 'mock-booking');
     payment.status = 'PAID';
+    payment.paidAt = new Date().toISOString();
     store.payments[id] = payment;
     const record = {
       id: generateId(),
@@ -489,9 +526,10 @@ export async function POST(
       createdAt: new Date().toISOString(),
     };
     store.verifications[id] = record;
-    // Update booking status
+    // Update booking status and total
     if (store.bookings[payment.bookingId]) {
       store.bookings[payment.bookingId].status = 'CONFIRMED';
+      store.bookings[payment.bookingId].totalMinor = payment.amountMinor;
     }
     return NextResponse.json({ record, payment }, { status: 201 });
   }
