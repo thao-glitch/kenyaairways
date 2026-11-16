@@ -75,9 +75,6 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
     .filter(Boolean);
 
   const single = trip !== 'multicity';
-  const hasFilters = single
-    ? Boolean(origin || destination || date)
-    : legRaws.some((raw) => parseLeg(raw) !== null);
   // The pick-outbound-then-return flow only engages with a full round trip:
   // a "Return" search without a return date behaves like a one-way list.
   const returnMode = single && trip === 'return' && Boolean(returnDate && origin && destination);
@@ -161,16 +158,6 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
       <p className="text-sm text-muted-foreground">{message}</p>
     </div>
   );
-
-  const unavailable = out === null &&
-    (hasFilters || (trip === 'multicity' && legSpecs.length > 0)) && (
-      <p
-        className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-        role="alert"
-      >
-        {t('search.unavailable')}
-      </p>
-    );
 
   const chosenCard = (option: FlightOptionDto, currency: Currency, changeHref: string) => (
     <Card className="border-primary/40">
@@ -282,8 +269,6 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
         </section>
       )}
 
-      {unavailable}
-
       {/* Fare tracking only applies to a fixed route pair. */}
       {single && outResults && outResults.length > 0 && origin && destination && (
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -340,10 +325,7 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
               {chosenCard(selected, currencyOf(0), pageHref([]))}
               {groupHeading('return-heading', t('results.chooseReturn'))}
               {retGroup === null ? (
-                <p
-                  className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-                  role="alert"
-                >
+                <p className="rounded-md border px-3 py-2 text-sm text-muted-foreground">
                   {t('search.unavailable')}
                 </p>
               ) : retResults && retResults.length > 0 ? (
@@ -411,10 +393,7 @@ export default async function FlightsPage({ searchParams }: { searchParams: Sear
                         {i === 0 && groupHeading('legs-heading', t('results.chooseOutbound'))}
                         {heading}
                         {groups[i] === null ? (
-                          <p
-                            className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-                            role="alert"
-                          >
+                          <p className="rounded-md border px-3 py-2 text-sm text-muted-foreground">
                             {t('search.unavailable')}
                           </p>
                         ) : results && results.length > 0 ? (
