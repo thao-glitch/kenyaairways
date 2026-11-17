@@ -50,13 +50,22 @@ function mockFlights(origin: string, destination: string, date: string) {
   const routeKey = `${origin}-${destination}`;
   const basePrice = routePrices[routeKey] || (origin === 'NBO' ? 15000 : 20000);
   const durations = [75, 105, 135, 165, 195];
+  // Date-based price variation (weekends, advance booking, seasonality)
+  const dateObj = new Date(date + 'T00:00:00Z');
+  const dayOfWeek = dateObj.getUTCDay(); // 0=Sun, 6=Sat
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  const daysFromNow = Math.max(1, Math.ceil((dateObj.getTime() - Date.now()) / 86400000));
+  const advanceMultiplier =
+    daysFromNow <= 3 ? 1.4 : daysFromNow <= 7 ? 1.2 : daysFromNow <= 14 ? 1.0 : 0.85;
+  const weekendMultiplier = isWeekend ? 1.15 : 1.0;
+  const dateMultiplier = advanceMultiplier * weekendMultiplier;
   for (let i = 0; i < 5; i++) {
     const hour = 6 + i * 3;
     const dur = durations[i];
     const arriveHour = hour + Math.floor(dur / 60);
     const arriveMin = dur % 60;
     const timeMultiplier = i === 0 ? 1.15 : i === 1 ? 1.05 : i === 2 ? 1.0 : i === 3 ? 0.95 : 0.9;
-    const ecoPrice = Math.round(basePrice * timeMultiplier);
+    const ecoPrice = Math.round(basePrice * timeMultiplier * dateMultiplier);
     const bizPrice = Math.round(ecoPrice * 2.6);
     flights.push({
       flightId: `mock-${origin}-${destination}-${i}`,

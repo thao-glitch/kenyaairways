@@ -35,13 +35,19 @@ function statusVariant(status: string): 'success' | 'warning' | 'destructive' | 
  * from REST; Socket.IO rooms (`booking:` / `flight:`) push updates that
  * re-fetch, with an offline polling fallback while payments are in flight.
  */
-export function BookingPanel({ bookingId }: { bookingId: string }) {
+export function BookingPanel({
+  bookingId,
+  initialBooking,
+}: {
+  bookingId: string;
+  initialBooking?: BookingDto | null;
+}) {
   const { t } = useT();
   const router = useRouter();
-  const [booking, setBooking] = useState<BookingDto | null>(null);
+  const [booking, setBooking] = useState<BookingDto | null>(initialBooking ?? null);
   const [tickets, setTickets] = useState<TicketDto[] | null>(null);
   const [error, setError] = useState<LoadError>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialBooking ? false : true);
   const [seatVersion, setSeatVersion] = useState(0);
   const [now, setNow] = useState(() => Date.now());
 
@@ -59,8 +65,14 @@ export function BookingPanel({ bookingId }: { bookingId: string }) {
   }, [bookingId, t]);
 
   useEffect(() => {
+    // If we already have the booking from server-side fetch, skip the initial
+    // client-side fetch. Still poll for updates.
+    if (initialBooking) {
+      setLoading(false);
+      return;
+    }
     void refresh();
-  }, [refresh]);
+  }, [refresh, initialBooking]);
 
   // Issued tickets live behind the PNR endpoint (owner-scoped).
   const status = booking?.status;

@@ -53,6 +53,13 @@ export function useRealtime(
   const roomKey = rooms.join(',');
 
   useEffect(() => {
+    // When running without a backend (mock mode on Vercel), skip
+    // socket.io entirely — there's no realtime server to talk to.
+    if (!API_URL) {
+      setState('offline');
+      return;
+    }
+
     const s = getSocket();
     if (!s) {
       setState('offline');
